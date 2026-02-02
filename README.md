@@ -59,12 +59,17 @@ bin/doctor
 ### 3. Start Working
 
 ```bash
-# Start working on a ticket (creates worktree)
-bin/vibe do PROJ-123
+# Start working on a ticket or GitHub issue (creates worktree from latest main)
+bin/vibe do PROJ-123   # or: bin/vibe do 21  for GitHub issue #21
 
 # You'll be in a new worktree with the branch ready
 cd ../your-project-worktrees/PROJ-123
+
+# When done, open a PR (run from inside the worktree)
+bin/vibe pr
 ```
+
+`bin/vibe do` fetches latest `main` and creates the new branch from `origin/main`, so you always start from a fresh base. You can run it from the main repo or from any worktree.
 
 ## Branch Naming
 

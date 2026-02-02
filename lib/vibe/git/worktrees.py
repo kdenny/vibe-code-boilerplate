@@ -18,16 +18,40 @@ class Worktree:
     is_main: bool = False
 
 
+def get_primary_repo_root() -> Path:
+    """
+    Get the primary (main) repository root, even when running from a linked worktree.
+
+    This ensures worktree base paths use a consistent repo name (e.g. vibe-code-boilerplate)
+    instead of the current worktree directory name (e.g. 21).
+    """
+    result = subprocess.run(
+        ["git", "rev-parse", "--git-dir"],
+        capture_output=True,
+        text=True,
+        check=True,
+        cwd=Path.cwd(),
+    )
+    git_dir = Path(result.stdout.strip()).resolve()
+    if "worktrees" in str(git_dir):
+        # We're in a linked worktree: .git is .git/worktrees/<name>
+        # Primary repo root is git_dir.parent.parent.parent
+        return git_dir.parent.parent.parent
+    return git_dir.parent
+
+
 def get_worktree_base_path() -> Path:
     """Get the base path for worktrees from config."""
     config = load_config()
     base_path = config.get("worktrees", {}).get("base_path", "../{repo}-worktrees")
 
-    # Resolve {repo} placeholder
-    repo_name = Path.cwd().name
+    # Use primary repo name so path is correct when running from a worktree
+    repo_root = get_primary_repo_root()
+    repo_name = repo_root.name
     base_path = base_path.replace("{repo}", repo_name)
 
-    return Path(base_path).resolve()
+    # Resolve relative to primary repo root so path is consistent
+    return (repo_root / base_path).resolve()
 
 
 def create_worktree(branch_name: str, base_branch: str = "main") -> Worktree:
@@ -36,39 +60,38 @@ def create_worktree(branch_name: str, base_branch: str = "main") -> Worktree:
 
     Args:
         branch_name: Name of the branch to create/checkout
-        base_branch: Branch to base the new branch on
+        base_branch: Branch or ref to base the new branch on (e.g. main or origin/main)
 
     Returns:
         Worktree object with path and branch info
     """
+    repo_root = get_primary_repo_root()
     worktree_base = get_worktree_base_path()
     worktree_path = worktree_base / branch_name
 
     # Ensure base directory exists
     worktree_base.mkdir(parents=True, exist_ok=True)
 
+    # All git commands run from primary repo root for consistent behavior
+    def git(*args: str, check: bool = True) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            ["git"] + list(args),
+            capture_output=True,
+            text=True,
+            check=check,
+            cwd=repo_root,
+        )
+
     # Check if branch exists
-    result = subprocess.run(
-        ["git", "rev-parse", "--verify", f"refs/heads/{branch_name}"],
-        capture_output=True,
-        text=True,
-    )
+    result = git("rev-parse", "--verify", f"refs/heads/{branch_name}", check=False)
     branch_exists = result.returncode == 0
 
     if branch_exists:
         # Checkout existing branch
-        subprocess.run(
-            ["git", "worktree", "add", str(worktree_path), branch_name],
-            check=True,
-            capture_output=True,
-        )
+        git("worktree", "add", str(worktree_path), branch_name)
     else:
-        # Create new branch from base
-        subprocess.run(
-            ["git", "worktree", "add", "-b", branch_name, str(worktree_path), base_branch],
-            check=True,
-            capture_output=True,
-        )
+        # Create new branch from base (e.g. origin/main for latest)
+        git("worktree", "add", "-b", branch_name, str(worktree_path), base_branch)
 
     # Get commit hash
     result = subprocess.run(
@@ -79,8 +102,8 @@ def create_worktree(branch_name: str, base_branch: str = "main") -> Worktree:
     )
     commit = result.stdout.strip()
 
-    # Track in state
-    add_worktree(str(worktree_path))
+    # Track in primary repo's state so main checkout sees it
+    add_worktree(str(worktree_path), base_path=repo_root)
 
     return Worktree(
         path=str(worktree_path),

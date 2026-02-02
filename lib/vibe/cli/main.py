@@ -1,6 +1,7 @@
 """Main CLI entry point for vibe commands."""
 
 import sys
+from pathlib import Path
 
 import click
 
@@ -39,9 +40,11 @@ def doctor(verbose: bool) -> None:
 @main.command()
 @click.argument("ticket_id")
 def do(ticket_id: str) -> None:
-    """Start working on a ticket (creates worktree and branch)."""
+    """Start working on a ticket (creates worktree and branch from latest main)."""
+    import subprocess
+
     from lib.vibe.config import load_config
-    from lib.vibe.git.branches import format_branch_name
+    from lib.vibe.git.branches import format_branch_name, get_main_branch
     from lib.vibe.git.worktrees import create_worktree
     from lib.vibe.trackers.linear import LinearTracker
 
@@ -61,9 +64,21 @@ def do(ticket_id: str) -> None:
     branch_name = format_branch_name(ticket_id, title)
     click.echo(f"Branch: {branch_name}")
 
-    # Create worktree
+    # Fetch latest main so new branch is based on origin/main
+    main_branch = get_main_branch()
     try:
-        worktree = create_worktree(branch_name)
+        subprocess.run(
+            ["git", "fetch", "origin", main_branch],
+            check=True,
+            capture_output=True,
+        )
+    except subprocess.CalledProcessError as e:
+        click.echo(f"Warning: could not fetch origin/{main_branch}: {e}", err=True)
+
+    # Create worktree from origin/main so branch is rebased to latest main
+    origin_main = f"origin/{main_branch}"
+    try:
+        worktree = create_worktree(branch_name, base_branch=origin_main)
         click.echo(f"Worktree created at: {worktree.path}")
         click.echo(f"\nTo start working:\n  cd {worktree.path}")
     except Exception as e:
@@ -72,11 +87,47 @@ def do(ticket_id: str) -> None:
 
 
 @main.command()
-def pr() -> None:
-    """Prepare and open a pull request."""
-    click.echo("PR command not yet implemented.")
-    click.echo("For now, use: gh pr create")
-    sys.exit(1)
+@click.option("--title", "-t", help="PR title (default: branch name or branch + first commit line)")
+@click.option("--body", "-b", help="PR body (default: use template)")
+@click.option("--web", is_flag=True, help="Open PR form in the browser")
+def pr(title: str | None, body: str | None, web: bool) -> None:
+    """Open a pull request for the current branch (run from your worktree when done)."""
+    import subprocess
+
+    from lib.vibe.git.branches import current_branch, get_main_branch
+
+    main_branch = get_main_branch()
+    branch = current_branch()
+    if branch == main_branch:
+        click.echo(f"Cannot open PR from {main_branch}. Check out your feature branch first.", err=True)
+        sys.exit(1)
+
+    args = ["gh", "pr", "create"]
+    if title:
+        args.extend(["--title", title])
+    else:
+        args.extend(["--title", branch])  # default: branch name as title
+    if body:
+        args.extend(["--body", body])
+    else:
+        # Use PR template if it exists
+        template = Path(".github/PULL_REQUEST_TEMPLATE.md")
+        if template.exists():
+            args.extend(["--body-file", str(template)])
+    if web:
+        args.append("--web")
+
+    try:
+        subprocess.run(args, check=True)
+        click.echo("PR created.")
+    except subprocess.CalledProcessError as e:
+        click.echo(f"Failed to create PR: {e}", err=True)
+        click.echo("Run: gh pr create")
+        sys.exit(1)
+    except FileNotFoundError:
+        click.echo("gh CLI not found. Install it: https://cli.github.com/")
+        click.echo("Then run: gh pr create")
+        sys.exit(1)
 
 
 BOILERPLATE_ISSUES_URL = "https://github.com/kdenny/vibe-code-boilerplate/issues"
