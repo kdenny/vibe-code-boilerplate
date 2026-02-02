@@ -26,16 +26,16 @@ Use this boilerplate when:
 
 ### Example Prompt for AI Agents
 
-```
-I'm starting a new project. Reference the vibe-code-boilerplate at
-[path/to/boilerplate] for:
-- Project structure conventions
-- Git workflow (worktrees, rebasing)
-- PR templates and policies
-- Ticket tracking integration
+A minimal prompt is enough — workflows, structure, PR policies, and ticket integration are defined by the boilerplate and applied automatically when the agent reads this repo (see [CLAUDE.md](https://github.com/kdenny/vibe-code-boilerplate/blob/main/CLAUDE.md)).
 
-Follow the recipes in recipes/ for specific implementations.
+**Minimal example:**
+
 ```
+Build an app for movie recommendations using React, Next.js, and the OpenAI API.
+Use https://github.com/kdenny/vibe-code-boilerplate for workflows and structure.
+```
+
+The agent will apply project structure conventions, git workflow (worktrees, rebasing), PR templates and policies, and ticket tracking integration from the boilerplate; use the `recipes/` directory for specific implementations.
 
 ## Quick Start
 

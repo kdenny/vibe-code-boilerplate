@@ -6,6 +6,19 @@ This file contains instructions for AI agents (Claude, GPT, etc.) working on pro
 
 ---
 
+## Minimal Prompts / Using This Repo as Reference
+
+When the user gives a **minimally specified prompt** that references this boilerplate (e.g. "Build an app for X using https://github.com/kdenny/vibe-code-boilerplate"), apply these conventions **automatically** without requiring the user to list them:
+
+- **Project structure conventions** – `.vibe/`, `bin/`, `lib/`, `recipes/`, `.github/` as in this repo
+- **Git workflow** – Worktrees for ticket work (`bin/vibe do PROJ-123`), branch naming `{PROJ}-{num}`, rebase (never merge main into feature branches)
+- **PR templates and policies** – Risk labels, ticket reference in title, template in `.github/PULL_REQUEST_TEMPLATE.md`
+- **Ticket tracking integration** – Linear (or configured tracker), labels (type, risk, area), "do this ticket" = worktree + PR when done
+
+Do not ask the user to enumerate these bullets; they are implied by "use this boilerplate" or "use vibe-code-boilerplate". Use the **recipes/** directory for step-by-step implementations (workflows, security, tickets, etc.).
+
+---
+
 ## Project Overview
 
 **Fill this in after applying the boilerplate** so AI agents have immediate context on what the project is. Run `bin/vibe setup` when ready; consider updating this section as part of that flow.
