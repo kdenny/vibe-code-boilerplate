@@ -164,11 +164,15 @@ def run_setup(force: bool = False) -> bool:
         click.echo()
         click.echo("Next steps:")
         click.echo("  1. Run 'bin/doctor' to verify your setup")
+        next_num = 2
         if not github_configured:
-            click.echo("  2. Run 'bin/vibe setup -w github' to connect GitHub")
-        click.echo("  2. Optional: run 'bin/vibe setup -w tracker' to add Linear")
-        click.echo("  3. Fill in the Project Overview in CLAUDE.md (for AI agent context)")
-        click.echo("  4. Check recipes/ for best practices")
+            click.echo(f"  {next_num}. Run 'bin/vibe setup -w github' to connect GitHub")
+            next_num += 1
+        click.echo(f"  {next_num}. Optional: run 'bin/vibe setup -w tracker' to add Linear")
+        next_num += 1
+        click.echo(f"  {next_num}. Fill in the Project Overview in CLAUDE.md (for AI agent context)")
+        next_num += 1
+        click.echo(f"  {next_num}. Check recipes/ for best practices")
         click.echo()
         return True
 

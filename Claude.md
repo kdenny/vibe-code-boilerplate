@@ -1,4 +1,6 @@
-# Claude.md - AI Agent Instructions
+# CLAUDE.md – AI Agent Instructions
+
+**Filename:** This file must be named **CLAUDE.md** (all caps) in the project root so Cursor and other tools load it as the project’s agent instructions.
 
 This file contains instructions for AI agents (Claude, GPT, etc.) working on projects that use this boilerplate.
 
@@ -76,6 +78,15 @@ See `recipes/agents/human-required-work.md` for the full guide.
 ---
 
 ## Ticket Management
+
+### "Do this ticket {ticket}" – What it means
+
+When the user says **"do this ticket PROJ-123"** (or any ticket ID), that means:
+
+1. **Do the work on a fresh worktree** – Create a dedicated worktree for that ticket (`bin/vibe do PROJ-123`), do all work there (no work in the main checkout).
+2. **Open a PR when complete** – When the work is done, commit, push, and open a PR (title with ticket ref, risk label, etc.). Do not leave the work only local.
+
+So: **"do this ticket {ticket}"** = **do this ticket on a fresh worktree and open a PR when complete.**
 
 ### Ticketing System (Linear) Must Be Configured First
 
