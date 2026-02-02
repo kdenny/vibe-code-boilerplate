@@ -47,7 +47,14 @@ Use the exact state name your Linear workflow uses (e.g. **Done**, **Released**)
 
 In `.vibe/config.json`, `tracker.config.deployed_state` is optional and used for local/documentation; the GitHub Actions workflow uses the repo variable `LINEAR_DEPLOYED_STATE` (default `Deployed`).
 
+## UAT Workflow (Optional)
+
+If your team uses a testing step before marking tickets done, set `LINEAR_DEPLOYED_STATE` to your testing state (e.g. `To Test`, `QA`, `Staging`). After verification, manually move tickets to `Done`.
+
+See [uat-testing.md](uat-testing.md) for full UAT workflow documentation.
+
 ## Related
 
 - [pr-opened-linear.md](pr-opened-linear.md) - Updates ticket to In Review when PR is opened
+- [uat-testing.md](uat-testing.md) - Optional UAT workflow (To Test → Done)
 - [linear-setup.md](../tickets/linear-setup.md) - Initial Linear configuration

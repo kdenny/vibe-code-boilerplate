@@ -66,6 +66,7 @@ The canonical configuration is in `.vibe/config.json`. Key fields are populated 
 
 - **tracker.config.deployed_state** (optional): State name to use when a PR is merged (e.g. `Deployed`, `Done`, `Released`). The PR-merged workflow (`.github/workflows/pr-merged.yml`) uses repo variable `LINEAR_DEPLOYED_STATE` in CI (default `Deployed`); this config key is for local use and documentation.
 - **tracker.config.in_review_state** (optional): State name when a PR is opened (default: `In Review`). The PR-opened workflow (`.github/workflows/pr-opened.yml`) uses repo variable `LINEAR_IN_REVIEW_STATE` in CI.
+- **tracker.config.done_state** (optional): Final "done" state name (e.g. `Done`, `Closed`). Used when UAT workflow is enabled—tickets go to `deployed_state` (e.g. `To Test`) on merge, then manually to `done_state` after verification. See `recipes/workflows/uat-testing.md`.
 
 ---
 
@@ -555,9 +556,11 @@ When implementing specific features, consult these recipes:
 - `recipes/workflows/git-worktrees.md` - Parallel development
 - `recipes/workflows/branching-and-rebasing.md` - Git workflow
 - `recipes/workflows/multi-agent-coordination.md` - Preventing conflicts with multiple agents
+- `recipes/workflows/multi-agent-terminals.md` - Terminal setup for multiple agents (iTerm2, tmux)
 - `recipes/workflows/linear-hooks.md` - Local hooks for automatic Linear updates
 - `recipes/workflows/pr-opened-linear.md` - PR opened → Linear status (In Review)
 - `recipes/workflows/pr-merge-linear.md` - PR merge → Linear status (Deployed)
+- `recipes/workflows/uat-testing.md` - Optional UAT workflow (To Test → Done)
 - `recipes/workflows/pr-risk-assessment.md` - Risk classification
 - `recipes/workflows/testing-instructions-writing.md` - Testing docs
 
