@@ -1,4 +1,5 @@
 # Vibe-specific
+.vibe/config.json
 .vibe/local_state.json
 .vibe/.venv/
 
