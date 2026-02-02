@@ -1,0 +1,42 @@
+{
+  "$schema": "./config.schema.json",
+  "version": "1.0.0",
+  "project": {
+    "name": "",
+    "repository": ""
+  },
+  "tracker": {
+    "type": null,
+    "config": {}
+  },
+  "github": {
+    "auth_method": null,
+    "owner": "",
+    "repo": ""
+  },
+  "branching": {
+    "pattern": "{PROJ}-{num}",
+    "main_branch": "main",
+    "always_rebase": true
+  },
+  "worktrees": {
+    "location": "sibling",
+    "base_path": "../{repo}-worktrees",
+    "auto_cleanup": true
+  },
+  "labels": {
+    "type": ["Bug", "Feature", "Chore", "Refactor"],
+    "risk": ["Low Risk", "Medium Risk", "High Risk"],
+    "area": ["Frontend", "Backend", "Infra", "Docs"],
+    "special": ["HUMAN", "Milestone", "Blocked"]
+  },
+  "security": {
+    "secret_scanner": "gitleaks",
+    "sbom_generator": "syft",
+    "dependency_scanning": true
+  },
+  "secrets": {
+    "providers": [],
+    "allowlist_path": ".vibe/secrets.allowlist.json"
+  }
+}

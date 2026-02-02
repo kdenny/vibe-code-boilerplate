@@ -1,0 +1,155 @@
+name: PR Policy
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  validate-pr:
+    name: Validate PR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check ticket reference
+        id: ticket
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = context.payload.pull_request.title;
+            const body = context.payload.pull_request.body || '';
+            const branch = context.payload.pull_request.head.ref;
+
+            // Patterns to match ticket references
+            const patterns = [
+              /[A-Z]+-\d+/,           // PROJ-123
+              /\#\d+/,                 // #123
+              /issues\/\d+/,           // issues/123
+            ];
+
+            const hasTicket = patterns.some(p =>
+              p.test(title) || p.test(body) || p.test(branch)
+            );
+
+            if (!hasTicket) {
+              core.warning('No ticket reference found in PR title, body, or branch name');
+              core.setOutput('has_ticket', 'false');
+            } else {
+              core.setOutput('has_ticket', 'true');
+            }
+
+      - name: Check risk label
+        id: risk
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = context.payload.pull_request.labels.map(l => l.name);
+            const riskLabels = ['Low Risk', 'Medium Risk', 'High Risk'];
+
+            const hasRisk = labels.some(l => riskLabels.includes(l));
+
+            if (!hasRisk) {
+              core.warning('Missing risk label. Add one of: Low Risk, Medium Risk, High Risk');
+              core.setOutput('has_risk', 'false');
+            } else {
+              const riskLevel = labels.find(l => riskLabels.includes(l));
+              core.setOutput('has_risk', 'true');
+              core.setOutput('risk_level', riskLevel);
+            }
+
+      - name: Warn on high risk without tests
+        if: steps.risk.outputs.risk_level == 'High Risk'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+            });
+
+            const hasTestChanges = files.some(f =>
+              f.filename.includes('test') ||
+              f.filename.includes('spec') ||
+              f.filename.endsWith('_test.py') ||
+              f.filename.endsWith('.test.ts') ||
+              f.filename.endsWith('.spec.ts')
+            );
+
+            if (!hasTestChanges) {
+              core.warning('High Risk PR without test changes. Consider adding tests.');
+            }
+
+      - name: Check branch naming
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const branch = context.payload.pull_request.head.ref;
+
+            // Skip for common branch names
+            const skipBranches = ['main', 'master', 'develop', 'staging'];
+            if (skipBranches.includes(branch)) {
+              return;
+            }
+
+            // Check for ticket reference pattern
+            const pattern = /^[A-Z]+-\d+/;
+
+            if (!pattern.test(branch)) {
+              core.warning(`Branch name "${branch}" doesn't follow convention. Expected: PROJ-123 or PROJ-123-description`);
+            }
+
+      - name: Post summary comment
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const hasTicket = '${{ steps.ticket.outputs.has_ticket }}' === 'true';
+            const hasRisk = '${{ steps.risk.outputs.has_risk }}' === 'true';
+
+            let issues = [];
+            if (!hasTicket) issues.push('- Missing ticket reference in title, body, or branch');
+            if (!hasRisk) issues.push('- Missing risk label (Low Risk, Medium Risk, or High Risk)');
+
+            if (issues.length > 0) {
+              const body = `## PR Policy Check
+
+            The following items need attention:
+
+            ${issues.join('\n')}
+
+            Please update your PR to address these items.`;
+
+              // Check if we already have a comment
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+              });
+
+              const botComment = comments.find(c =>
+                c.user.type === 'Bot' &&
+                c.body.includes('PR Policy Check')
+              );
+
+              if (botComment) {
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: botComment.id,
+                  body: body,
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.payload.pull_request.number,
+                  body: body,
+                });
+              }
+            }

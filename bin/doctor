@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+#
+# Doctor - Health check for vibe projects
+#
+# Shortcut for: bin/vibe doctor
+#
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$SCRIPT_DIR/vibe" doctor "$@"

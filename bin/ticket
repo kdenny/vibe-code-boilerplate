@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+#
+# Ticket - Ticket management CLI
+#
+# Commands:
+#   ticket get <id>     - Get ticket details
+#   ticket list         - List tickets
+#   ticket create <title> - Create a new ticket
+#
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+
+VENV_DIR="$REPO_ROOT/.vibe/.venv"
+
+# Ensure venv exists (run vibe once to set it up)
+if [[ ! -d "$VENV_DIR" ]]; then
+    echo "Virtual environment not found. Running setup..."
+    "$SCRIPT_DIR/vibe" doctor > /dev/null 2>&1 || true
+fi
+
+# Activate venv and run
+source "$VENV_DIR/bin/activate"
+cd "$REPO_ROOT"
+python -m lib.vibe.cli.ticket "$@"

@@ -1,0 +1,13 @@
+{
+  "installed_tools": {},
+  "active_worktrees": [],
+  "last_doctor_run": null,
+  "tracker_cache": {
+    "last_sync": null,
+    "tickets": []
+  },
+  "github_cache": {
+    "authenticated": false,
+    "username": null
+  }
+}
