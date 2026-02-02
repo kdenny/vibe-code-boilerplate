@@ -174,32 +174,57 @@ Update ticket status as work progresses:
 
 ## Worktree Management
 
+**Agent rule:** When the user asks to clean up worktrees, branches, or "tidy up" local state, follow the [Cleaning Up Worktrees](#cleaning-up-worktrees--follow-this-order) steps (remove worktrees first, then delete branches, then run `bin/vibe doctor`). Do not skip steps.
+
 ### Creating Worktrees
 
 ```bash
 bin/vibe do PROJ-123
 ```
 
-### Cleaning Up Worktrees
+This creates a worktree (path from config, typically `../<repo>-worktrees/PROJ-123`) and a branch for that ticket.
 
-After a PR is merged:
-```bash
-git worktree remove ../project-worktrees/PROJ-123
-```
+### When to Clean Up Worktrees
+
+**Clean up a worktree when:**
+- The PR for that ticket has been **merged** to main (or the branch is no longer needed), or
+- The user asks to "clean up branches/worktrees" or "tidy up".
+
+**Do not remove a worktree** while the branch is still in use (open PR, WIP, or user is working there).
+
+### Cleaning Up Worktrees — Follow This Order
+
+Agents and users **must** do these steps in order whenever cleaning up after a merged PR or doing a general cleanup:
+
+1. **Remove the worktree** (from the **main** repo checkout, not from inside the worktree):
+   ```bash
+   git worktree remove <path-to-worktree>
+   ```
+   Path is usually relative to the repo root, e.g. `../<repo>-worktrees/PROJ-123`. Use `git worktree list` to see exact paths. If the worktree has uncommitted changes and you're sure they're not needed: `git worktree remove --force <path>`.
+
+2. **Delete the local branch** (only after the worktree is removed):
+   ```bash
+   git branch -d PROJ-123
+   ```
+   Use `-D` if the branch was merged via a merge commit and git reports "not fully merged".
+
+3. **Sync local state** so `.vibe/local_state.json` matches reality:
+   ```bash
+   bin/vibe doctor
+   ```
+
+### One-Time Cleanup of Multiple Worktrees/Branches
+
+When the user asks to "clean up local branches and worktrees":
+
+1. From the **main** repo, run `git worktree list` and note every worktree that is **not** the main repo.
+2. For each such worktree: `git worktree remove <path>` (or `--force` if needed).
+3. Delete obsolete local branches (e.g. merged feature branches): `git branch -d <branch>` or `git branch -D <branch>`.
+4. Run `bin/vibe doctor` to fix `.vibe/local_state.json`.
 
 ### Active Worktree State
 
-Worktrees are tracked in `.vibe/local_state.json`:
-```json
-{
-  "active_worktrees": [
-    "../project-worktrees/PROJ-123",
-    "../project-worktrees/PROJ-456"
-  ]
-}
-```
-
-Clean up stale entries with `bin/vibe doctor`.
+Worktrees are tracked in `.vibe/local_state.json` (gitignored). Stale entries cause confusion; **always run `bin/vibe doctor`** after adding or removing worktrees so that state stays accurate.
 
 ---
 
@@ -417,7 +442,8 @@ git push
 4. **Don't commit secrets** - Even for "testing"
 5. **Don't skip risk labels** - Every PR needs one
 6. **Don't create PRs without ticket references** - Link to tickets
-7. **Don't work in the main checkout** - Use worktrees
+7. **Don't work in the main checkout** - Use worktrees for ticket work.
+8. **Don't leave merged worktrees around** - After a PR is merged, remove the worktree, delete the local branch, and run `bin/vibe doctor`.
 
 ---
 
@@ -439,8 +465,11 @@ git rebase --continue
 
 ### Worktree in Bad State
 ```bash
-# Force remove
-git worktree remove --force ../project-worktrees/PROJ-123
-# Recreate
+# From the main repo: force remove the worktree
+git worktree remove --force <path-from-git-worktree-list>
+# Delete the branch if needed
+git branch -D PROJ-123
+# Recreate if you still need to work on that ticket
 bin/vibe do PROJ-123
 ```
+See [Cleaning Up Worktrees](#cleaning-up-worktrees--follow-this-order) for the full cleanup procedure.
