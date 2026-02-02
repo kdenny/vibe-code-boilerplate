@@ -36,10 +36,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check Dependency graph status
+        id: depgraph
+        run: |
+          status=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}" \
+            | jq -r '.security_and_analysis.dependency_graph.status // "disabled"')
+          echo "status=$status" >> $GITHUB_OUTPUT
+
       - name: Dependency Review
+        if: steps.depgraph.outputs.status == 'enabled'
         uses: actions/dependency-review-action@v4
         with:
           fail-on-severity: high
+
+      - name: Warn if Dependency graph disabled
+        if: steps.depgraph.outputs.status != 'enabled'
+        run: |
+          echo "::warning::Dependency Review is not supported on this repository."
+          echo "Enable Dependency graph in Settings > Code security and analysis:"
+          echo "https://github.com/${{ github.repository }}/settings/security_analysis"
+          echo "Run 'bin/vibe setup' to be prompted to enable it when configuring the project."
 
   sbom:
     name: Generate SBOM

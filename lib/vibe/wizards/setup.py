@@ -8,7 +8,7 @@ from lib.vibe.config import DEFAULT_CONFIG, config_exists, load_config, save_con
 from lib.vibe.state import DEFAULT_STATE, state_exists, save_state
 from lib.vibe.wizards.branch import run_branch_wizard
 from lib.vibe.wizards.env import run_env_wizard
-from lib.vibe.wizards.github import run_github_wizard, try_auto_configure_github
+from lib.vibe.wizards.github import run_dependency_graph_prompt, run_github_wizard, try_auto_configure_github
 from lib.vibe.wizards.tracker import run_tracker_wizard
 
 # Default PR template when .github/PULL_REQUEST_TEMPLATE.md is missing
@@ -157,6 +157,7 @@ def run_setup(force: bool = False) -> bool:
         click.echo("  • Local state: .vibe/local_state.json")
         if github_configured:
             click.echo("  • GitHub: gh CLI + current repo")
+            run_dependency_graph_prompt(config)
         else:
             click.echo("  • GitHub: not configured (run 'bin/vibe setup -w github' when ready)")
         click.echo()
@@ -204,6 +205,8 @@ def run_setup(force: bool = False) -> bool:
         if not run_github_wizard(config):
             click.echo("GitHub authentication is required. Setup cancelled.")
             return False
+
+    run_dependency_graph_prompt(config)
 
     # 2. Tracker selection
     click.echo("\nStep 2: Ticket Tracker")

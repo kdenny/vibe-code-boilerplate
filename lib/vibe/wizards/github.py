@@ -144,6 +144,118 @@ def try_auto_configure_github(config: dict[str, Any]) -> bool:
     return True
 
 
+def dependency_graph_status(owner: str, repo: str) -> str | None:
+    """
+    Get Dependency graph status for the repo via GitHub API.
+
+    Returns "enabled", "disabled", or None (API error or not available).
+    """
+    try:
+        result = subprocess.run(
+            [
+                "gh",
+                "api",
+                f"repos/{owner}/{repo}",
+                "--jq",
+                ".security_and_analysis.dependency_graph.status",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip().strip('"')
+        return None
+    except FileNotFoundError:
+        return None
+
+
+def enable_dependency_graph_api(owner: str, repo: str) -> bool:
+    """
+    Enable Dependency graph for the repo via GitHub API.
+
+    Requires repo admin. Returns True if enabled, False otherwise.
+    """
+    body = '{"security_and_analysis":{"dependency_graph":{"status":"enabled"}}}'
+    try:
+        result = subprocess.run(
+            [
+                "gh",
+                "api",
+                f"repos/{owner}/{repo}",
+                "-X",
+                "PATCH",
+                "--input",
+                "-",
+            ],
+            input=body,
+            capture_output=True,
+            text=True,
+        )
+        return result.returncode == 0
+    except FileNotFoundError:
+        return False
+
+
+def dependency_graph_settings_url(owner: str, repo: str) -> str:
+    """URL to repo Settings > Code security and analysis."""
+    return f"https://github.com/{owner}/{repo}/settings/security_analysis"
+
+
+def run_dependency_graph_prompt(config: dict[str, Any]) -> None:
+    """
+    If GitHub is configured, check Dependency graph and optionally prompt to enable.
+
+    - If already enabled: no prompt.
+    - If disabled or unknown: prompt "Enable Dependency graph for security scanning?
+      (requires repo admin)". On yes: try API; on failure or no, offer to open settings URL.
+    """
+    github = config.get("github") or {}
+    owner = (github.get("owner") or "").strip()
+    repo = (github.get("repo") or "").strip()
+    if not owner or not repo:
+        return
+
+    if config.get("github", {}).get("auth_method") != "gh_cli":
+        return
+
+    status = dependency_graph_status(owner, repo)
+    if status == "enabled":
+        click.echo("  • Dependency graph: already enabled")
+        return
+
+    click.echo()
+    click.echo(
+        "Dependency graph is required for the Dependency Review GitHub Action (security.yml)."
+    )
+    click.echo("Without it, PRs will fail the Dependency Review check.")
+    if not click.confirm(
+        "Enable Dependency graph for security scanning? (requires repo admin)",
+        default=True,
+    ):
+        click.echo(
+            "  • Dependency graph: skipped. Enable later at Settings > Code security and analysis."
+        )
+        return
+
+    if enable_dependency_graph_api(owner, repo):
+        click.echo("  • Dependency graph: enabled")
+        return
+
+    click.echo("Could not enable via API (may need repo admin).")
+    url = dependency_graph_settings_url(owner, repo)
+    if click.confirm("Open repository settings in your browser?", default=True):
+        try:
+            subprocess.run(
+                ["gh", "browser", url],
+                check=False,
+                capture_output=True,
+            )
+        except FileNotFoundError:
+            click.echo(f"Open this URL: {url}")
+    else:
+        click.echo(f"Enable manually: {url}")
+
+
 def _detect_remote() -> tuple[str | None, str | None]:
     """Detect GitHub owner/repo from git remote."""
     try:
