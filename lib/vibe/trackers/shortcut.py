@@ -77,6 +77,13 @@ class ShortcutTracker(TrackerBase):
             "See GitHub issue #1 for tracking."
         )
 
+    def comment_ticket(self, ticket_id: str, body: str) -> None:
+        """Add a comment to a ticket."""
+        raise NotImplementedError(
+            "Shortcut integration is not yet implemented. "
+            "See GitHub issue #1 for tracking."
+        )
+
     def validate_config(self) -> tuple[bool, list[str]]:
         """Validate Shortcut configuration."""
         return False, [

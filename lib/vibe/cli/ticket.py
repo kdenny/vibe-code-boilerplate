@@ -123,6 +123,83 @@ def create(title: str, description: str, label: tuple) -> None:
         sys.exit(1)
 
 
+@main.command()
+@click.argument("ticket_id")
+@click.option("--status", "-s", help="Set ticket status (e.g. Done, In Progress)")
+@click.option("--title", "-t", help="Set ticket title")
+@click.option("--description", "-d", help="Set ticket description")
+@click.option("--label", "-l", multiple=True, help="Set labels (replaces existing for trackers that support it)")
+def update(
+    ticket_id: str,
+    status: str | None,
+    title: str | None,
+    description: str | None,
+    label: tuple,
+) -> None:
+    """Update a ticket (status, title, description, labels)."""
+    tracker = ensure_tracker_configured()
+
+    if not any([status, title, description, label]):
+        click.echo("Specify at least one of: --status, --title, --description, --label", err=True)
+        sys.exit(1)
+
+    try:
+        ticket = tracker.update_ticket(
+            ticket_id,
+            title=title,
+            description=description,
+            status=status,
+            labels=list(label) if label else None,
+        )
+        click.echo(f"Updated: {ticket.id}")
+        click.echo(f"Status: {ticket.status}")
+        click.echo(f"URL: {ticket.url}")
+    except NotImplementedError as e:
+        click.echo(str(e), err=True)
+        sys.exit(1)
+    except RuntimeError as e:
+        click.echo(str(e), err=True)
+        sys.exit(1)
+
+
+@main.command()
+@click.argument("ticket_id")
+@click.option("--cancel", is_flag=True, help="Mark as canceled instead of done")
+def close(ticket_id: str, cancel: bool) -> None:
+    """Close a ticket (set status to Done or Canceled)."""
+    tracker = ensure_tracker_configured()
+
+    status = "Canceled" if cancel else "Done"
+    try:
+        ticket = tracker.update_ticket(ticket_id, status=status)
+        click.echo(f"Closed: {ticket.id} ({ticket.status})")
+        click.echo(f"URL: {ticket.url}")
+    except NotImplementedError as e:
+        click.echo(str(e), err=True)
+        sys.exit(1)
+    except RuntimeError as e:
+        click.echo(str(e), err=True)
+        sys.exit(1)
+
+
+@main.command()
+@click.argument("ticket_id")
+@click.argument("message")
+def comment(ticket_id: str, message: str) -> None:
+    """Add a comment to a ticket."""
+    tracker = ensure_tracker_configured()
+
+    try:
+        tracker.comment_ticket(ticket_id, message)
+        click.echo(f"Comment added to {ticket_id}")
+    except NotImplementedError as e:
+        click.echo(str(e), err=True)
+        sys.exit(1)
+    except RuntimeError as e:
+        click.echo(str(e), err=True)
+        sys.exit(1)
+
+
 def print_ticket(ticket: Ticket) -> None:
     """Print full ticket details."""
     click.echo(f"\n{ticket.id}: {ticket.title}")

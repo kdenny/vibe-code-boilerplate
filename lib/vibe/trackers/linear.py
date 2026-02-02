@@ -73,7 +73,8 @@ class LinearTracker(TrackerBase):
                 identifier
                 title
                 description
-                state { name }
+                state { id name }
+                team { id }
                 labels { nodes { name } }
                 url
             }
@@ -174,6 +175,27 @@ class LinearTracker(TrackerBase):
         labels: list[str] | None = None,
     ) -> Ticket:
         """Update an existing ticket."""
+        input_obj: dict[str, Any] = {}
+        if title:
+            input_obj["title"] = title
+        if description:
+            input_obj["description"] = description
+        if status:
+            # Resolve status name to workflow state ID
+            issue = self.get_ticket(ticket_id)
+            if not issue:
+                raise RuntimeError(f"Ticket not found: {ticket_id}")
+            team_id = (issue.raw.get("team") or {}).get("id") or self._team_id
+            if not team_id:
+                raise RuntimeError("Cannot resolve status: issue has no team")
+            state_id = self._get_workflow_state_id(team_id, status)
+            if not state_id:
+                raise RuntimeError(
+                    f"No workflow state named '{status}' for this team. "
+                    "Check state name in Linear (e.g. Done, Canceled, In Progress)."
+                )
+            input_obj["stateId"] = state_id
+
         mutation = """
         mutation UpdateIssue($id: String!, $input: IssueUpdateInput!) {
             issueUpdate(id: $id, input: $input) {
@@ -190,18 +212,33 @@ class LinearTracker(TrackerBase):
             }
         }
         """
-        input_obj: dict[str, Any] = {}
-        if title:
-            input_obj["title"] = title
-        if description:
-            input_obj["description"] = description
-        # Note: status and labels require additional API calls to resolve IDs
-
         result = self._execute_query(mutation, {"id": ticket_id, "input": input_obj})
         issue = result.get("data", {}).get("issueUpdate", {}).get("issue")
         if not issue:
             raise RuntimeError("Failed to update ticket")
         return self._parse_issue(issue)
+
+    def comment_ticket(self, ticket_id: str, body: str) -> None:
+        """Add a comment to a Linear issue."""
+        issue = self.get_ticket(ticket_id)
+        if not issue:
+            raise RuntimeError(f"Ticket not found: {ticket_id}")
+        issue_uuid = issue.raw.get("id")
+        if not issue_uuid:
+            raise RuntimeError("Cannot comment: issue has no id")
+
+        mutation = """
+        mutation CreateComment($input: CommentCreateInput!) {
+            commentCreate(input: $input) {
+                success
+                comment { id }
+            }
+        }
+        """
+        self._execute_query(
+            mutation,
+            {"input": {"issueId": issue_uuid, "body": body}},
+        )
 
     def validate_config(self) -> tuple[bool, list[str]]:
         """Validate Linear configuration."""
@@ -218,13 +255,43 @@ class LinearTracker(TrackerBase):
 
         return len(issues) == 0, issues
 
+    def _get_workflow_state_id(self, team_id: str, state_name: str) -> str | None:
+        """Resolve workflow state name to state ID for a team."""
+        query = """
+        query WorkflowStates($teamId: String!) {
+            team(id: $teamId) {
+                states {
+                    nodes {
+                        id
+                        name
+                    }
+                }
+            }
+        }
+        """
+        try:
+            result = self._execute_query(query, {"teamId": team_id})
+            nodes = (
+                result.get("data", {})
+                .get("team", {})
+                .get("states", {})
+                .get("nodes", [])
+            )
+            for node in nodes:
+                if node.get("name", "").lower() == state_name.lower():
+                    return node.get("id")
+            return None
+        except Exception:
+            return None
+
     def _parse_issue(self, issue: dict) -> Ticket:
         """Parse a Linear issue into a Ticket."""
+        state = issue.get("state") or {}
         return Ticket(
             id=issue.get("identifier", issue.get("id", "")),
             title=issue.get("title", ""),
             description=issue.get("description", ""),
-            status=issue.get("state", {}).get("name", ""),
+            status=state.get("name", ""),
             labels=[label["name"] for label in issue.get("labels", {}).get("nodes", [])],
             url=issue.get("url", ""),
             raw=issue,
