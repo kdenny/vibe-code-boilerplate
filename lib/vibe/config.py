@@ -9,7 +9,7 @@ CONFIG_PATH = Path(".vibe/config.json")
 DEFAULT_CONFIG: dict[str, Any] = {
     "version": "1.0.0",
     "project": {"name": "", "repository": ""},
-    "tracker": {"type": None, "config": {}},
+    "tracker": {"type": None, "config": {"deployed_state": "Deployed"}},
     "github": {"auth_method": None, "owner": "", "repo": ""},
     "branching": {
         "pattern": "{PROJ}-{num}",

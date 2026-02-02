@@ -52,17 +52,19 @@ The canonical configuration is in `.vibe/config.json`. Key fields are populated 
 
 ```json
 {
-  "tracker": { "type": "linear", "config": {} },
-  "github": { "auth_method": "gh_cli", "owner": "<your-org>", "repo": "<your-repo>" },
-  "branching": { "pattern": "{PROJ}-{num}", "always_rebase": true },
-  "labels": {
-    "type": ["Bug", "Feature", "Chore", "Refactor"],
-    "risk": ["Low Risk", "Medium Risk", "High Risk"],
-    "area": ["Frontend", "Backend", "Infra", "Docs"],
-    "special": ["HUMAN", "Milestone", "Blocked"]
-  }
+ "tracker": { "type": "linear", "config": { "deployed_state": "Deployed" } },
+ "github": { "auth_method": "gh_cli", "owner": "<your-org>", "repo": "<your-repo>" },
+ "branching": { "pattern": "{PROJ}-{num}", "always_rebase": true },
+ "labels": {
+ "type": ["Bug", "Feature", "Chore", "Refactor"],
+ "risk": ["Low Risk", "Medium Risk", "High Risk"],
+ "area": ["Frontend", "Backend", "Infra", "Docs"],
+ "special": ["HUMAN", "Milestone", "Blocked"]
+ }
 }
 ```
+
+- **tracker.config.deployed_state** (optional): State name to use when a PR is merged (e.g. `Deployed`, `Done`, `Released`). The PR-merged workflow (`.github/workflows/pr-merged.yml`) uses repo variable `LINEAR_DEPLOYED_STATE` in CI (default `Deployed`); this config key is for local use and documentation.
 
 ---
 
@@ -107,6 +109,21 @@ See `recipes/agents/human-required-work.md` for the full guide.
 ### File Editing
 
 **No files in this repo are protected.** You may edit any file freely. Do not treat any path as read-only or off-limits; apply changes wherever they are needed to complete the task.
+
+### Efficient Command Execution
+
+**Prefer absolute paths and command-specific directory flags over `cd path && command`.** The latter causes sequential execution, resets shell working directory between commands, and adds unnecessary overhead.
+
+| Avoid | Prefer |
+|-------|--------|
+| `cd /path && git status` | `git -C /path status` |
+| `cd /path && git add . && git commit -m "..."` | `git -C /path add .` then `git -C /path commit -m "..."` (or one invocation with multiple args) |
+| `cd /path && git push -u origin BRANCH` | `git -C /path push -u origin BRANCH` |
+| `cd /path && npm install` | `npm --prefix /path install` |
+| `cd /path && npm run build` | `npm --prefix /path run build` |
+| `cd /path && gh pr create ...` | `gh pr create --repo owner/repo ...` (repo from main checkout or config; use `--head branch` if needed) |
+
+**Worktree workflows:** When operating on a worktree (e.g. `../project-worktrees/PROJ-123`), use `git -C <worktree-path> ...` for all git commands from the main repo or from another shell. Use `gh pr create --repo owner/repo --head PROJ-123 ...` so you don't need to `cd` into the worktree to open the PR. This allows parallel or independent commands without changing directory.
 
 ---
 
@@ -340,7 +357,10 @@ When a workflow fails, check:
    - Missing risk label
    - Branch naming violation
 
-3. **tests.yml** (if tests exist)
+3. **pr-merged.yml**
+   - Runs when a PR is merged; updates the Linear ticket (from branch name) to the "deployed" state. Requires repo secret `LINEAR_API_KEY`. Optional repo variable `LINEAR_DEPLOYED_STATE` (default: `Deployed`). On failure (e.g. no API key, ticket not found), logs a warning and does not fail the job.
+
+4. **tests.yml** (if tests exist)
    - Test failure (check output for details)
    - No tests detected (may be intentional for new projects)
 
@@ -368,6 +388,7 @@ When implementing specific features, consult these recipes:
 ### Workflow
 - `recipes/workflows/git-worktrees.md` - Parallel development
 - `recipes/workflows/branching-and-rebasing.md` - Git workflow
+- `recipes/workflows/pr-merge-linear.md` - PR merge → Linear status (Deployed)
 - `recipes/workflows/pr-risk-assessment.md` - Risk classification
 - `recipes/workflows/testing-instructions-writing.md` - Testing docs
 
@@ -420,18 +441,17 @@ bin/ticket get PROJ-123
 # 2. Create worktree
 bin/vibe do PROJ-123
 
-# 3. Navigate to worktree
-cd ../project-worktrees/PROJ-123
+# 3. Work in the worktree (or use absolute path for commands from elsewhere)
+WORKTREE=../project-worktrees/PROJ-123  # or absolute path
+# ... implement feature in that directory ...
 
-# 4. Implement feature...
+# 4. Commit and push (from anywhere, using git -C)
+git -C "$WORKTREE" add .
+git -C "$WORKTREE" commit -m "PROJ-123: Add feature description"
+git -C "$WORKTREE" push -u origin PROJ-123
 
-# 5. Commit and push
-git add .
-git commit -m "PROJ-123: Add feature description"
-git push -u origin PROJ-123
-
-# 6. Create PR
-gh pr create --title "PROJ-123: Add feature" --body "..."
+# 5. Create PR (no cd needed; use --repo and --head)
+gh pr create --repo owner/repo --head PROJ-123 --title "PROJ-123: Add feature" --body "..."
 ```
 
 ### Fixing a Bug
@@ -440,13 +460,12 @@ gh pr create --title "PROJ-123: Add feature" --body "..."
 # 1. Create worktree
 bin/vibe do PROJ-456
 
-# 2. Fix the bug
-cd ../project-worktrees/PROJ-456
-# ... make changes ...
+# 2. Fix the bug in the worktree (e.g. cd there to edit, or use your editor with the path)
+# ... make changes in ../project-worktrees/PROJ-456 ...
 
 # 3. Add tests that would have caught it
-# 4. Commit with bug ticket reference
-git commit -m "PROJ-456: Fix null pointer in auth flow"
+# 4. Commit with bug ticket reference (git -C from anywhere)
+git -C ../project-worktrees/PROJ-456 commit -m "PROJ-456: Fix null pointer in auth flow"
 ```
 
 ### Handling CI Failures
@@ -477,6 +496,7 @@ git push
 6. **Don't create PRs without ticket references** - Link to tickets
 7. **Don't work in the main checkout** - Use worktrees for ticket work.
 8. **Don't leave merged worktrees around** - After a PR is merged, remove the worktree, delete the local branch, and run `bin/vibe doctor`.
+9. **Don't use `cd path && command`** - Use `git -C path`, `npm --prefix path`, or `gh pr create --repo owner/repo` so commands can run without changing directory and can be parallelized when appropriate.
 
 ---
 

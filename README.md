@@ -216,7 +216,7 @@ Main configuration is in `.vibe/config.json`:
 {
   "tracker": {
     "type": "linear",
-    "config": { "team_id": "..." }
+    "config": { "team_id": "...", "deployed_state": "Deployed" }
   },
   "github": {
     "auth_method": "gh_cli",
@@ -236,6 +236,14 @@ Main configuration is in `.vibe/config.json`:
   }
 }
 ```
+
+### PR merge → Linear status
+
+When a PR is merged, the workflow `.github/workflows/pr-merged.yml` can update the associated Linear ticket to a "deployed" state (e.g. **Deployed**, **Done**, **Released**):
+
+- **Required:** Add a repository secret `LINEAR_API_KEY` (Linear API key with write access).
+- **Optional:** Set a repository variable `LINEAR_DEPLOYED_STATE` to the exact state name in your Linear workflow (default is `Deployed`).
+- The workflow runs only when the PR is merged and the branch name matches a ticket ID (e.g. `PROJ-123`). If the ticket cannot be found or the API key is missing, the job logs a warning and does not fail.
 
 ## Known Limitations
 
