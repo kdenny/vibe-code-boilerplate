@@ -1,15 +1,30 @@
-# Claude.md - AI Agent Instructions
+# CLAUDE.md – AI Agent Instructions
+
+**Filename:** This file must be named **CLAUDE.md** (all caps) in the project root so Cursor and other tools load it as the project’s agent instructions.
 
 This file contains instructions for AI agents (Claude, GPT, etc.) working on projects that use this boilerplate.
 
+---
+
+## Project Overview
+
+**Fill this in after applying the boilerplate** so AI agents have immediate context on what the project is. Run `bin/vibe setup` when ready; consider updating this section as part of that flow.
+
+- **What this project does:** *(e.g. "SaaS dashboard for inventory and orders")*
+- **Tech stack:** *(e.g. backend: Django; frontend: React; database: PostgreSQL; deployment: Fly.io)*
+- **Key features / domains:** *(e.g. auth, reporting, webhooks)*
+- **Specs or docs:** *(link to ADRs, product spec, or "None yet" if they don't exist)*
+
+---
+
 ## Configuration Reference
 
-The canonical configuration is in `.vibe/config.json`. Key fields:
+The canonical configuration is in `.vibe/config.json`. Key fields are populated when you run `bin/vibe setup` (tracker, `github.owner`, `github.repo`, etc.). Example shape:
 
 ```json
 {
   "tracker": { "type": "linear", "config": {} },
-  "github": { "auth_method": "gh_cli", "owner": "", "repo": "" },
+  "github": { "auth_method": "gh_cli", "owner": "<your-org>", "repo": "<your-repo>" },
   "branching": { "pattern": "{PROJ}-{num}", "always_rebase": true },
   "labels": {
     "type": ["Bug", "Feature", "Chore", "Refactor"],
@@ -63,6 +78,15 @@ See `recipes/agents/human-required-work.md` for the full guide.
 ---
 
 ## Ticket Management
+
+### "Do this ticket {ticket}" – What it means
+
+When the user says **"do this ticket PROJ-123"** (or any ticket ID), that means:
+
+1. **Do the work on a fresh worktree** – Create a dedicated worktree for that ticket (`bin/vibe do PROJ-123`), do all work there (no work in the main checkout).
+2. **Open a PR when complete** – When the work is done, commit, push, and open a PR (title with ticket ref, risk label, etc.). Do not leave the work only local.
+
+So: **"do this ticket {ticket}"** = **do this ticket on a fresh worktree and open a PR when complete.**
 
 ### Ticketing System (Linear) Must Be Configured First
 
@@ -168,7 +192,7 @@ Before opening a PR, ensure:
 ### Required
 - [ ] Branch follows naming convention (`{PROJ}-{num}`)
 - [ ] Rebased onto latest main (`git rebase origin/main`)
-- [ ] All tests pass locally
+- [ ] All tests pass locally (if tests exist)
 - [ ] PR title includes ticket reference
 - [ ] Risk label selected (Low/Medium/High Risk)
 
@@ -240,9 +264,9 @@ When a workflow fails, check:
    - Missing risk label
    - Branch naming violation
 
-3. **tests.yml**
+3. **tests.yml** (if tests exist)
    - Test failure (check output for details)
-   - No tests detected (may be intentional)
+   - No tests detected (may be intentional for new projects)
 
 ### Responding to CI Failures
 
@@ -254,7 +278,7 @@ When a workflow fails, check:
 **Missing labels:**
 1. Add the required label via GitHub UI or `gh pr edit`
 
-**Test failures:**
+**Test failures** (if the project has tests):
 1. Read the failure output
 2. Fix the failing test or the code
 3. Push the fix
@@ -355,7 +379,7 @@ git commit -m "PROJ-456: Fix null pointer in auth flow"
 # 1. Check what failed
 gh pr checks
 
-# 2. If tests failed, run locally
+# 2. If tests failed (and the project has tests), run locally
 pytest  # or npm test, etc.
 
 # 3. If secret scanning failed

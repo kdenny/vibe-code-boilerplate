@@ -7,6 +7,8 @@ import pytest
 from lib.vibe.config import DEFAULT_CONFIG, load_config
 from lib.vibe.wizards.setup import (
     apply_git_workflow_defaults,
+    ensure_commit_convention,
+    ensure_local_state,
     ensure_pr_template,
     is_fresh_project,
 )
@@ -71,3 +73,49 @@ def test_ensure_pr_template_does_not_overwrite_existing(tmp_path: Path) -> None:
     result = ensure_pr_template(tmp_path)
     assert result is True
     assert template_path.read_text() == custom
+
+
+def test_ensure_local_state_creates_file_when_missing(tmp_path: Path) -> None:
+    state_path = tmp_path / ".vibe" / "local_state.json"
+    assert not state_path.exists()
+    result = ensure_local_state(tmp_path)
+    assert result is True
+    assert state_path.exists()
+    import json
+
+    data = json.loads(state_path.read_text())
+    assert "active_worktrees" in data
+    assert data["active_worktrees"] == []
+
+
+def test_ensure_local_state_does_not_overwrite_existing(tmp_path: Path) -> None:
+    state_path = tmp_path / ".vibe" / "local_state.json"
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    state_path.write_text('{"active_worktrees": ["/some/path"]}')
+    result = ensure_local_state(tmp_path)
+    assert result is True
+    import json
+
+    data = json.loads(state_path.read_text())
+    assert data["active_worktrees"] == ["/some/path"]
+
+
+def test_ensure_commit_convention_creates_file_when_missing(tmp_path: Path) -> None:
+    path = tmp_path / ".github" / "COMMIT_CONVENTION.md"
+    assert not path.exists()
+    result = ensure_commit_convention(tmp_path)
+    assert result is True
+    assert path.exists()
+    content = path.read_text()
+    assert "TICKET-123" in content
+    assert "Short description" in content
+
+
+def test_ensure_commit_convention_does_not_overwrite_existing(tmp_path: Path) -> None:
+    path = tmp_path / ".github" / "COMMIT_CONVENTION.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    custom = "Custom commit rules"
+    path.write_text(custom)
+    result = ensure_commit_convention(tmp_path)
+    assert result is True
+    assert path.read_text() == custom
