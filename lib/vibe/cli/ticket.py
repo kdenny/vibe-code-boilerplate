@@ -4,10 +4,11 @@ import sys
 
 import click
 
-from lib.vibe.config import load_config
+from lib.vibe.config import load_config, save_config
 from lib.vibe.trackers.base import Ticket
 from lib.vibe.trackers.linear import LinearTracker
 from lib.vibe.trackers.shortcut import ShortcutTracker
+from lib.vibe.wizards.tracker import run_tracker_wizard
 
 
 def get_tracker():
@@ -24,6 +25,33 @@ def get_tracker():
         return None
 
 
+def ensure_tracker_configured():
+    """
+    Return the configured tracker, or prompt to run the tracker setup wizard.
+    Exits with a message if the user declines or setup does not configure a tracker.
+    """
+    tracker = get_tracker()
+    if tracker is not None:
+        return tracker
+
+    click.echo("No ticketing system (e.g. Linear) is configured. Set up a tracker before creating or viewing tickets.")
+    if not click.confirm("Run tracker setup now?", default=True):
+        click.echo("Run 'bin/vibe setup' or 'bin/vibe setup --wizard tracker' when ready.", err=True)
+        sys.exit(1)
+
+    config = load_config()
+    if not run_tracker_wizard(config):
+        click.echo("Tracker setup was cancelled or failed. Run 'bin/vibe setup' to try again.", err=True)
+        sys.exit(1)
+    save_config(config)
+
+    tracker = get_tracker()
+    if tracker is None:
+        click.echo("No tracker was selected. Run 'bin/vibe setup' to configure one later.", err=True)
+        sys.exit(1)
+    return tracker
+
+
 @click.group()
 def main() -> None:
     """Ticket management commands."""
@@ -34,10 +62,7 @@ def main() -> None:
 @click.argument("ticket_id")
 def get(ticket_id: str) -> None:
     """Get details for a specific ticket."""
-    tracker = get_tracker()
-    if not tracker:
-        click.echo("No tracker configured. Run 'bin/vibe setup'.", err=True)
-        sys.exit(1)
+    tracker = ensure_tracker_configured()
 
     try:
         ticket = tracker.get_ticket(ticket_id)
@@ -57,10 +82,7 @@ def get(ticket_id: str) -> None:
 @click.option("--limit", "-n", default=10, help="Maximum tickets to show")
 def list_tickets(status: str | None, label: tuple, limit: int) -> None:
     """List tickets from the tracker."""
-    tracker = get_tracker()
-    if not tracker:
-        click.echo("No tracker configured. Run 'bin/vibe setup'.", err=True)
-        sys.exit(1)
+    tracker = ensure_tracker_configured()
 
     try:
         tickets = tracker.list_tickets(
@@ -86,10 +108,7 @@ def list_tickets(status: str | None, label: tuple, limit: int) -> None:
 @click.option("--label", "-l", multiple=True, help="Labels to add")
 def create(title: str, description: str, label: tuple) -> None:
     """Create a new ticket."""
-    tracker = get_tracker()
-    if not tracker:
-        click.echo("No tracker configured. Run 'bin/vibe setup'.", err=True)
-        sys.exit(1)
+    tracker = ensure_tracker_configured()
 
     try:
         ticket = tracker.create_ticket(
