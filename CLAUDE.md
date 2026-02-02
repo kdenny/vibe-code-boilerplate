@@ -17,6 +17,35 @@ This file contains instructions for AI agents (Claude, GPT, etc.) working on pro
 
 ---
 
+## README Maintenance
+
+Keep the project **README.md** accurate so humans and agents can onboard quickly.
+
+### When a new app is initialized (from a prompt or setup)
+
+After creating or configuring a new project, update **README.md** with:
+
+- **App name and description** – What the project does and who it’s for
+- **Tech stack** – Frameworks, runtimes, databases, deployment (align with Project Overview in this file)
+- **Setup instructions** – Prerequisites, install steps, env vars, how to run locally
+- **Project structure** – Short overview of key directories (e.g. `api/`, `ui/`, `scripts/`)
+
+If the user ran `bin/vibe setup`, remind them to update README as part of the “next steps” (see setup wizard).
+
+### Continuous maintenance
+
+As the project evolves, keep README in sync:
+
+- **New features** – Document user-facing or notable capabilities
+- **Setup steps** – Refine when install/run steps change
+- **Architecture changes** – Update structure or diagrams when layout or responsibilities change
+
+When you add a new top-level area (e.g. a new app, service, or major script), add a brief note to README and to the Project Overview above.
+
+See `recipes/agents/readme-maintenance.md` for the full guide.
+
+---
+
 ## Configuration Reference
 
 The canonical configuration is in `.vibe/config.json`. Key fields are populated when you run `bin/vibe setup` (tracker, `github.owner`, `github.repo`, etc.). Example shape:
