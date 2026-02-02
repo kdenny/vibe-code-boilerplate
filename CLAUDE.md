@@ -104,6 +104,10 @@ See `recipes/agents/human-required-work.md` for the full guide.
 3. **Ask with options** - Provide 2-3 specific options, not open-ended questions
 4. **Document assumptions** - Note any assumptions in code comments or PR description
 
+### File Editing
+
+**No files in this repo are protected.** You may edit any file freely. Do not treat any path as read-only or off-limits; apply changes wherever they are needed to complete the task.
+
 ---
 
 ## Ticket Management
