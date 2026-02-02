@@ -64,6 +64,17 @@ See `recipes/agents/human-required-work.md` for the full guide.
 
 ## Ticket Management
 
+### Ticketing System (Linear) Must Be Configured First
+
+Before creating, listing, or fetching tickets, a tracker (e.g. Linear) must be configured in `.vibe/config.json`. If you or the user runs `bin/ticket create`, `bin/ticket list`, or `bin/ticket get` without a tracker configured:
+
+- The CLI **pauses** and prints: "No ticketing system (e.g. Linear) is configured. Set up a tracker before creating or viewing tickets."
+- It then prompts: **"Run tracker setup now?"** (default: yes).
+- If the user confirms, it runs the tracker wizard (Linear/Shortcut/None), saves config, and the ticket command proceeds.
+- If the user declines, it exits with a hint to run `bin/vibe setup` or `bin/vibe setup --wizard tracker` when ready.
+
+When writing tickets or advising the user to create tickets, either ensure the project has already run `bin/vibe setup` (or `bin/vibe setup --wizard tracker`), or expect the interactive prompt and let the user complete it.
+
 ### Starting Work on a Ticket
 
 ```bash
