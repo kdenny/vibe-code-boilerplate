@@ -90,9 +90,36 @@ This creates:
 
 When creating tickets programmatically:
 1. Use descriptive titles: "Verb + Object" format
-2. Add appropriate labels (type, risk, area)
+2. **Apply labels** (see [Label checklist](#label-checklist-for-ticket-creation) below)
 3. Include acceptance criteria
-4. Link related tickets
+4. Link related tickets with **correct blocking direction** (see [Blocking relationships](#blocking-relationships) below)
+
+#### Blocking relationships
+
+Direction matters. The **prerequisite** (foundation) ticket **blocks** the dependent ticket — not the other way around.
+
+- **"A blocks B"** = B cannot start until A is done. (A is the prerequisite.)
+- **"A is blocked by B"** = A cannot start until B is done. (B is the prerequisite.)
+
+**CORRECT:** "Initialize monorepo" BLOCKS "Set up React app"  
+(React app depends on monorepo being done first.)
+
+**WRONG:** "Initialize monorepo" BLOCKED BY "Set up React app"  
+(That would mean monorepo can't start until React is done — backwards.)
+
+When linking: set the **foundation ticket** as blocking the **dependent ticket(s)**. Do not set the foundation as "blocked by" the later tickets.
+
+See `recipes/tickets/creating-tickets.md` for full guidance.
+
+#### Label checklist for ticket creation
+
+When creating a ticket, assign:
+
+- **Type** (exactly one): Bug, Feature, Chore, Refactor
+- **Risk** (exactly one): Low Risk, Medium Risk, High Risk
+- **Area** (at least one): Frontend, Backend, Infra, Docs
+
+Optional: **HUMAN**, **Milestone**, **Blocked** (see [Special Labels](#special-labels)).
 
 ### Ticket Status Updates
 
@@ -188,6 +215,13 @@ Before opening a PR, ensure:
 | **Milestone** | Part of a larger feature |
 | **Blocked** | Waiting on external dependency |
 
+### Milestones
+
+- **Option A (recommended):** Use the **Milestone** label on tickets that are part of a larger feature, and link related tickets (blocks/blocked-by or parent/child). Keeps 1 ticket = 1 PR and works across trackers.
+- **Option B:** Use Linear/Shortcut native milestones when the team already plans with them.
+
+See `recipes/tickets/creating-tickets.md` for details.
+
 ---
 
 ## GitHub Actions Results
@@ -246,6 +280,7 @@ When implementing specific features, consult these recipes:
 - `recipes/architecture/alternatives-analysis.md` - Documenting options
 
 ### Tickets
+- `recipes/tickets/creating-tickets.md` - Creating tickets (blocking, labels, milestones)
 - `recipes/tickets/linear-setup.md` - Linear configuration
 - `recipes/tickets/shortcut.md` - Shortcut (stub)
 
