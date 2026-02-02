@@ -145,6 +145,22 @@ When creating a ticket, assign:
 
 Optional: **HUMAN**, **Milestone**, **Blocked** (see [Special Labels](#special-labels)).
 
+#### Priority (Linear): use the Priority field, not labels
+
+**Do not use P0, P1, P2, or P3 as labels.** Linear has a native **Priority** field. Set priority via that field so it works with Linear’s priority views and filters.
+
+When creating or updating tickets, set the **Priority** field (not a label) using this mapping:
+
+| If you mean | Set Linear Priority to |
+|-------------|-------------------------|
+| P0 / critical | **Urgent** |
+| P1 / high | **High** |
+| P2 / medium | **Medium** |
+| P3 / low | **Low** |
+| No priority | **No Priority** |
+
+Labels in `.vibe/config.json` are for **type**, **risk**, and **area** only. Do not add P0/P1/P2/P3 to the label config.
+
 ### Ticket Status Updates
 
 Update ticket status as work progresses:

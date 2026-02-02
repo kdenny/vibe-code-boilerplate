@@ -90,6 +90,7 @@ When creating a ticket, before saving:
 - [ ] Risk label assigned (Low Risk / Medium Risk / High Risk)
 - [ ] Area label(s) assigned (Frontend / Backend / Infra / Docs)
 - [ ] Blocking relationships point the right way (prerequisite blocks dependent)
+- [ ] **Priority (Linear only):** If the ticket has a priority, set the **Priority field** (not a label). See [Priority field](#5-priority-field-linear) below.
 
 ---
 
@@ -123,13 +124,32 @@ Two approaches; use the one that fits your tracker and workflow.
 
 ---
 
+## 5. Priority Field (Linear)
+
+**Use Linear’s Priority field, not labels.** Do not create or use P0, P1, P2, or P3 as labels.
+
+When creating or editing a ticket in Linear, set the **Priority** field to one of: **Urgent**, **High**, **Medium**, **Low**, **No Priority**. Map common shorthand as follows:
+
+| Shorthand | Set Priority field to |
+|-----------|------------------------|
+| P0 / critical | Urgent |
+| P1 / high | High |
+| P2 / medium | Medium |
+| P3 / low | Low |
+| (none) | No Priority |
+
+If you use the Linear API to create issues, pass `priority` in the issue input (e.g. `priority: 1` for Urgent, per Linear’s schema). In the Linear UI, use the priority dropdown on the ticket.
+
+---
+
 ## Quick Reference
 
 | Do | Don't |
 |----|--------|
 | Prerequisite ticket **blocks** dependent ticket | Foundation ticket "blocked by" later tickets |
 | Assign type + risk + area on every ticket | Leave type/risk/area unset |
-| Use "Milestone" label for epic-style work | Rely only on priority (P0/P1) without labels |
+| Set **Priority field** in Linear (Urgent/High/Medium/Low) | Use P0/P1/P2/P3 as **labels** |
+| Use "Milestone" label for epic-style work | Rely only on priority labels without type/risk/area |
 | Verb + Object titles | Vague titles like "Fix stuff" |
 
 See also: `Claude.md` (Ticket Management, Creating Tickets, Label Documentation), `recipes/tickets/linear-setup.md`, `recipes/tickets/shortcut.md`.
