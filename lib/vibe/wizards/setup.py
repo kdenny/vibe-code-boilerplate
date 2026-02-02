@@ -5,6 +5,7 @@ from pathlib import Path
 import click
 
 from lib.vibe.config import DEFAULT_CONFIG, config_exists, load_config, save_config
+from lib.vibe.state import DEFAULT_STATE, state_exists, save_state
 from lib.vibe.wizards.branch import run_branch_wizard
 from lib.vibe.wizards.env import run_env_wizard
 from lib.vibe.wizards.github import run_github_wizard, try_auto_configure_github
@@ -82,6 +83,43 @@ def ensure_pr_template(base_path: Path | None = None) -> bool:
     return True
 
 
+def ensure_local_state(base_path: Path | None = None) -> bool:
+    """
+    Ensure .vibe/local_state.json exists; create from default if missing.
+
+    Returns True if the file existed or was created.
+    """
+    if state_exists(base_path):
+        return True
+    save_state(DEFAULT_STATE.copy(), base_path)
+    return True
+
+
+_COMMIT_CONVENTION_CONTENT = """# Commit message convention
+
+Use the format: **TICKET-123: Short description**
+
+- Prefix with the ticket ID (e.g. PROJ-123) when the change relates to a ticket.
+- Use present tense: "Add feature" not "Added feature".
+- Keep the subject line under ~72 characters.
+"""
+
+
+def ensure_commit_convention(base_path: Path | None = None) -> bool:
+    """
+    Ensure .github/COMMIT_CONVENTION.md exists; create from default if missing.
+
+    Returns True if the file existed or was created.
+    """
+    root = base_path or Path(".")
+    path = root / ".github" / "COMMIT_CONVENTION.md"
+    if path.exists():
+        return True
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(_COMMIT_CONVENTION_CONTENT, encoding="utf-8")
+    return True
+
+
 def run_setup(force: bool = False) -> bool:
     """
     Run the initial setup wizard.
@@ -98,31 +136,41 @@ def run_setup(force: bool = False) -> bool:
     config_file_existed = config_exists()
     config = load_config()
 
-    # Fresh project: try zero-prompt auto-initialization
+    # Fresh project: zero-prompt auto-initialization (never drop into interactive wizard)
     if is_fresh_project(config, config_file_existed) and not force:
         apply_git_workflow_defaults(config)
+        config["tracker"]["type"] = None
+        config["tracker"]["config"] = {}
         ensure_pr_template()
-        if try_auto_configure_github(config):
-            config["tracker"]["type"] = None
-            config["tracker"]["config"] = {}
-            save_config(config)
-            click.echo("=" * 60)
-            click.echo("  Setup Complete (auto-configured)")
-            click.echo("=" * 60)
-            click.echo()
-            click.echo("Detected fresh project. Configured with no prompts:")
-            click.echo("  • Git workflow: branch pattern {PROJ}-{num}, worktrees, rebase onto main")
+        ensure_local_state()
+        ensure_commit_convention()
+        github_configured = try_auto_configure_github(config)
+        save_config(config)
+        click.echo("=" * 60)
+        click.echo("  Setup Complete (auto-configured)")
+        click.echo("=" * 60)
+        click.echo()
+        click.echo("Detected fresh project. Configured with no prompts:")
+        click.echo("  • Git workflow: branch pattern {PROJ}-{num}, worktrees, rebase onto main")
+        click.echo("  • PR template: .github/PULL_REQUEST_TEMPLATE.md")
+        click.echo("  • Commit convention: .github/COMMIT_CONVENTION.md")
+        click.echo("  • Local state: .vibe/local_state.json")
+        if github_configured:
             click.echo("  • GitHub: gh CLI + current repo")
-            click.echo("  • PR template: .github/PULL_REQUEST_TEMPLATE.md")
-            click.echo()
-            click.echo("Configuration saved to .vibe/config.json")
-            click.echo()
-            click.echo("Next steps:")
-            click.echo("  1. Run 'bin/doctor' to verify your setup")
-            click.echo("  2. Optional: run 'bin/vibe setup -w tracker' to add Linear")
-            click.echo("  3. Check recipes/ for best practices")
-            click.echo()
-            return True
+        else:
+            click.echo("  • GitHub: not configured (run 'bin/vibe setup -w github' when ready)")
+        click.echo()
+        click.echo("Configuration saved to .vibe/config.json")
+        click.echo()
+        click.echo("Next steps:")
+        click.echo("  1. Run 'bin/doctor' to verify your setup")
+        if not github_configured:
+            click.echo("  2. Run 'bin/vibe setup -w github' to connect GitHub")
+        click.echo("  2. Optional: run 'bin/vibe setup -w tracker' to add Linear")
+        click.echo("  3. Fill in the Project Overview in CLAUDE.md (for AI agent context)")
+        click.echo("  4. Check recipes/ for best practices")
+        click.echo()
+        return True
 
     # Existing config or reconfiguration: show wizard header and possibly confirm
     click.echo("=" * 60)
@@ -183,7 +231,8 @@ def run_setup(force: bool = False) -> bool:
     click.echo("Next steps:")
     click.echo("  1. Run 'bin/doctor' to verify your setup")
     click.echo("  2. Review .vibe/config.json and adjust as needed")
-    click.echo("  3. Check out the recipes/ directory for best practices")
+    click.echo("  3. Fill in the Project Overview in CLAUDE.md (for AI agent context)")
+    click.echo("  4. Check out the recipes/ directory for best practices")
     click.echo()
 
     return True
