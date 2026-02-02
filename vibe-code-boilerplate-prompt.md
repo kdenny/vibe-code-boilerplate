@@ -26,7 +26,7 @@ It is meant to be **referenced as source material** that agents replicate into n
    - If something is missing or ambiguous, run the relevant wizard; do not assume or guess. Block work that depends on that config until the wizard has been run (or config is supplied).
 3. **Single source of truth**
    - `.vibe/config.json` is the canonical config
-   - `Claude.md` mirrors this config in natural language rules
+   - `CLAUDE.md` (all caps filename) mirrors this config in natural language rules
 4. **No assumptions**
    - Never assume tools are installed
    - Detect → install → document
@@ -45,7 +45,7 @@ It is meant to be **referenced as source material** that agents replicate into n
 ```
 /
 ├── README.md
-├── Claude.md
+├── CLAUDE.md
 ├── .vibe/
 │   ├── config.json             # must include boilerplate.issues_url (canonical: https://github.com/kdenny/vibe-code-boilerplate/issues)
 │   ├── local_state.json        # gitignored
@@ -261,7 +261,7 @@ Every project built from this boilerplate must have the **native ability** to op
 - **Config:** `.vibe/config.json` must include a `boilerplate` object with `issues_url` set to the canonical URL above (so projects know where to report).
 - **Command:** A `vibe boilerplate-issue` (or equivalent) command that opens the boilerplate repo’s **new issue** page in the browser. It must accept optional `--title` and `--body` so an agent can pre-fill the issue (e.g. from a template). If the environment cannot open a browser, print the URL (with optional query params for title/body).
 - **Agent rule (no user prompt required):** When you find something **broken, inconsistent, or misleading** in:
-  - **Claude.md** (or the project’s main agent contract file), or
+  - **CLAUDE.md** (or the project’s main agent contract file; filename must be all caps), or
   - **Any file under `recipes/`**
   you must **automatically** open or file an issue in the boilerplate repo. Include: what is broken, where (file + section or recipe path), and optional suggested fix. Do **not** wait for the user to ask; do this as part of fixing or working around the problem.
 
@@ -315,9 +315,9 @@ Tone: **friendly, explicit, zero assumed knowledge**
 
 ---
 
-## Claude.md REQUIREMENTS (AGENT CONTRACT)
+## CLAUDE.md REQUIREMENTS (AGENT CONTRACT)
 
-Claude.md must:
+The agent contract file must be named **CLAUDE.md** (all caps) in the project root so Cursor and other tools load it. It must:
 - Mirror `.vibe/config.json`
 - Explicitly state:
   - When to ask questions
@@ -328,7 +328,7 @@ Claude.md must:
   - How to open PRs
   - How to parse GHA results
 - Document **all labels** and update them as they evolve
-- **Boilerplate feedback:** Include the boilerplate repo issues URL (`https://github.com/kdenny/vibe-code-boilerplate/issues`) and the rule: when you find something broken or inconsistent in Claude.md or any file under `recipes/`, automatically file an issue there (e.g. via `vibe boilerplate-issue --title "..." --body "..."`) without waiting for the user to ask.
+- **Boilerplate feedback:** Include the boilerplate repo issues URL (`https://github.com/kdenny/vibe-code-boilerplate/issues`) and the rule: when you find something broken or inconsistent in CLAUDE.md or any file under `recipes/`, automatically file an issue there (e.g. via `vibe boilerplate-issue --title "..." --body "..."`) without waiting for the user to ask.
 
 Tone: **authoritative, unambiguous**
 

@@ -178,7 +178,7 @@ This lets the system:
 │   │   ├── pr-policy.yml     # PR validation
 │   │   └── tests.yml         # Test runner
 │   └── PULL_REQUEST_TEMPLATE.md
-├── Claude.md                 # AI agent instructions
+├── CLAUDE.md                 # AI agent instructions (must be all caps so tools load it)
 ├── README.md                 # This file
 ├── pyproject.toml            # Python deps
 ├── .gitignore
@@ -249,7 +249,7 @@ Automated handling of pre-existing tickets that don't follow conventions is not 
 
 ## Contributing
 
-See `Claude.md` for AI agent contribution guidelines. For human contributors:
+See `CLAUDE.md` for AI agent contribution guidelines. For human contributors:
 
 1. Fork and create a feature branch
 2. Follow the PR template

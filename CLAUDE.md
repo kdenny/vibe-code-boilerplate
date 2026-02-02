@@ -101,6 +101,8 @@ When writing tickets or advising the user to create tickets, either ensure the p
 
 ### Starting Work on a Ticket
 
+When asked to "do" a ticket, use a fresh worktree and open a PR when done (see ["Do this ticket"](#do-this-ticket--ticket--what-it-means) above).
+
 ```bash
 # Use the vibe CLI to create a worktree
 bin/vibe do PROJ-123
@@ -339,7 +341,7 @@ bin/ticket list             # List tickets
 bin/ticket get PROJ-123     # Get ticket details
 bin/ticket create "Title"   # Create ticket
 
-# Working on tickets
+# Working on tickets ("do this ticket" = fresh worktree + open PR when done)
 bin/vibe do PROJ-123        # Create worktree for ticket
 
 # Secrets

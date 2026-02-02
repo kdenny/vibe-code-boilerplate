@@ -152,4 +152,4 @@ If you use the Linear API to create issues, pass `priority` in the issue input (
 | Use "Milestone" label for epic-style work | Rely only on priority labels without type/risk/area |
 | Verb + Object titles | Vague titles like "Fix stuff" |
 
-See also: `Claude.md` (Ticket Management, Creating Tickets, Label Documentation), `recipes/tickets/linear-setup.md`, `recipes/tickets/shortcut.md`.
+See also: `CLAUDE.md` (Ticket Management, Creating Tickets, Label Documentation), `recipes/tickets/linear-setup.md`, `recipes/tickets/shortcut.md`.
