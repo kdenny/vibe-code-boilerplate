@@ -1,0 +1,57 @@
+# When a PR that adds deployment config (fly.toml, vercel.json, .env.example) is merged to main,
+# optionally create a HUMAN-labeled follow-up ticket with step-by-step setup instructions.
+#
+# Requires repo secrets: LINEAR_API_KEY, LINEAR_TEAM_ID (Linear team UUID).
+# If secrets are not set, the workflow skips creating the ticket (no failure).
+name: HUMAN follow-up on deployment merge
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  create-human-followup:
+    name: Create HUMAN follow-up ticket
+    runs-on: ubuntu-latest
+    if: github.event.before != '0000000000000000000000000000000000000000'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Get changed files
+        id: changed
+        run: |
+          FILES=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" 2>/dev/null || true)
+          echo "changed<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$FILES" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+          # Check if any deployment config was added
+          DEPLOYMENT=''
+          echo "$FILES" | grep -qE 'fly\.toml|vercel\.json|\.env\.example' && DEPLOYMENT=1 || true
+          echo "has_deployment=$DEPLOYMENT" >> "$GITHUB_OUTPUT"
+
+      - name: Create HUMAN follow-up ticket
+        if: steps.changed.outputs.has_deployment == '1'
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+          LINEAR_TEAM_ID: ${{ secrets.LINEAR_TEAM_ID }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          if [ -z "$LINEAR_API_KEY" ]; then
+            echo "LINEAR_API_KEY not set. Add repo secrets LINEAR_API_KEY and LINEAR_TEAM_ID to enable auto-creation of HUMAN follow-up tickets."
+            exit 0
+          fi
+          cd "$GITHUB_WORKSPACE"
+          python3 -m venv .vibe/.venv 2>/dev/null || true
+          . .vibe/.venv/bin/activate
+          pip install -q -e .
+          FILES=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" 2>/dev/null \
+            | grep -E 'fly\.toml|vercel\.json|\.env\.example' || true)
+          ARGS=""
+          for f in $FILES; do ARGS="$ARGS --files $f"; done
+          bin/ticket create-human-followup $ARGS

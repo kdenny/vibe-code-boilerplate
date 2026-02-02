@@ -159,6 +159,10 @@ class LinearTracker(TrackerBase):
         }
         if self._team_id:
             input_obj["teamId"] = self._team_id
+        if labels:
+            label_ids = self._get_label_ids(self._team_id, labels)
+            if label_ids:
+                input_obj["labelIds"] = label_ids
 
         result = self._execute_query(mutation, {"input": input_obj})
         issue = result.get("data", {}).get("issueCreate", {}).get("issue")
@@ -254,6 +258,30 @@ class LinearTracker(TrackerBase):
             issues.append("LINEAR_API_KEY is invalid or expired")
 
         return len(issues) == 0, issues
+
+    def _get_label_ids(self, team_id: str | None, label_names: list[str]) -> list[str]:
+        """Resolve label names to Linear label IDs for the team."""
+        if not team_id or not label_names:
+            return []
+        query = """
+        query TeamLabels($teamId: String!) {
+            team(id: $teamId) {
+                labels { nodes { id name } }
+            }
+        }
+        """
+        try:
+            result = self._execute_query(query, {"teamId": team_id})
+            nodes = (
+                result.get("data", {})
+                .get("team", {})
+                .get("labels", {})
+                .get("nodes", [])
+            )
+            name_to_id = {n.get("name", ""): n["id"] for n in nodes if n.get("id")}
+            return [name_to_id[n] for n in label_names if n in name_to_id]
+        except Exception:
+            return []
 
     def _get_workflow_state_id(self, team_id: str, state_name: str) -> str | None:
         """Resolve workflow state name to state ID for a team."""

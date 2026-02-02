@@ -220,6 +220,15 @@ Update ticket status as work progresses:
 - **In Progress** → **In Review**: When PR is opened
 - **In Review** → **Done**: When PR is merged
 
+### HUMAN Follow-Up for Deployment Infrastructure
+
+When a deployment infrastructure ticket is completed (e.g. added `fly.toml`, `vercel.json`, `.env.example`), create a **HUMAN-labeled follow-up ticket** so a human can set up production accounts and deploy. Use:
+
+- **Manual:** `bin/ticket create-human-followup` (optionally `--parent PROJ-123` or `--files fly.toml --files vercel.json`)
+- **Auto:** The workflow `.github/workflows/human-followup-on-deployment.yml` creates the ticket on merge to main when deployment config files were added (requires repo secrets `LINEAR_API_KEY`, `LINEAR_TEAM_ID`)
+
+See `recipes/tickets/human-followup-deployment.md` for full guidance.
+
 ---
 
 ## Worktree Management
@@ -415,6 +424,7 @@ When implementing specific features, consult these recipes:
 
 ### Tickets
 - `recipes/tickets/creating-tickets.md` - Creating tickets (blocking, labels, milestones)
+- `recipes/tickets/human-followup-deployment.md` - HUMAN follow-up tickets for deployment setup
 - `recipes/tickets/linear-setup.md` - Linear configuration
 - `recipes/tickets/shortcut.md` - Shortcut (stub)
 
@@ -432,6 +442,7 @@ bin/doctor                  # Alias for doctor
 bin/ticket list             # List tickets
 bin/ticket get PROJ-123     # Get ticket details
 bin/ticket create "Title"   # Create ticket
+bin/ticket create-human-followup   # Create HUMAN follow-up for deployment setup (after fly.toml, vercel.json, .env.example)
 
 # Working on tickets ("do this ticket" = fresh worktree + open PR when done)
 bin/vibe do PROJ-123        # Create worktree for ticket

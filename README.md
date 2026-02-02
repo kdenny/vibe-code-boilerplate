@@ -15,6 +15,7 @@ This boilerplate provides:
 - **Secret Management** - Allowlists, provider sync, scanning
 - **CI/CD Templates** - Security scanning, test detection, SBOM generation
 - **Recipe Library** - Best practices documentation for common tasks
+- **HUMAN follow-up tickets** - Auto-create or manually create HUMAN-labeled tickets with step-by-step deployment setup instructions when deployment config (fly.toml, vercel.json, .env.example) is added
 
 ## When to Use It
 
@@ -96,6 +97,7 @@ This lets the system:
 | `bin/doctor` | Shortcut for `bin/vibe doctor` |
 | `bin/ticket list` | List tickets from tracker |
 | `bin/ticket get <id>` | Get ticket details |
+| `bin/ticket create-human-followup` | Create HUMAN follow-up ticket for deployment setup (after adding fly.toml, vercel.json, .env.example) |
 | `bin/secrets list` | List configured secrets |
 | `bin/secrets sync` | Sync secrets to providers |
 
