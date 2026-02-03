@@ -7,6 +7,7 @@ import click
 from lib.vibe.config import DEFAULT_CONFIG, config_exists, load_config, save_config
 from lib.vibe.state import DEFAULT_STATE, save_state, state_exists
 from lib.vibe.wizards.branch import run_branch_wizard
+from lib.vibe.wizards.database import run_database_wizard
 from lib.vibe.wizards.env import run_env_wizard
 from lib.vibe.wizards.fly import run_fly_wizard
 from lib.vibe.wizards.github import (
@@ -14,6 +15,7 @@ from lib.vibe.wizards.github import (
     run_github_wizard,
     try_auto_configure_github,
 )
+from lib.vibe.wizards.neon import run_neon_wizard
 from lib.vibe.wizards.supabase import run_supabase_wizard
 from lib.vibe.wizards.tracker import run_tracker_wizard
 from lib.vibe.wizards.vercel import run_vercel_wizard
@@ -295,6 +297,8 @@ def run_individual_wizard(wizard_name: str) -> bool:
         "vercel": run_vercel_wizard,
         "fly": run_fly_wizard,
         "supabase": run_supabase_wizard,
+        "neon": run_neon_wizard,
+        "database": run_database_wizard,
     }
 
     if wizard_name not in wizards:
