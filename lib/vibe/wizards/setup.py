@@ -14,6 +14,7 @@ from lib.vibe.wizards.github import (
     try_auto_configure_github,
 )
 from lib.vibe.wizards.tracker import run_tracker_wizard
+from lib.vibe.wizards.vercel import run_vercel_wizard
 
 # Default PR template when .github/PULL_REQUEST_TEMPLATE.md is missing
 _DEFAULT_PR_TEMPLATE = """## Summary
@@ -289,6 +290,7 @@ def run_individual_wizard(wizard_name: str) -> bool:
         "tracker": run_tracker_wizard,
         "branch": run_branch_wizard,
         "env": run_env_wizard,
+        "vercel": run_vercel_wizard,
     }
 
     if wizard_name not in wizards:
