@@ -99,7 +99,9 @@ def pr(title: str | None, body: str | None, web: bool) -> None:
     main_branch = get_main_branch()
     branch = current_branch()
     if branch == main_branch:
-        click.echo(f"Cannot open PR from {main_branch}. Check out your feature branch first.", err=True)
+        click.echo(
+            f"Cannot open PR from {main_branch}. Check out your feature branch first.", err=True
+        )
         sys.exit(1)
 
     args = ["gh", "pr", "create"]

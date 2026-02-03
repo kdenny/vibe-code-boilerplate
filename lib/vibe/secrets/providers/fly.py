@@ -76,7 +76,9 @@ class FlySecretsProvider(SecretProvider):
                 for s in secrets_data
             ]
         except FileNotFoundError:
-            raise RuntimeError("Fly CLI not found. Install from https://fly.io/docs/hands-on/install-flyctl/")
+            raise RuntimeError(
+                "Fly CLI not found. Install from https://fly.io/docs/hands-on/install-flyctl/"
+            )
 
     def get_secret(self, name: str, environment: str) -> Secret | None:
         """
@@ -109,7 +111,9 @@ class FlySecretsProvider(SecretProvider):
             result = subprocess.run(cmd, capture_output=True, text=True)
             return result.returncode == 0
         except FileNotFoundError:
-            raise RuntimeError("Fly CLI not found. Install from https://fly.io/docs/hands-on/install-flyctl/")
+            raise RuntimeError(
+                "Fly CLI not found. Install from https://fly.io/docs/hands-on/install-flyctl/"
+            )
 
     def delete_secret(self, name: str, environment: str) -> bool:
         """Delete a Fly.io secret."""
@@ -130,7 +134,9 @@ class FlySecretsProvider(SecretProvider):
             result = subprocess.run(cmd, capture_output=True, text=True)
             return result.returncode == 0
         except FileNotFoundError:
-            raise RuntimeError("Fly CLI not found. Install from https://fly.io/docs/hands-on/install-flyctl/")
+            raise RuntimeError(
+                "Fly CLI not found. Install from https://fly.io/docs/hands-on/install-flyctl/"
+            )
 
     def sync_from_local(self, env_file: str, environment: str) -> dict[str, bool]:
         """

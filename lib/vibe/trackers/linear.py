@@ -272,12 +272,7 @@ class LinearTracker(TrackerBase):
         """
         try:
             result = self._execute_query(query, {"teamId": team_id})
-            nodes = (
-                result.get("data", {})
-                .get("team", {})
-                .get("labels", {})
-                .get("nodes", [])
-            )
+            nodes = result.get("data", {}).get("team", {}).get("labels", {}).get("nodes", [])
             name_to_id = {n.get("name", ""): n["id"] for n in nodes if n.get("id")}
             return [name_to_id[n] for n in label_names if n in name_to_id]
         except Exception:
@@ -304,7 +299,11 @@ class LinearTracker(TrackerBase):
             result = self._execute_query(query, variables if variables else None)
             nodes = result.get("data", {}).get("issueLabels", {}).get("nodes", [])
             return [
-                {"id": node.get("id", ""), "name": node.get("name", ""), "color": node.get("color", "")}
+                {
+                    "id": node.get("id", ""),
+                    "name": node.get("name", ""),
+                    "color": node.get("color", ""),
+                }
                 for node in nodes
             ]
         except Exception:
@@ -326,12 +325,7 @@ class LinearTracker(TrackerBase):
         """
         try:
             result = self._execute_query(query, {"teamId": team_id})
-            nodes = (
-                result.get("data", {})
-                .get("team", {})
-                .get("states", {})
-                .get("nodes", [])
-            )
+            nodes = result.get("data", {}).get("team", {}).get("states", {}).get("nodes", [])
             for node in nodes:
                 if node.get("name", "").lower() == state_name.lower():
                     return node.get("id")

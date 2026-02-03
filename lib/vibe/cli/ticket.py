@@ -30,7 +30,9 @@ def get_tracker():
         return ShortcutTracker()
     # CI: allow Linear via env when no tracker is configured (e.g. HUMAN follow-up workflow)
     if os.environ.get("LINEAR_API_KEY"):
-        return LinearTracker(team_id=tracker_config.get("team_id") or os.environ.get("LINEAR_TEAM_ID"))
+        return LinearTracker(
+            team_id=tracker_config.get("team_id") or os.environ.get("LINEAR_TEAM_ID")
+        )
     return None
 
 
@@ -43,20 +45,28 @@ def ensure_tracker_configured():
     if tracker is not None:
         return tracker
 
-    click.echo("No ticketing system (e.g. Linear) is configured. Set up a tracker before creating or viewing tickets.")
+    click.echo(
+        "No ticketing system (e.g. Linear) is configured. Set up a tracker before creating or viewing tickets."
+    )
     if not click.confirm("Run tracker setup now?", default=True):
-        click.echo("Run 'bin/vibe setup' or 'bin/vibe setup --wizard tracker' when ready.", err=True)
+        click.echo(
+            "Run 'bin/vibe setup' or 'bin/vibe setup --wizard tracker' when ready.", err=True
+        )
         sys.exit(1)
 
     config = load_config()
     if not run_tracker_wizard(config):
-        click.echo("Tracker setup was cancelled or failed. Run 'bin/vibe setup' to try again.", err=True)
+        click.echo(
+            "Tracker setup was cancelled or failed. Run 'bin/vibe setup' to try again.", err=True
+        )
         sys.exit(1)
     save_config(config)
 
     tracker = get_tracker()
     if tracker is None:
-        click.echo("No tracker was selected. Run 'bin/vibe setup' to configure one later.", err=True)
+        click.echo(
+            "No tracker was selected. Run 'bin/vibe setup' to configure one later.", err=True
+        )
         sys.exit(1)
     return tracker
 
@@ -137,7 +147,8 @@ HUMAN_FOLLOWUP_LABELS = ["Chore", "Infra", "HUMAN"]
 
 @main.command("create-human-followup")
 @click.option(
-    "--files", "-f",
+    "--files",
+    "-f",
     multiple=True,
     help="Changed file paths (e.g. from git diff). If not set, scan repo for deployment configs.",
 )
@@ -215,7 +226,12 @@ def create_human_followup(
 @click.option("--status", "-s", help="Set ticket status (e.g. Done, In Progress)")
 @click.option("--title", "-t", help="Set ticket title")
 @click.option("--description", "-d", help="Set ticket description")
-@click.option("--label", "-l", multiple=True, help="Set labels (replaces existing for trackers that support it)")
+@click.option(
+    "--label",
+    "-l",
+    multiple=True,
+    help="Set labels (replaces existing for trackers that support it)",
+)
 def update(
     ticket_id: str,
     status: str | None,

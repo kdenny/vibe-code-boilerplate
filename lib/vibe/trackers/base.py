@@ -71,9 +71,7 @@ class TrackerBase(ABC):
 
     def comment_ticket(self, ticket_id: str, body: str) -> None:
         """Add a comment to a ticket. Override in trackers that support comments."""
-        raise NotImplementedError(
-            f"Commenting is not supported by the {self.name} tracker."
-        )
+        raise NotImplementedError(f"Commenting is not supported by the {self.name} tracker.")
 
     @abstractmethod
     def validate_config(self) -> tuple[bool, list[str]]:

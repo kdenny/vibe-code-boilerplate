@@ -91,56 +91,66 @@ def build_human_followup_body(
         "",
     ]
     if parent_ticket_id:
-        lines.extend([
-            "## Context",
-            f"Follow-up from **{parent_ticket_id}** (deployment configs were added in that ticket).",
-            "",
-        ])
+        lines.extend(
+            [
+                "## Context",
+                f"Follow-up from **{parent_ticket_id}** (deployment configs were added in that ticket).",
+                "",
+            ]
+        )
     lines.append("## Steps")
     lines.append("")
 
     if any(p[0] == "Vercel" for p in platforms):
-        lines.extend([
-            "### 1. Vercel (Web App Hosting)",
-            "1. Go to [vercel.com](https://vercel.com) and sign in with GitHub.",
-            "2. Click **Add New Project**.",
-            f"3. Import the `{repo_ref}` repository.",
-            "4. Set the root directory if needed (e.g. `apps/web` or `ui`).",
-            f"5. Add environment variables from `{env_example_path}` (or from team secrets).",
-            "6. Click **Deploy**.",
-            "",
-            "[Vercel docs →](https://vercel.com/docs)",
-            "",
-        ])
+        lines.extend(
+            [
+                "### 1. Vercel (Web App Hosting)",
+                "1. Go to [vercel.com](https://vercel.com) and sign in with GitHub.",
+                "2. Click **Add New Project**.",
+                f"3. Import the `{repo_ref}` repository.",
+                "4. Set the root directory if needed (e.g. `apps/web` or `ui`).",
+                f"5. Add environment variables from `{env_example_path}` (or from team secrets).",
+                "6. Click **Deploy**.",
+                "",
+                "[Vercel docs →](https://vercel.com/docs)",
+                "",
+            ]
+        )
     if any(p[0] == "Fly.io" for p in platforms):
-        lines.extend([
-            "### 2. Fly.io (API / Worker Hosting)",
-            "1. Go to [fly.io](https://fly.io) and sign up or log in.",
-            "2. Install the Fly CLI: `curl -L https://fly.io/install.sh | sh` (or see [docs](https://fly.io/docs/hands-on/install-flyctl/)).",
-            "3. From the repo root, run: `fly launch` (or use existing `fly.toml`).",
-            "4. Set secrets: `fly secrets set KEY=value` for each variable from your env.",
-            "5. Deploy: `fly deploy`.",
-            "",
-            "[Fly.io docs →](https://fly.io/docs)",
-            "",
-        ])
+        lines.extend(
+            [
+                "### 2. Fly.io (API / Worker Hosting)",
+                "1. Go to [fly.io](https://fly.io) and sign up or log in.",
+                "2. Install the Fly CLI: `curl -L https://fly.io/install.sh | sh` (or see [docs](https://fly.io/docs/hands-on/install-flyctl/)).",
+                "3. From the repo root, run: `fly launch` (or use existing `fly.toml`).",
+                "4. Set secrets: `fly secrets set KEY=value` for each variable from your env.",
+                "5. Deploy: `fly deploy`.",
+                "",
+                "[Fly.io docs →](https://fly.io/docs)",
+                "",
+            ]
+        )
     if any(p[0] == "Env" for p in platforms):
-        lines.extend([
-            "### 3. Environment variables",
-            f"1. Copy `{env_example_path}` to a local `.env` or use the team’s shared env template.",
-            "2. Fill in real values (get them from the team password manager).",
-            "3. Never commit real secrets; use the deployment platform’s UI or CLI for production.",
-            "",
-        ])
+        lines.extend(
+            [
+                "### 3. Environment variables",
+                f"1. Copy `{env_example_path}` to a local `.env` or use the team’s shared env template.",
+                "2. Fill in real values (get them from the team password manager).",
+                "3. Never commit real secrets; use the deployment platform’s UI or CLI for production.",
+                "",
+            ]
+        )
 
-    lines.extend([
-        "## Verification",
-        "- [ ] Web app loads at production URL (if applicable)",
-        "- [ ] API health check returns 200 (if applicable)",
-        "- [ ] Worker/background jobs run (if applicable)",
-        "- [ ] No secrets committed to the repo",
-        "",
-    ])
+    lines.extend(
+        [
+            "## Verification",
+            "- [ ] Web app loads at production URL (if applicable)",
+            "- [ ] API health check returns 200 (if applicable)",
+            "- [ ] Worker/background jobs run (if applicable)",
+            "- [ ] No secrets committed to the repo",
+            "",
+        ]
+    )
     return "\n".join(lines).strip()
 
 
