@@ -1,31 +1,11 @@
 # Neon Database Setup
 
-## When to Use This Recipe
+> **This recipe has moved.** See [recipes/integrations/neon.md](../integrations/neon.md) for the full Neon integration guide.
 
-Use this recipe when you need to:
-- Set up serverless Postgres with Neon
-- Configure branching for development
-- Optimize for serverless workloads
-
-## Current Status
-
-This is a stub recipe. Extend it based on your project needs.
-
-## Quick Start
-
-1. Create project at neon.tech
-2. Get connection string
-3. Configure in `.env.local`
-
-## Extension Points
-
-- Configure database branching
-- Set up connection pooling
-- Configure auto-suspend
-- Set up migrations workflow
-- Configure backup retention
-
-## Related Recipes
-
-- `security/secret-management.md` - Managing credentials
-- `environments/multi-env.md` - Multi-environment setup
+The comprehensive guide covers:
+- Quick setup and connection string configuration
+- Database branching (one-to-one with git branches)
+- Framework integration (Prisma, Drizzle, SQLAlchemy)
+- CI/CD integration for preview environments
+- Best practices for connection pooling and serverless
+- Comparison with Supabase

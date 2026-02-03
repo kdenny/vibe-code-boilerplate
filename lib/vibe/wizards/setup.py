@@ -16,6 +16,7 @@ from lib.vibe.wizards.github import (
     try_auto_configure_github,
 )
 from lib.vibe.wizards.neon import run_neon_wizard
+from lib.vibe.wizards.sentry import run_sentry_wizard
 from lib.vibe.wizards.supabase import run_supabase_wizard
 from lib.vibe.wizards.tracker import run_tracker_wizard
 from lib.vibe.wizards.vercel import run_vercel_wizard
@@ -309,6 +310,7 @@ def run_individual_wizard(wizard_name: str) -> bool:
         "supabase": run_supabase_wizard,
         "neon": run_neon_wizard,
         "database": run_database_wizard,
+        "sentry": run_sentry_wizard,
     }
 
     if wizard_name not in wizards:
