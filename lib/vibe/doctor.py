@@ -1,5 +1,7 @@
 """Doctor: Validate project configuration and health."""
 
+import json
+import os
 import shutil
 import subprocess
 from dataclasses import dataclass
@@ -29,14 +31,16 @@ class CheckResult:
     status: Status
     message: str
     fix_hint: str | None = None
+    category: str = "general"
 
 
-def run_doctor(verbose: bool = False) -> list[CheckResult]:
+def run_doctor(verbose: bool = False, check_github_actions: bool = False) -> list[CheckResult]:
     """
     Run all health checks.
 
     Args:
         verbose: Show additional details
+        check_github_actions: Also check GitHub Actions secrets/workflows
 
     Returns:
         List of check results
@@ -58,6 +62,19 @@ def run_doctor(verbose: bool = False) -> list[CheckResult]:
         results.append(check_tracker_config(config))
         results.append(check_github_config(config))
         results.append(check_secrets_allowlist())
+
+        # Integration checks
+        results.extend(check_integrations(config, verbose))
+
+    # Local hooks check
+    results.append(check_local_hooks())
+
+    # Worktree check
+    results.append(check_stale_worktrees())
+
+    # GitHub Actions checks (optional, requires gh CLI)
+    if check_github_actions:
+        results.extend(check_github_actions_setup())
 
     # Update last run time
     set_last_doctor_run()
@@ -195,39 +212,49 @@ def check_tracker_config(config: dict) -> CheckResult:
     if not tracker_type:
         return CheckResult(
             name="Tracker",
-            status=Status.WARN,
-            message="No tracker configured",
-            fix_hint="Run 'bin/vibe setup' to configure a tracker",
+            status=Status.SKIP,
+            message="No tracker configured (optional)",
+            fix_hint="Run 'bin/vibe setup --wizard tracker' to configure",
+            category="integration",
         )
 
     if tracker_type == "shortcut":
+        if os.environ.get("SHORTCUT_API_TOKEN"):
+            return CheckResult(
+                name="Tracker",
+                status=Status.PASS,
+                message="Shortcut configured with API token",
+                category="integration",
+            )
         return CheckResult(
             name="Tracker",
             status=Status.WARN,
-            message="Shortcut configured (stub - not functional)",
-            fix_hint="See GitHub issue #1 for Shortcut support",
+            message="Shortcut configured but SHORTCUT_API_TOKEN not set",
+            fix_hint="Add SHORTCUT_API_TOKEN to .env.local",
+            category="integration",
         )
 
     if tracker_type == "linear":
-        import os
-
         if os.environ.get("LINEAR_API_KEY"):
             return CheckResult(
                 name="Tracker",
                 status=Status.PASS,
                 message="Linear configured with API key",
+                category="integration",
             )
         return CheckResult(
             name="Tracker",
             status=Status.WARN,
             message="Linear configured but LINEAR_API_KEY not set",
             fix_hint="Add LINEAR_API_KEY to .env.local",
+            category="integration",
         )
 
     return CheckResult(
         name="Tracker",
         status=Status.WARN,
         message=f"Unknown tracker type: {tracker_type}",
+        category="integration",
     )
 
 
@@ -280,7 +307,316 @@ def check_secrets_allowlist() -> CheckResult:
     )
 
 
-def print_results(results: list[CheckResult]) -> int:
+def check_local_hooks() -> CheckResult:
+    """Check if local Claude Code hooks are configured."""
+    hooks_file = Path(".claude/settings.local.json")
+
+    if not hooks_file.exists():
+        return CheckResult(
+            name="Local hooks",
+            status=Status.SKIP,
+            message="Not configured (optional)",
+            fix_hint="Copy .claude/settings.local.json.example to enable",
+            category="integration",
+        )
+
+    try:
+        content = json.loads(hooks_file.read_text())
+        hooks = content.get("hooks", {})
+        if hooks:
+            return CheckResult(
+                name="Local hooks",
+                status=Status.PASS,
+                message=f"{len(hooks)} hook(s) configured",
+                category="integration",
+            )
+        return CheckResult(
+            name="Local hooks",
+            status=Status.WARN,
+            message="File exists but no hooks defined",
+            category="integration",
+        )
+    except (json.JSONDecodeError, Exception) as e:
+        return CheckResult(
+            name="Local hooks",
+            status=Status.WARN,
+            message=f"Invalid JSON: {e}",
+            fix_hint="Fix JSON syntax in .claude/settings.local.json",
+            category="integration",
+        )
+
+
+def check_stale_worktrees() -> CheckResult:
+    """Check for stale worktrees."""
+    try:
+        result = subprocess.run(
+            ["git", "worktree", "list", "--porcelain"],
+            capture_output=True,
+            text=True,
+        )
+
+        if result.returncode != 0:
+            return CheckResult(
+                name="Worktrees",
+                status=Status.SKIP,
+                message="Could not list worktrees",
+            )
+
+        # Count worktrees (excluding main)
+        worktrees = [
+            line for line in result.stdout.split("\n")
+            if line.startswith("worktree ") and not line.endswith(str(Path.cwd()))
+        ]
+
+        if len(worktrees) == 0:
+            return CheckResult(
+                name="Worktrees",
+                status=Status.PASS,
+                message="No active worktrees",
+            )
+
+        return CheckResult(
+            name="Worktrees",
+            status=Status.PASS,
+            message=f"{len(worktrees)} active worktree(s)",
+        )
+
+    except Exception:
+        return CheckResult(
+            name="Worktrees",
+            status=Status.SKIP,
+            message="Could not check worktrees",
+        )
+
+
+def check_integrations(config: dict, verbose: bool = False) -> list[CheckResult]:
+    """Check optional integrations."""
+    results = []
+
+    # PromptVault
+    if os.environ.get("PROMPTVAULT_API_KEY"):
+        results.append(CheckResult(
+            name="PromptVault",
+            status=Status.PASS,
+            message="API key configured",
+            category="integration",
+        ))
+    else:
+        results.append(CheckResult(
+            name="PromptVault",
+            status=Status.SKIP,
+            message="Not configured (optional)",
+            fix_hint="Add PROMPTVAULT_API_KEY to .env.local for LLM apps",
+            category="integration",
+        ))
+
+    # Fly.io
+    if shutil.which("fly") or shutil.which("flyctl"):
+        try:
+            result = subprocess.run(
+                ["fly", "auth", "whoami"],
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode == 0:
+                results.append(CheckResult(
+                    name="Fly.io",
+                    status=Status.PASS,
+                    message="CLI authenticated",
+                    category="integration",
+                ))
+            else:
+                results.append(CheckResult(
+                    name="Fly.io",
+                    status=Status.WARN,
+                    message="CLI installed but not authenticated",
+                    fix_hint="Run 'fly auth login'",
+                    category="integration",
+                ))
+        except Exception:
+            results.append(CheckResult(
+                name="Fly.io",
+                status=Status.SKIP,
+                message="CLI check failed",
+                category="integration",
+            ))
+    else:
+        results.append(CheckResult(
+            name="Fly.io",
+            status=Status.SKIP,
+            message="CLI not installed (optional)",
+            category="integration",
+        ))
+
+    # Vercel
+    if shutil.which("vercel"):
+        try:
+            result = subprocess.run(
+                ["vercel", "whoami"],
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode == 0:
+                results.append(CheckResult(
+                    name="Vercel",
+                    status=Status.PASS,
+                    message="CLI authenticated",
+                    category="integration",
+                ))
+            else:
+                results.append(CheckResult(
+                    name="Vercel",
+                    status=Status.WARN,
+                    message="CLI installed but not authenticated",
+                    fix_hint="Run 'vercel login'",
+                    category="integration",
+                ))
+        except Exception:
+            results.append(CheckResult(
+                name="Vercel",
+                status=Status.SKIP,
+                message="CLI check failed",
+                category="integration",
+            ))
+    else:
+        results.append(CheckResult(
+            name="Vercel",
+            status=Status.SKIP,
+            message="CLI not installed (optional)",
+            category="integration",
+        ))
+
+    # Supabase
+    if shutil.which("supabase"):
+        results.append(CheckResult(
+            name="Supabase",
+            status=Status.PASS,
+            message="CLI installed",
+            category="integration",
+        ))
+    elif os.environ.get("SUPABASE_URL") and os.environ.get("SUPABASE_KEY"):
+        results.append(CheckResult(
+            name="Supabase",
+            status=Status.PASS,
+            message="Environment variables configured",
+            category="integration",
+        ))
+    else:
+        results.append(CheckResult(
+            name="Supabase",
+            status=Status.SKIP,
+            message="Not configured (optional)",
+            category="integration",
+        ))
+
+    return results
+
+
+def check_github_actions_setup() -> list[CheckResult]:
+    """Check GitHub Actions secrets and workflow status."""
+    results = []
+
+    if not shutil.which("gh"):
+        results.append(CheckResult(
+            name="GitHub Actions",
+            status=Status.SKIP,
+            message="gh CLI required for this check",
+            category="github_actions",
+        ))
+        return results
+
+    # Check for required secrets
+    try:
+        result = subprocess.run(
+            ["gh", "secret", "list"],
+            capture_output=True,
+            text=True,
+        )
+
+        if result.returncode == 0:
+            secrets = result.stdout.strip().split("\n") if result.stdout.strip() else []
+            secret_names = [s.split()[0] for s in secrets if s]
+
+            # Check for LINEAR_API_KEY
+            if "LINEAR_API_KEY" in secret_names:
+                results.append(CheckResult(
+                    name="GH Secret: LINEAR_API_KEY",
+                    status=Status.PASS,
+                    message="Secret exists",
+                    category="github_actions",
+                ))
+            else:
+                results.append(CheckResult(
+                    name="GH Secret: LINEAR_API_KEY",
+                    status=Status.WARN,
+                    message="Not set (needed for workflow status updates)",
+                    fix_hint="Add via: gh secret set LINEAR_API_KEY",
+                    category="github_actions",
+                ))
+
+        else:
+            results.append(CheckResult(
+                name="GitHub Secrets",
+                status=Status.WARN,
+                message="Could not list secrets (check permissions)",
+                category="github_actions",
+            ))
+
+    except Exception as e:
+        results.append(CheckResult(
+            name="GitHub Secrets",
+            status=Status.WARN,
+            message=f"Error checking secrets: {e}",
+            category="github_actions",
+        ))
+
+    # Check recent workflow runs
+    try:
+        result = subprocess.run(
+            ["gh", "run", "list", "--limit", "5", "--json", "name,status,conclusion"],
+            capture_output=True,
+            text=True,
+        )
+
+        if result.returncode == 0 and result.stdout.strip():
+            runs = json.loads(result.stdout)
+            failed = [r for r in runs if r.get("conclusion") == "failure"]
+
+            if failed:
+                results.append(CheckResult(
+                    name="Recent workflows",
+                    status=Status.WARN,
+                    message=f"{len(failed)}/{len(runs)} recent runs failed",
+                    fix_hint="Check: gh run list --limit 5",
+                    category="github_actions",
+                ))
+            else:
+                results.append(CheckResult(
+                    name="Recent workflows",
+                    status=Status.PASS,
+                    message="All recent runs passed",
+                    category="github_actions",
+                ))
+        else:
+            results.append(CheckResult(
+                name="Recent workflows",
+                status=Status.SKIP,
+                message="No recent workflow runs",
+                category="github_actions",
+            ))
+
+    except Exception:
+        results.append(CheckResult(
+            name="Recent workflows",
+            status=Status.SKIP,
+            message="Could not check workflow runs",
+            category="github_actions",
+        ))
+
+    return results
+
+
+def print_results(results: list[CheckResult], show_skipped: bool = True) -> int:
     """
     Print check results and return exit code.
 
@@ -293,21 +629,61 @@ def print_results(results: list[CheckResult]) -> int:
 
     has_failure = False
 
+    # Group by category
+    categories = {}
     for result in results:
-        status_char = result.status.value
-        print(f"  {status_char} {result.name}: {result.message}")
+        cat = result.category
+        if cat not in categories:
+            categories[cat] = []
+        categories[cat].append(result)
 
-        if result.fix_hint and result.status in (Status.FAIL, Status.WARN):
-            print(f"      → {result.fix_hint}")
+    # Print general first, then integrations, then github_actions
+    category_order = ["general", "integration", "github_actions"]
+    category_names = {
+        "general": "Core Checks",
+        "integration": "Integrations",
+        "github_actions": "GitHub Actions",
+    }
 
-        if result.status == Status.FAIL:
-            has_failure = True
+    for cat in category_order:
+        if cat not in categories:
+            continue
 
-    print()
+        cat_results = categories[cat]
+
+        # Skip category if all are SKIP and not showing skipped
+        if not show_skipped and all(r.status == Status.SKIP for r in cat_results):
+            continue
+
+        print(f"  {category_names.get(cat, cat)}")
+        print("  " + "-" * 30)
+
+        for result in cat_results:
+            if not show_skipped and result.status == Status.SKIP:
+                continue
+
+            status_char = result.status.value
+            print(f"  {status_char} {result.name}: {result.message}")
+
+            if result.fix_hint and result.status in (Status.FAIL, Status.WARN):
+                print(f"      → {result.fix_hint}")
+
+            if result.status == Status.FAIL:
+                has_failure = True
+
+        print()
 
     passed = sum(1 for r in results if r.status == Status.PASS)
+    warned = sum(1 for r in results if r.status == Status.WARN)
+    skipped = sum(1 for r in results if r.status == Status.SKIP)
     total = len(results)
-    print(f"  {passed}/{total} checks passed")
+
+    summary = f"  {passed}/{total} passed"
+    if warned:
+        summary += f", {warned} warnings"
+    if skipped:
+        summary += f", {skipped} skipped"
+    print(summary)
     print()
 
     return 1 if has_failure else 0
@@ -316,5 +692,8 @@ def print_results(results: list[CheckResult]) -> int:
 if __name__ == "__main__":
     import sys
 
-    results = run_doctor()
+    verbose = "--verbose" in sys.argv or "-v" in sys.argv
+    check_actions = "--github-actions" in sys.argv or "-g" in sys.argv
+
+    results = run_doctor(verbose=verbose, check_github_actions=check_actions)
     sys.exit(print_results(results))
