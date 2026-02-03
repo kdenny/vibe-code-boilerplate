@@ -7,6 +7,8 @@ from typing import Any
 
 import click
 
+from lib.vibe.tools import require_interactive
+
 try:
     import tomli
 except ImportError:
@@ -104,6 +106,12 @@ def run_fly_wizard(config: dict[str, Any]) -> bool:
     Returns:
         True if configuration was successful
     """
+    # Check prerequisites
+    ok, error = require_interactive("Fly.io")
+    if not ok:
+        click.echo(f"\n{error}")
+        return False
+
     click.echo("\n--- Fly.io Deployment Configuration ---")
     click.echo()
 

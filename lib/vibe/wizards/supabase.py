@@ -8,6 +8,8 @@ from typing import Any
 
 import click
 
+from lib.vibe.tools import require_interactive
+
 
 def check_supabase_cli() -> bool:
     """Check if Supabase CLI is installed."""
@@ -66,6 +68,12 @@ def run_supabase_wizard(config: dict[str, Any]) -> bool:
     Returns:
         True if configuration was successful
     """
+    # Check prerequisites
+    ok, error = require_interactive("Supabase")
+    if not ok:
+        click.echo(f"\n{error}")
+        return False
+
     click.echo("\n--- Supabase Configuration ---")
     click.echo()
 

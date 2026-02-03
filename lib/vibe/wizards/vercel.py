@@ -8,6 +8,8 @@ from typing import Any
 
 import click
 
+from lib.vibe.tools import require_interactive, require_tool
+
 
 def check_vercel_cli() -> bool:
     """Check if Vercel CLI is installed."""
@@ -70,6 +72,19 @@ def run_vercel_wizard(config: dict[str, Any]) -> bool:
     Returns:
         True if configuration was successful
     """
+    # Check prerequisites
+    ok, error = require_interactive("Vercel")
+    if not ok:
+        click.echo(f"\n{error}")
+        return False
+
+    # npm is required to install Vercel CLI if not present
+    ok, error = require_tool("npm")
+    if not ok and not check_vercel_cli():
+        click.echo(f"\n{error}")
+        click.echo("npm is required to install the Vercel CLI.")
+        return False
+
     click.echo("\n--- Vercel Deployment Configuration ---")
     click.echo()
 

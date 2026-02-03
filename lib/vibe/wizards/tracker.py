@@ -5,6 +5,8 @@ from typing import Any
 
 import click
 
+from lib.vibe.tools import require_interactive
+
 
 def run_tracker_wizard(config: dict[str, Any]) -> bool:
     """
@@ -16,6 +18,12 @@ def run_tracker_wizard(config: dict[str, Any]) -> bool:
     Returns:
         True if configuration was successful
     """
+    # Check prerequisites
+    ok, error = require_interactive("Tracker")
+    if not ok:
+        click.echo(f"\n{error}")
+        return False
+
     click.echo("Select your ticket tracking system:")
     click.echo()
     click.echo("  1. Linear - Full integration")
