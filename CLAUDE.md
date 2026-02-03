@@ -765,6 +765,10 @@ When implementing specific features, consult these recipes:
 - `recipes/tickets/linear-github-integration.md` - Native Linear GitHub integration (recommended)
 - `recipes/tickets/shortcut.md` - Shortcut configuration
 
+### Testing
+- `recipes/testing/playwright.md` - E2E testing with Playwright (setup, retrofit, CI/CD)
+- `recipes/testing/vitest.md` - Unit testing with Vitest
+
 ### Integrations
 - `recipes/integrations/promptvault.md` - PromptVault for LLM prompt management
 - `recipes/integrations/sentry.md` - Sentry error monitoring and performance tracking
@@ -816,11 +820,12 @@ These are the underlying CLI commands (skills call these automatically):
 bin/vibe setup              # Initial configuration
 bin/vibe retrofit           # Apply boilerplate to existing project
 bin/vibe retrofit --analyze-only  # See what retrofit would change
-bin/vibe setup --wizard vercel   # Configure Vercel deployment
-bin/vibe setup --wizard fly      # Configure Fly.io deployment
-bin/vibe setup --wizard supabase # Configure Supabase database
-bin/vibe setup --wizard sentry   # Configure Sentry error monitoring
-bin/vibe setup --wizard neon     # Configure Neon serverless Postgres
+bin/vibe setup --wizard vercel     # Configure Vercel deployment
+bin/vibe setup --wizard fly        # Configure Fly.io deployment
+bin/vibe setup --wizard supabase   # Configure Supabase database
+bin/vibe setup --wizard sentry     # Configure Sentry error monitoring
+bin/vibe setup --wizard neon       # Configure Neon serverless Postgres
+bin/vibe setup --wizard playwright # Configure Playwright E2E testing
 bin/vibe doctor             # Health check
 bin/doctor                  # Alias for doctor
 

@@ -605,6 +605,45 @@ def check_integrations(config: dict, verbose: bool = False) -> list[CheckResult]
             )
         )
 
+    # Playwright E2E testing
+    playwright_config = None
+    for config_name in ["playwright.config.ts", "playwright.config.js", "playwright.config.mjs"]:
+        if Path(config_name).exists():
+            playwright_config = config_name
+            break
+
+    if playwright_config:
+        # Check if node_modules/@playwright/test exists
+        if Path("node_modules/@playwright/test").exists():
+            results.append(
+                CheckResult(
+                    name="Playwright",
+                    status=Status.PASS,
+                    message=f"Configured ({playwright_config})",
+                    category="integration",
+                )
+            )
+        else:
+            results.append(
+                CheckResult(
+                    name="Playwright",
+                    status=Status.WARN,
+                    message="Config exists but packages not installed",
+                    fix_hint="Run 'npm install' to install Playwright",
+                    category="integration",
+                )
+            )
+    else:
+        results.append(
+            CheckResult(
+                name="Playwright",
+                status=Status.SKIP,
+                message="Not configured (optional)",
+                fix_hint="Run 'bin/vibe setup -w playwright' for E2E testing",
+                category="integration",
+            )
+        )
+
     return results
 
 
