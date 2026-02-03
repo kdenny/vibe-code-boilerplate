@@ -1,6 +1,7 @@
 """Development tools detection and validation."""
 
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -349,6 +350,144 @@ def require_interactive(wizard_name: str) -> tuple[bool, str | None]:
         "  - .vibe/config.json\n"
         "  - CLI flags (where available)"
     )
+
+
+# =============================================================================
+# Input Validation
+# =============================================================================
+
+
+def validate_github_owner(value: str) -> tuple[bool, str]:
+    """
+    Validate GitHub owner (user or org) name.
+
+    Returns:
+        (is_valid, error_message)
+    """
+    if not value:
+        return False, "Owner cannot be empty"
+    if not re.match(r"^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$", value):
+        return False, "Owner must be alphanumeric with optional hyphens (not at start/end)"
+    if len(value) > 39:
+        return False, "Owner must be 39 characters or less"
+    return True, ""
+
+
+def validate_github_repo(value: str) -> tuple[bool, str]:
+    """
+    Validate GitHub repository name.
+
+    Returns:
+        (is_valid, error_message)
+    """
+    if not value:
+        return False, "Repository name cannot be empty"
+    if not re.match(r"^[a-zA-Z0-9._-]+$", value):
+        return False, "Repository name can only contain alphanumeric, dots, hyphens, underscores"
+    if value.startswith("."):
+        return False, "Repository name cannot start with a dot"
+    if len(value) > 100:
+        return False, "Repository name must be 100 characters or less"
+    return True, ""
+
+
+def validate_branch_pattern(pattern: str) -> tuple[bool, str]:
+    """
+    Validate branch naming pattern.
+
+    Returns:
+        (is_valid, error_message)
+    """
+    if not pattern:
+        return False, "Branch pattern cannot be empty"
+    if "{PROJ}" not in pattern and "{num}" not in pattern:
+        return False, "Pattern must contain {PROJ} or {num} placeholder"
+    return True, ""
+
+
+def validate_linear_team_id(value: str) -> tuple[bool, str]:
+    """
+    Validate Linear team ID format.
+
+    Linear team IDs are UUIDs or short IDs.
+
+    Returns:
+        (is_valid, error_message)
+    """
+    if not value:
+        return True, ""  # Optional field
+
+    # UUID format
+    uuid_pattern = r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    if re.match(uuid_pattern, value.lower()):
+        return True, ""
+
+    # Short ID format (alphanumeric)
+    if re.match(r"^[a-zA-Z0-9_-]+$", value) and len(value) <= 50:
+        return True, ""
+
+    return False, "Team ID should be a UUID or alphanumeric identifier"
+
+
+# =============================================================================
+# Git Helpers
+# =============================================================================
+
+
+def get_default_branch() -> str:
+    """
+    Get the default branch name (main or master).
+
+    Returns:
+        Branch name, defaults to "main" if detection fails
+    """
+    # Try to get from remote HEAD
+    try:
+        result = subprocess.run(
+            ["git", "symbolic-ref", "refs/remotes/origin/HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            # Output is like "refs/remotes/origin/main"
+            return result.stdout.strip().split("/")[-1]
+    except Exception:
+        pass
+
+    # Try to check if main exists
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--verify", "origin/main"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            return "main"
+    except Exception:
+        pass
+
+    # Check for master
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--verify", "origin/master"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            return "master"
+    except Exception:
+        pass
+
+    # Default to main
+    return "main"
+
+
+# =============================================================================
+# Doctor Helpers
+# =============================================================================
 
 
 def print_tool_status(tool_names: list[str]) -> None:

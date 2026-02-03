@@ -132,6 +132,10 @@ def pr(title: str | None, body: str | None, web: bool) -> None:
         sys.exit(1)
 
 
+# NOTE: These URLs point to the vibe-code-boilerplate repository itself, NOT the user's
+# project. They're used for reporting bugs/issues with the boilerplate (broken recipes,
+# CLAUDE.md errors, etc.). Users who fork the boilerplate keep these URLs so they can
+# report upstream issues. Project-specific issues should use the project's own GitHub repo.
 BOILERPLATE_ISSUES_URL = "https://github.com/kdenny/vibe-code-boilerplate/issues"
 BOILERPLATE_NEW_ISSUE_URL = "https://github.com/kdenny/vibe-code-boilerplate/issues/new"
 

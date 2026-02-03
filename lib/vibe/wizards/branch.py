@@ -4,6 +4,12 @@ from typing import Any
 
 import click
 
+from lib.vibe.tools import (
+    get_default_branch,
+    require_interactive,
+    validate_branch_pattern,
+)
+
 
 def run_branch_wizard(config: dict[str, Any]) -> bool:
     """
@@ -15,6 +21,12 @@ def run_branch_wizard(config: dict[str, Any]) -> bool:
     Returns:
         True if configuration was successful
     """
+    # Check prerequisites
+    ok, error = require_interactive("Branch")
+    if not ok:
+        click.echo(f"\n{error}")
+        return False
+
     click.echo("\n--- Branch Naming Convention ---")
     click.echo()
     click.echo("Branch naming helps link branches to tickets automatically.")
@@ -30,12 +42,21 @@ def run_branch_wizard(config: dict[str, Any]) -> bool:
     click.echo()
 
     current = config.get("branching", {}).get("pattern", "{PROJ}-{num}")
-    pattern = click.prompt("Branch pattern", default=current)
 
-    # Main branch
+    # Prompt with validation
+    while True:
+        pattern = click.prompt("Branch pattern", default=current)
+        is_valid, error_msg = validate_branch_pattern(pattern)
+        if is_valid:
+            break
+        click.echo(f"  Invalid: {error_msg}")
+
+    # Main branch - detect from git if possible
+    detected_main = get_default_branch()
+    current_main = config.get("branching", {}).get("main_branch", detected_main)
     main_branch = click.prompt(
         "Main branch name",
-        default=config.get("branching", {}).get("main_branch", "main"),
+        default=current_main,
     )
 
     # Rebase policy
