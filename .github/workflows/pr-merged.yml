@@ -1,7 +1,14 @@
+# FALLBACK WORKFLOW: Prefer Linear's native GitHub integration instead.
+# See: recipes/tickets/linear-github-integration.md
+#
+# This workflow is for teams that can't use native integration (GitHub Enterprise,
+# custom state names, etc.). If using native integration, you can delete this file
+# or leave it - it will skip gracefully if LINEAR_API_KEY is not set.
+#
 # When a PR is merged, update the associated Linear ticket status to "Deployed"
 # (or the state name configured via LINEAR_DEPLOYED_STATE repo variable).
 # Requires: LINEAR_API_KEY repo secret.
-name: PR Merged
+name: PR Merged (Fallback)
 
 on:
   pull_request:
