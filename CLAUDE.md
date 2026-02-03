@@ -717,6 +717,8 @@ When implementing specific features, consult these recipes:
 
 ### Integrations
 - `recipes/integrations/promptvault.md` - PromptVault for LLM prompt management
+- `recipes/integrations/sentry.md` - Sentry error monitoring and performance tracking
+- `recipes/integrations/neon.md` - Neon serverless Postgres with database branching
 
 ---
 

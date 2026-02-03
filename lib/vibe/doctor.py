@@ -536,6 +536,68 @@ def check_integrations(config: dict, verbose: bool = False) -> list[CheckResult]
             )
         )
 
+    # Sentry
+    if os.environ.get("SENTRY_DSN"):
+        results.append(
+            CheckResult(
+                name="Sentry",
+                status=Status.PASS,
+                message="DSN configured",
+                category="integration",
+            )
+        )
+    else:
+        results.append(
+            CheckResult(
+                name="Sentry",
+                status=Status.SKIP,
+                message="Not configured (optional)",
+                fix_hint="Add SENTRY_DSN to .env.local for error monitoring",
+                category="integration",
+            )
+        )
+
+    # Neon
+    if os.environ.get("NEON_API_KEY") or os.environ.get("DATABASE_URL", "").startswith("postgres"):
+        if os.environ.get("NEON_API_KEY"):
+            results.append(
+                CheckResult(
+                    name="Neon",
+                    status=Status.PASS,
+                    message="API key configured",
+                    category="integration",
+                )
+            )
+        else:
+            results.append(
+                CheckResult(
+                    name="Neon",
+                    status=Status.PASS,
+                    message="DATABASE_URL configured",
+                    category="integration",
+                )
+            )
+    elif shutil.which("neonctl"):
+        results.append(
+            CheckResult(
+                name="Neon",
+                status=Status.WARN,
+                message="CLI installed but not configured",
+                fix_hint="Add NEON_API_KEY or DATABASE_URL to .env.local",
+                category="integration",
+            )
+        )
+    else:
+        results.append(
+            CheckResult(
+                name="Neon",
+                status=Status.SKIP,
+                message="Not configured (optional)",
+                fix_hint="Add NEON_API_KEY for serverless Postgres",
+                category="integration",
+            )
+        )
+
     return results
 
 
