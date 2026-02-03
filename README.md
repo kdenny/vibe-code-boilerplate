@@ -281,19 +281,25 @@ Main configuration is in `.vibe/config.json`:
 
 ### Automatic Linear Status Updates
 
-The boilerplate includes GitHub Actions that automatically update Linear ticket status:
+**Recommended: Use Linear's native GitHub integration** for automatic status updates. It's simpler to set up and maintained by Linear.
+
+1. In Linear: **Settings → Integrations → GitHub → Connect**
+2. Authorize and select your repositories
+3. Configure workflow automation (PR opened → In Review, PR merged → Done)
+
+See `recipes/tickets/linear-github-integration.md` for detailed setup.
+
+**Fallback: Custom GitHub Actions** (for GitHub Enterprise or custom requirements)
 
 | Event | Workflow | Status Change |
 |-------|----------|---------------|
 | PR opened | `pr-opened.yml` | → In Review |
 | PR merged | `pr-merged.yml` | → Deployed |
 
-**Setup:**
+Fallback setup:
 1. Add repository secret `LINEAR_API_KEY` (from [Linear Settings → API](https://linear.app/settings/api))
 2. Optional: Set repository variable `LINEAR_DEPLOYED_STATE` (default: `Deployed`)
 3. Optional: Set repository variable `LINEAR_IN_REVIEW_STATE` (default: `In Review`)
-
-**How it works:** The workflows extract the ticket ID from the branch name (e.g., `PROJ-123-add-feature` → `PROJ-123`). If no ticket ID is found or the API key is missing, the workflow logs a warning and continues without failing.
 
 ### Local Hooks (Optional)
 
@@ -310,13 +316,10 @@ cp .claude/settings.local.json.example .claude/settings.local.json
 
 See `recipes/workflows/linear-hooks.md` for details.
 
-## Known Limitations
+## Supported Trackers
 
-### Shortcut Integration (GitHub Issue #1)
-Shortcut.com tracker integration is stubbed but not implemented. Currently, only Linear is fully supported.
-
-### Grandfathered Tickets (GitHub Issue #2)
-Automated handling of pre-existing tickets that don't follow conventions is not yet implemented. Use manual grandfathering process documented in `recipes/tickets/ticket-audit-and-grandfathering.md`.
+- **Linear** - Full integration with native GitHub support (recommended)
+- **Shortcut** - Full integration via API (see `recipes/tickets/shortcut.md`)
 
 ## Requirements
 

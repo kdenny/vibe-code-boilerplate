@@ -581,11 +581,13 @@ When a workflow fails, check:
    - Missing risk label
    - Branch naming violation
 
-3. **pr-opened.yml**
+3. **pr-opened.yml** (fallback - prefer native Linear GitHub integration)
    - Runs when a PR is opened or reopened; updates the Linear ticket (from branch name) to "In Review" state. Requires repo secret `LINEAR_API_KEY`. Optional repo variable `LINEAR_IN_REVIEW_STATE` (default: `In Review`). On failure, logs a warning and does not fail the job.
+   - **Note**: If using Linear's native GitHub integration (recommended), this workflow is not needed. See `recipes/tickets/linear-github-integration.md`.
 
-4. **pr-merged.yml**
+4. **pr-merged.yml** (fallback - prefer native Linear GitHub integration)
    - Runs when a PR is merged; updates the Linear ticket (from branch name) to the "deployed" state. Requires repo secret `LINEAR_API_KEY`. Optional repo variable `LINEAR_DEPLOYED_STATE` (default: `Deployed`). On failure (e.g. no API key, ticket not found), logs a warning and does not fail the job.
+   - **Note**: If using Linear's native GitHub integration (recommended), this workflow is not needed. See `recipes/tickets/linear-github-integration.md`.
 
 5. **tests.yml** (if tests exist)
    - Test failure (check output for details)
@@ -641,7 +643,8 @@ When implementing specific features, consult these recipes:
 - `recipes/tickets/creating-tickets.md` - Creating tickets (blocking, labels, milestones)
 - `recipes/tickets/human-followup-deployment.md` - HUMAN follow-up tickets for deployment setup
 - `recipes/tickets/linear-setup.md` - Linear configuration
-- `recipes/tickets/shortcut.md` - Shortcut (stub)
+- `recipes/tickets/linear-github-integration.md` - Native Linear GitHub integration (recommended)
+- `recipes/tickets/shortcut.md` - Shortcut configuration
 
 ---
 

@@ -111,17 +111,21 @@ Map these in your process:
 - **Done**: Merged and deployed
 - **Cancelled**: Won't do
 
-## Step 6: GitHub Integration
+## Step 6: GitHub Integration (Recommended)
 
-Enable Linear's GitHub integration for:
-- Automatic ticket linking from branch names
-- PR status updates on ticket
-- Auto-close tickets on merge
+Enable Linear's native GitHub integration for automatic PR-to-ticket linking and status updates. This is the **recommended** approach.
 
-In Linear:
-1. Settings → Integrations → GitHub
-2. Connect your GitHub account
-3. Select repositories
+See **[linear-github-integration.md](linear-github-integration.md)** for detailed setup instructions.
+
+Quick summary:
+1. Linear: Settings → Integrations → GitHub → Connect
+2. Authorize and select your repositories
+3. Configure workflow automation (PR opened → In Review, PR merged → Done)
+
+**Benefits over custom workflows:**
+- One OAuth click vs configuring secrets
+- Maintained by Linear, not you
+- Bidirectional sync and PR linking
 
 ## Usage
 
