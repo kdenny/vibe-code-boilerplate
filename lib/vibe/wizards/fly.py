@@ -75,7 +75,7 @@ def get_app_name() -> str | None:
     fly_toml = Path("fly.toml")
     if not fly_toml.exists():
         return None
-    
+
     if tomli:
         try:
             content = fly_toml.read_text()
@@ -83,12 +83,12 @@ def get_app_name() -> str | None:
             return data.get("app")
         except Exception:
             pass
-    
+
     # Fallback: simple parsing
     try:
         for line in fly_toml.read_text().split("\n"):
             if line.startswith("app ="):
-                return line.split("=")[1].strip().strip('"\'')
+                return line.split("=")[1].strip().strip("\"'")
     except Exception:
         pass
     return None
@@ -116,7 +116,7 @@ def run_fly_wizard(config: dict[str, Any]) -> bool:
         click.echo("  Install with:")
         click.echo("    macOS: brew install flyctl")
         click.echo("    Linux: curl -L https://fly.io/install.sh | sh")
-        click.echo("    Windows: powershell -Command \"iwr https://fly.io/install.ps1 -useb | iex\"")
+        click.echo('    Windows: powershell -Command "iwr https://fly.io/install.ps1 -useb | iex"')
         if not click.confirm("  Continue after installing manually?", default=False):
             return False
         fly_cmd = _detect_fly_command()
