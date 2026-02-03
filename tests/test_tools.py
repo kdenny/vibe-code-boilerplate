@@ -2,8 +2,6 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from lib.vibe.tools import (
     TOOL_DEFINITIONS,
     ToolInfo,
@@ -164,8 +162,9 @@ class TestCheckAuth:
         mock_result = MagicMock()
         mock_result.returncode = 0
 
-        with patch("lib.vibe.tools.find_command", return_value="gh"), patch(
-            "lib.vibe.tools.subprocess.run", return_value=mock_result
+        with (
+            patch("lib.vibe.tools.find_command", return_value="gh"),
+            patch("lib.vibe.tools.subprocess.run", return_value=mock_result),
         ):
             result = check_auth(["gh", "auth", "status"])
 
@@ -175,8 +174,9 @@ class TestCheckAuth:
         mock_result = MagicMock()
         mock_result.returncode = 1
 
-        with patch("lib.vibe.tools.find_command", return_value="gh"), patch(
-            "lib.vibe.tools.subprocess.run", return_value=mock_result
+        with (
+            patch("lib.vibe.tools.find_command", return_value="gh"),
+            patch("lib.vibe.tools.subprocess.run", return_value=mock_result),
         ):
             result = check_auth(["gh", "auth", "status"])
 
@@ -189,8 +189,9 @@ class TestCheckAuth:
         assert result is False
 
     def test_check_auth_exception(self) -> None:
-        with patch("lib.vibe.tools.find_command", return_value="gh"), patch(
-            "lib.vibe.tools.subprocess.run", side_effect=Exception("error")
+        with (
+            patch("lib.vibe.tools.find_command", return_value="gh"),
+            patch("lib.vibe.tools.subprocess.run", side_effect=Exception("error")),
         ):
             result = check_auth(["gh", "auth", "status"])
 
@@ -201,8 +202,9 @@ class TestCheckTool:
     """Tests for check_tool function."""
 
     def test_check_tool_installed(self) -> None:
-        with patch("lib.vibe.tools.find_command", return_value="npm"), patch(
-            "lib.vibe.tools.get_version", return_value="10.2.0"
+        with (
+            patch("lib.vibe.tools.find_command", return_value="npm"),
+            patch("lib.vibe.tools.get_version", return_value="10.2.0"),
         ):
             info = check_tool("npm")
 
@@ -211,8 +213,9 @@ class TestCheckTool:
         assert info.version == "10.2.0"
 
     def test_check_tool_not_installed(self) -> None:
-        with patch("lib.vibe.tools.find_command", return_value=None), patch(
-            "lib.vibe.tools.get_platform", return_value="macos"
+        with (
+            patch("lib.vibe.tools.find_command", return_value=None),
+            patch("lib.vibe.tools.get_platform", return_value="macos"),
         ):
             info = check_tool("npm")
 
@@ -221,17 +224,21 @@ class TestCheckTool:
         assert info.message is not None
 
     def test_check_tool_authenticated(self) -> None:
-        with patch("lib.vibe.tools.find_command", return_value="gh"), patch(
-            "lib.vibe.tools.get_version", return_value="2.40.0"
-        ), patch("lib.vibe.tools.check_auth", return_value=True):
+        with (
+            patch("lib.vibe.tools.find_command", return_value="gh"),
+            patch("lib.vibe.tools.get_version", return_value="2.40.0"),
+            patch("lib.vibe.tools.check_auth", return_value=True),
+        ):
             info = check_tool("gh")
 
         assert info.status == ToolStatus.AUTHENTICATED
 
     def test_check_tool_not_authenticated(self) -> None:
-        with patch("lib.vibe.tools.find_command", return_value="gh"), patch(
-            "lib.vibe.tools.get_version", return_value="2.40.0"
-        ), patch("lib.vibe.tools.check_auth", return_value=False):
+        with (
+            patch("lib.vibe.tools.find_command", return_value="gh"),
+            patch("lib.vibe.tools.get_version", return_value="2.40.0"),
+            patch("lib.vibe.tools.check_auth", return_value=False),
+        ):
             info = check_tool("gh")
 
         assert info.status == ToolStatus.NOT_AUTHENTICATED
@@ -327,7 +334,9 @@ class TestRequireTool:
     def test_require_tool_not_installed(self) -> None:
         with patch(
             "lib.vibe.tools.check_tool",
-            return_value=ToolInfo("npm", ToolStatus.NOT_INSTALLED, message="Install: brew install node"),
+            return_value=ToolInfo(
+                "npm", ToolStatus.NOT_INSTALLED, message="Install: brew install node"
+            ),
         ):
             ok, error = require_tool("npm")
 
@@ -347,7 +356,9 @@ class TestRequireTool:
     def test_require_tool_with_auth_not_authenticated(self) -> None:
         with patch(
             "lib.vibe.tools.check_tool",
-            return_value=ToolInfo("gh", ToolStatus.NOT_AUTHENTICATED, "2.40.0", "Run: gh auth login"),
+            return_value=ToolInfo(
+                "gh", ToolStatus.NOT_AUTHENTICATED, "2.40.0", "Run: gh auth login"
+            ),
         ):
             ok, error = require_tool("gh", need_auth=True)
 
@@ -369,9 +380,10 @@ class TestIsInteractive:
     """Tests for is_interactive function."""
 
     def test_is_interactive_true(self) -> None:
-        with patch("lib.vibe.tools.sys.stdin") as mock_stdin, patch(
-            "lib.vibe.tools.sys.stdout"
-        ) as mock_stdout:
+        with (
+            patch("lib.vibe.tools.sys.stdin") as mock_stdin,
+            patch("lib.vibe.tools.sys.stdout") as mock_stdout,
+        ):
             mock_stdin.isatty.return_value = True
             mock_stdout.isatty.return_value = True
             result = is_interactive()
@@ -379,9 +391,10 @@ class TestIsInteractive:
         assert result is True
 
     def test_is_interactive_false_stdin(self) -> None:
-        with patch("lib.vibe.tools.sys.stdin") as mock_stdin, patch(
-            "lib.vibe.tools.sys.stdout"
-        ) as mock_stdout:
+        with (
+            patch("lib.vibe.tools.sys.stdin") as mock_stdin,
+            patch("lib.vibe.tools.sys.stdout") as mock_stdout,
+        ):
             mock_stdin.isatty.return_value = False
             mock_stdout.isatty.return_value = True
             result = is_interactive()
@@ -389,9 +402,10 @@ class TestIsInteractive:
         assert result is False
 
     def test_is_interactive_false_stdout(self) -> None:
-        with patch("lib.vibe.tools.sys.stdin") as mock_stdin, patch(
-            "lib.vibe.tools.sys.stdout"
-        ) as mock_stdout:
+        with (
+            patch("lib.vibe.tools.sys.stdin") as mock_stdin,
+            patch("lib.vibe.tools.sys.stdout") as mock_stdout,
+        ):
             mock_stdin.isatty.return_value = True
             mock_stdout.isatty.return_value = False
             result = is_interactive()

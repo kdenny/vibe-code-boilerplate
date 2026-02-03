@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-import pytest
-
 from lib.vibe.config import DEFAULT_CONFIG, load_config
 from lib.vibe.wizards.setup import (
     apply_git_workflow_defaults,

@@ -2,15 +2,14 @@
 
 from unittest.mock import patch
 
-import pytest
-
 from lib.vibe.wizards.github import try_auto_configure_github
 
 
 def test_try_auto_configure_github_success_when_gh_auth_and_remote() -> None:
     config = {"github": {"auth_method": None, "owner": "", "repo": ""}}
-    with patch("lib.vibe.wizards.github.check_gh_cli_auth", return_value=True), patch(
-        "lib.vibe.wizards.github._detect_remote", return_value=("myorg", "myrepo")
+    with (
+        patch("lib.vibe.wizards.github.check_gh_cli_auth", return_value=True),
+        patch("lib.vibe.wizards.github._detect_remote", return_value=("myorg", "myrepo")),
     ):
         result = try_auto_configure_github(config)
     assert result is True
@@ -30,8 +29,9 @@ def test_try_auto_configure_github_fails_when_no_gh_auth() -> None:
 
 def test_try_auto_configure_github_fails_when_no_remote() -> None:
     config = {"github": {"auth_method": None, "owner": "", "repo": ""}}
-    with patch("lib.vibe.wizards.github.check_gh_cli_auth", return_value=True), patch(
-        "lib.vibe.wizards.github._detect_remote", return_value=(None, None)
+    with (
+        patch("lib.vibe.wizards.github.check_gh_cli_auth", return_value=True),
+        patch("lib.vibe.wizards.github._detect_remote", return_value=(None, None)),
     ):
         result = try_auto_configure_github(config)
     assert result is False

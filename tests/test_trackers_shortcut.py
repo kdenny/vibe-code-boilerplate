@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import requests
 
-from lib.vibe.trackers.shortcut import SHORTCUT_API_URL, ShortcutTracker
+from lib.vibe.trackers.shortcut import ShortcutTracker
 
 
 class TestShortcutTrackerInit:
@@ -68,7 +68,9 @@ class TestShortcutTrackerAuthenticate:
     def test_authenticate_failure_exception(self) -> None:
         tracker = ShortcutTracker()
 
-        with patch("lib.vibe.trackers.shortcut.requests.get", side_effect=Exception("Network error")):
+        with patch(
+            "lib.vibe.trackers.shortcut.requests.get", side_effect=Exception("Network error")
+        ):
             result = tracker.authenticate(api_token="sc_token")
 
         assert result is False
@@ -111,10 +113,17 @@ class TestShortcutTrackerGetTicket:
         tracker = ShortcutTracker(api_token="sc_token")
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"id": 456, "name": "Story", "workflow_state": {}, "labels": []}
+        mock_response.json.return_value = {
+            "id": 456,
+            "name": "Story",
+            "workflow_state": {},
+            "labels": [],
+        }
         mock_response.raise_for_status = MagicMock()
 
-        with patch("lib.vibe.trackers.shortcut.requests.get", return_value=mock_response) as mock_get:
+        with patch(
+            "lib.vibe.trackers.shortcut.requests.get", return_value=mock_response
+        ) as mock_get:
             tracker.get_ticket("SC-456")
 
         # Verify the SC- prefix was stripped
@@ -126,10 +135,17 @@ class TestShortcutTrackerGetTicket:
         tracker = ShortcutTracker(api_token="sc_token")
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"id": 789, "name": "Story", "workflow_state": {}, "labels": []}
+        mock_response.json.return_value = {
+            "id": 789,
+            "name": "Story",
+            "workflow_state": {},
+            "labels": [],
+        }
         mock_response.raise_for_status = MagicMock()
 
-        with patch("lib.vibe.trackers.shortcut.requests.get", return_value=mock_response) as mock_get:
+        with patch(
+            "lib.vibe.trackers.shortcut.requests.get", return_value=mock_response
+        ) as mock_get:
             tracker.get_ticket("#789")
 
         call_url = mock_get.call_args[0][0]
@@ -195,7 +211,9 @@ class TestShortcutTrackerListTickets:
         mock_response.json.return_value = {"data": []}
         mock_response.raise_for_status = MagicMock()
 
-        with patch("lib.vibe.trackers.shortcut.requests.get", return_value=mock_response) as mock_get:
+        with patch(
+            "lib.vibe.trackers.shortcut.requests.get", return_value=mock_response
+        ) as mock_get:
             tracker.list_tickets(status="Done")
 
         call_args = mock_get.call_args
@@ -207,7 +225,9 @@ class TestShortcutTrackerListTickets:
         mock_response.json.return_value = {"data": []}
         mock_response.raise_for_status = MagicMock()
 
-        with patch("lib.vibe.trackers.shortcut.requests.get", return_value=mock_response) as mock_get:
+        with patch(
+            "lib.vibe.trackers.shortcut.requests.get", return_value=mock_response
+        ) as mock_get:
             tracker.list_tickets(labels=["Bug", "Critical"])
 
         call_args = mock_get.call_args
@@ -221,7 +241,9 @@ class TestShortcutTrackerListTickets:
         mock_response.json.return_value = {"data": []}
         mock_response.raise_for_status = MagicMock()
 
-        with patch("lib.vibe.trackers.shortcut.requests.get", return_value=mock_response) as mock_get:
+        with patch(
+            "lib.vibe.trackers.shortcut.requests.get", return_value=mock_response
+        ) as mock_get:
             tracker.list_tickets(limit=10)
 
         call_args = mock_get.call_args
@@ -233,7 +255,9 @@ class TestShortcutTrackerListTickets:
         mock_response.json.return_value = {"data": []}
         mock_response.raise_for_status = MagicMock()
 
-        with patch("lib.vibe.trackers.shortcut.requests.get", return_value=mock_response) as mock_get:
+        with patch(
+            "lib.vibe.trackers.shortcut.requests.get", return_value=mock_response
+        ) as mock_get:
             tracker.list_tickets()
 
         call_args = mock_get.call_args
@@ -287,9 +311,10 @@ class TestShortcutTrackerCreateTicket:
         mock_response.json.return_value = mock_story
         mock_response.raise_for_status = MagicMock()
 
-        with patch("lib.vibe.trackers.shortcut.requests.post", return_value=mock_response), patch.object(
-            tracker, "_get_label_ids", return_value=[1]
-        ) as mock_labels:
+        with (
+            patch("lib.vibe.trackers.shortcut.requests.post", return_value=mock_response),
+            patch.object(tracker, "_get_label_ids", return_value=[1]) as mock_labels,
+        ):
             ticket = tracker.create_ticket("Labeled Story", "Description", labels=["Bug"])
 
         mock_labels.assert_called_once_with(["Bug"])
@@ -342,7 +367,9 @@ class TestShortcutTrackerUpdateTicket:
         mock_response.raise_for_status = MagicMock()
 
         with patch.object(tracker, "_get_workflow_state_id", return_value=500001):
-            with patch("lib.vibe.trackers.shortcut.requests.put", return_value=mock_response) as mock_put:
+            with patch(
+                "lib.vibe.trackers.shortcut.requests.put", return_value=mock_response
+            ) as mock_put:
                 ticket = tracker.update_ticket("123", status="Done")
 
         call_args = mock_put.call_args
@@ -374,7 +401,9 @@ class TestShortcutTrackerCommentTicket:
         mock_response = MagicMock()
         mock_response.raise_for_status = MagicMock()
 
-        with patch("lib.vibe.trackers.shortcut.requests.post", return_value=mock_response) as mock_post:
+        with patch(
+            "lib.vibe.trackers.shortcut.requests.post", return_value=mock_response
+        ) as mock_post:
             tracker.comment_ticket("SC-123", "This is a comment")
 
         mock_post.assert_called_once()
@@ -537,7 +566,9 @@ class TestShortcutTrackerGetWorkflowStateId:
 
     def test_get_workflow_state_id_case_insensitive(self) -> None:
         tracker = ShortcutTracker(api_token="sc_token")
-        mock_workflows = [{"id": 1, "name": "Workflow", "states": [{"id": 500001, "name": "In Progress"}]}]
+        mock_workflows = [
+            {"id": 1, "name": "Workflow", "states": [{"id": 500001, "name": "In Progress"}]}
+        ]
         mock_response = MagicMock()
         mock_response.json.return_value = mock_workflows
         mock_response.raise_for_status = MagicMock()
@@ -564,7 +595,9 @@ class TestShortcutTrackerGetWorkflowStateId:
 
     def test_get_workflow_state_id_not_found(self) -> None:
         tracker = ShortcutTracker(api_token="sc_token")
-        mock_workflows = [{"id": 1, "name": "Workflow", "states": [{"id": 500001, "name": "To Do"}]}]
+        mock_workflows = [
+            {"id": 1, "name": "Workflow", "states": [{"id": 500001, "name": "To Do"}]}
+        ]
         mock_response = MagicMock()
         mock_response.json.return_value = mock_workflows
         mock_response.raise_for_status = MagicMock()

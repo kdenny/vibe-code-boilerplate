@@ -3,8 +3,6 @@
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from lib.vibe.git.worktrees import (
     Worktree,
     cleanup_stale_worktrees,
@@ -63,9 +61,10 @@ class TestGetWorktreeBasePath:
     def test_default_base_path(self) -> None:
         mock_config = {"worktrees": {"base_path": "../{repo}-worktrees"}}
 
-        with patch("lib.vibe.git.worktrees.load_config", return_value=mock_config), patch(
-            "lib.vibe.git.worktrees.get_primary_repo_root"
-        ) as mock_root:
+        with (
+            patch("lib.vibe.git.worktrees.load_config", return_value=mock_config),
+            patch("lib.vibe.git.worktrees.get_primary_repo_root") as mock_root,
+        ):
             mock_root.return_value = Path("/home/user/my-project")
             base_path = get_worktree_base_path()
 
@@ -74,9 +73,10 @@ class TestGetWorktreeBasePath:
     def test_custom_base_path(self) -> None:
         mock_config = {"worktrees": {"base_path": "/custom/worktrees"}}
 
-        with patch("lib.vibe.git.worktrees.load_config", return_value=mock_config), patch(
-            "lib.vibe.git.worktrees.get_primary_repo_root"
-        ) as mock_root:
+        with (
+            patch("lib.vibe.git.worktrees.load_config", return_value=mock_config),
+            patch("lib.vibe.git.worktrees.get_primary_repo_root") as mock_root,
+        ):
             mock_root.return_value = Path("/home/user/project")
             base_path = get_worktree_base_path()
 
@@ -85,9 +85,10 @@ class TestGetWorktreeBasePath:
     def test_empty_config_uses_default(self) -> None:
         mock_config = {}
 
-        with patch("lib.vibe.git.worktrees.load_config", return_value=mock_config), patch(
-            "lib.vibe.git.worktrees.get_primary_repo_root"
-        ) as mock_root:
+        with (
+            patch("lib.vibe.git.worktrees.load_config", return_value=mock_config),
+            patch("lib.vibe.git.worktrees.get_primary_repo_root") as mock_root,
+        ):
             mock_root.return_value = Path("/home/user/repo")
             base_path = get_worktree_base_path()
 
@@ -115,11 +116,12 @@ class TestCreateWorktree:
             result.returncode = getattr(result, "returncode", 0)
             return result
 
-        with patch("lib.vibe.git.worktrees.get_primary_repo_root", return_value=repo_root), patch(
-            "lib.vibe.git.worktrees.get_worktree_base_path", return_value=worktree_base
-        ), patch("lib.vibe.git.worktrees.subprocess.run", side_effect=mock_run), patch(
-            "lib.vibe.git.worktrees.add_worktree"
-        ) as mock_add:
+        with (
+            patch("lib.vibe.git.worktrees.get_primary_repo_root", return_value=repo_root),
+            patch("lib.vibe.git.worktrees.get_worktree_base_path", return_value=worktree_base),
+            patch("lib.vibe.git.worktrees.subprocess.run", side_effect=mock_run),
+            patch("lib.vibe.git.worktrees.add_worktree") as mock_add,
+        ):
             wt = create_worktree("feature-123", "main")
 
         assert wt.branch == "feature-123"
@@ -146,10 +148,11 @@ class TestCreateWorktree:
             call_count += 1
             return result
 
-        with patch("lib.vibe.git.worktrees.get_primary_repo_root", return_value=repo_root), patch(
-            "lib.vibe.git.worktrees.get_worktree_base_path", return_value=worktree_base
-        ), patch("lib.vibe.git.worktrees.subprocess.run", side_effect=mock_run), patch(
-            "lib.vibe.git.worktrees.add_worktree"
+        with (
+            patch("lib.vibe.git.worktrees.get_primary_repo_root", return_value=repo_root),
+            patch("lib.vibe.git.worktrees.get_worktree_base_path", return_value=worktree_base),
+            patch("lib.vibe.git.worktrees.subprocess.run", side_effect=mock_run),
+            patch("lib.vibe.git.worktrees.add_worktree"),
         ):
             wt = create_worktree("existing-branch")
 
@@ -161,9 +164,10 @@ class TestCleanupWorktree:
     """Tests for cleanup_worktree function."""
 
     def test_cleanup_worktree_success(self) -> None:
-        with patch("lib.vibe.git.worktrees.subprocess.run") as mock_run, patch(
-            "lib.vibe.git.worktrees.remove_worktree"
-        ) as mock_remove:
+        with (
+            patch("lib.vibe.git.worktrees.subprocess.run") as mock_run,
+            patch("lib.vibe.git.worktrees.remove_worktree") as mock_remove,
+        ):
             mock_run.return_value = MagicMock(returncode=0)
             result = cleanup_worktree("/path/to/worktree")
 
@@ -171,8 +175,9 @@ class TestCleanupWorktree:
         mock_remove.assert_called_once_with("/path/to/worktree")
 
     def test_cleanup_worktree_force(self) -> None:
-        with patch("lib.vibe.git.worktrees.subprocess.run") as mock_run, patch(
-            "lib.vibe.git.worktrees.remove_worktree"
+        with (
+            patch("lib.vibe.git.worktrees.subprocess.run") as mock_run,
+            patch("lib.vibe.git.worktrees.remove_worktree"),
         ):
             mock_run.return_value = MagicMock(returncode=0)
             cleanup_worktree("/path/to/worktree", force=True)
@@ -183,9 +188,10 @@ class TestCleanupWorktree:
     def test_cleanup_worktree_failure(self) -> None:
         import subprocess
 
-        with patch("lib.vibe.git.worktrees.subprocess.run") as mock_run, patch(
-            "lib.vibe.git.worktrees.remove_worktree"
-        ) as mock_remove:
+        with (
+            patch("lib.vibe.git.worktrees.subprocess.run") as mock_run,
+            patch("lib.vibe.git.worktrees.remove_worktree") as mock_remove,
+        ):
             mock_run.side_effect = subprocess.CalledProcessError(1, "git")
             result = cleanup_worktree("/path/to/worktree")
 
@@ -276,9 +282,10 @@ class TestCleanupStaleWorktrees:
 
         state = {"active_worktrees": [str(existing_path), nonexistent_path]}
 
-        with patch("lib.vibe.git.worktrees.load_state", return_value=state), patch(
-            "lib.vibe.git.worktrees.remove_worktree"
-        ) as mock_remove:
+        with (
+            patch("lib.vibe.git.worktrees.load_state", return_value=state),
+            patch("lib.vibe.git.worktrees.remove_worktree") as mock_remove,
+        ):
             cleaned = cleanup_stale_worktrees()
 
         assert cleaned == [nonexistent_path]
@@ -293,9 +300,10 @@ class TestCleanupStaleWorktrees:
 
         state = {"active_worktrees": [str(path1), str(path2)]}
 
-        with patch("lib.vibe.git.worktrees.load_state", return_value=state), patch(
-            "lib.vibe.git.worktrees.remove_worktree"
-        ) as mock_remove:
+        with (
+            patch("lib.vibe.git.worktrees.load_state", return_value=state),
+            patch("lib.vibe.git.worktrees.remove_worktree") as mock_remove,
+        ):
             cleaned = cleanup_stale_worktrees()
 
         assert cleaned == []
@@ -304,9 +312,10 @@ class TestCleanupStaleWorktrees:
     def test_cleanup_stale_worktrees_all_stale(self) -> None:
         state = {"active_worktrees": ["/nonexistent/path1", "/nonexistent/path2"]}
 
-        with patch("lib.vibe.git.worktrees.load_state", return_value=state), patch(
-            "lib.vibe.git.worktrees.remove_worktree"
-        ) as mock_remove:
+        with (
+            patch("lib.vibe.git.worktrees.load_state", return_value=state),
+            patch("lib.vibe.git.worktrees.remove_worktree") as mock_remove,
+        ):
             cleaned = cleanup_stale_worktrees()
 
         assert len(cleaned) == 2
@@ -315,9 +324,10 @@ class TestCleanupStaleWorktrees:
     def test_cleanup_stale_worktrees_empty_state(self) -> None:
         state = {"active_worktrees": []}
 
-        with patch("lib.vibe.git.worktrees.load_state", return_value=state), patch(
-            "lib.vibe.git.worktrees.remove_worktree"
-        ) as mock_remove:
+        with (
+            patch("lib.vibe.git.worktrees.load_state", return_value=state),
+            patch("lib.vibe.git.worktrees.remove_worktree") as mock_remove,
+        ):
             cleaned = cleanup_stale_worktrees()
 
         assert cleaned == []
