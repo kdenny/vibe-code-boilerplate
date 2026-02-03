@@ -23,10 +23,29 @@ def check_neon_auth() -> bool:
             ["neonctl", "me"],
             capture_output=True,
             text=True,
+            timeout=30,
         )
         return result.returncode == 0
-    except FileNotFoundError:
+    except (FileNotFoundError, subprocess.TimeoutExpired):
         return False
+
+
+def get_neon_projects() -> list[dict]:
+    """Get list of Neon projects."""
+    try:
+        result = subprocess.run(
+            ["neonctl", "projects", "list", "--output", "json"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if result.returncode == 0:
+            import json
+
+            return json.loads(result.stdout)
+        return []
+    except (FileNotFoundError, subprocess.TimeoutExpired, Exception):
+        return []
 
 
 def check_env_vars() -> dict[str, bool]:
@@ -88,51 +107,87 @@ def run_neon_wizard(config: dict[str, Any]) -> bool:
     else:
         click.echo("  ✓ Authenticated with Neon")
 
-    # Step 3: Project selection/creation
-    click.echo("\nStep 3: Project setup...")
+    # Step 3: Check/select project
+    click.echo("\nStep 3: Checking project configuration...")
+
     project_id = os.environ.get("NEON_PROJECT_ID")
 
     if not project_id:
-        click.echo("  No NEON_PROJECT_ID set.")
-        choice = click.prompt(
-            "  Create new project or use existing?",
-            type=click.Choice(["new", "existing"]),
-            default="existing",
-        )
-
-        if choice == "new":
-            project_name = click.prompt("  Project name", default="my-app")
-            click.echo(f"  Creating project '{project_name}'...")
+        # Try to get current project context
+        try:
             result = subprocess.run(
-                ["neonctl", "projects", "create", "--name", project_name],
+                ["neonctl", "projects", "list", "--output", "json"],
                 capture_output=True,
                 text=True,
+                timeout=30,
             )
             if result.returncode == 0:
-                click.echo("  ✓ Project created")
-                click.echo("  Note: Copy the DATABASE_URL from the output to .env.local")
-            else:
-                click.echo(f"  Failed to create project: {result.stderr}")
-                return False
-        else:
-            click.echo("  List projects with: neonctl projects list")
-            click.echo("  Set NEON_PROJECT_ID in .env.local to your project ID")
+                import json
 
-    # Step 4: Check environment variables
-    click.echo("\nStep 4: Checking environment variables...")
+                projects = json.loads(result.stdout)
+                if projects:
+                    click.echo(f"  Found {len(projects)} Neon project(s)")
+
+                    if len(projects) == 1:
+                        project = projects[0]
+                        project_id = project.get("id")
+                        click.echo(f"  Using project: {project.get('name')} ({project_id})")
+                    else:
+                        click.echo("  Available projects:")
+                        for i, p in enumerate(projects, 1):
+                            click.echo(f"    {i}. {p.get('name')} ({p.get('id')})")
+
+                        choice = click.prompt(
+                            "  Select project number",
+                            type=int,
+                            default=1,
+                        )
+                        if 1 <= choice <= len(projects):
+                            project = projects[choice - 1]
+                            project_id = project.get("id")
+                            click.echo(f"  Selected: {project.get('name')}")
+                else:
+                    click.echo("  No projects found.")
+                    click.echo("  Create one at: https://console.neon.tech")
+        except (subprocess.TimeoutExpired, Exception) as e:
+            click.echo(f"  Could not list projects: {e}")
+
+    # Step 4: Get connection string
+    click.echo("\nStep 4: Getting connection string...")
+
+    connection_string = None
+    if project_id:
+        try:
+            result = subprocess.run(
+                ["neonctl", "connection-string", "--project-id", project_id],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            if result.returncode == 0:
+                connection_string = result.stdout.strip()
+                # Mask password for display
+                masked = connection_string
+                if "@" in masked:
+                    parts = masked.split("@")
+                    user_pass = parts[0].split(":")
+                    if len(user_pass) > 1:
+                        masked = f"{user_pass[0]}:****@{parts[1]}"
+                click.echo(f"  Connection string: {masked}")
+        except (subprocess.TimeoutExpired, Exception) as e:
+            click.echo(f"  Could not get connection string: {e}")
+
+    if not connection_string:
+        click.echo("  Get your connection string from: https://console.neon.tech")
+        click.echo("  Dashboard > Your Project > Connection Details")
+
+    # Step 5: Check environment variables
+    click.echo("\nStep 5: Checking environment variables...")
     env_vars = check_env_vars()
     env_local = Path(".env.local")
 
-    has_db_url = env_vars.get("DATABASE_URL")
-
-    if not has_db_url:
+    if not env_vars.get("DATABASE_URL"):
         click.echo("  DATABASE_URL not found.")
-        click.echo("  Get connection string from:")
-        click.echo("    • Neon dashboard: console.neon.tech > Connection Details")
-        click.echo("    • CLI: neonctl connection-string")
-        click.echo()
-        click.echo("  Add to .env.local:")
-        click.echo("    DATABASE_URL=postgres://user:pass@host/db")
 
         if not env_local.exists():
             if click.confirm("  Create .env.local template?", default=True):
@@ -149,21 +204,39 @@ DATABASE_URL=
 # NEON_API_KEY=
 # NEON_PROJECT_ID=
 """
+                if connection_string:
+                    template = template.replace(
+                        "DATABASE_URL=\n", f"DATABASE_URL={connection_string}\n"
+                    )
+
                 env_local.write_text(template)
                 click.echo("  ✓ Created .env.local template")
+
+                if connection_string:
+                    click.echo("  ✓ Added connection string to .env.local")
+        else:
+            click.echo("  Add to .env.local:")
+            if connection_string:
+                click.echo(f"    DATABASE_URL={connection_string}")
+            else:
+                click.echo("    DATABASE_URL=postgres://user:pass@ep-xxx.aws.neon.tech/neondb")
     else:
         click.echo("  ✓ DATABASE_URL configured")
 
-    # Step 5: Database branching info
-    click.echo("\nStep 5: Database branching...")
+    # Check optional vars
+    if not env_vars.get("NEON_API_KEY"):
+        click.echo("  Note: NEON_API_KEY not set (needed for database branching)")
+
+    # Step 6: Database branching info
+    click.echo("\nStep 6: Database branching...")
     click.echo("  Neon supports instant database branching for feature development.")
     click.echo("  Create a branch per feature/PR for isolated testing:")
     click.echo("    neonctl branches create --name feature-xyz")
     click.echo()
-    click.echo("  See recipes/integrations/neon.md for CI/CD preview branch automation.")
+    click.echo("  This works great with git worktrees - one DB branch per feature!")
 
-    # Step 6: Update config
-    click.echo("\nStep 6: Updating configuration...")
+    # Step 7: Update config
+    click.echo("\nStep 7: Updating configuration...")
 
     # Ensure database config exists
     if "database" not in config:
@@ -171,6 +244,7 @@ DATABASE_URL=
 
     config["database"]["neon"] = {
         "enabled": True,
+        "project_id": project_id,
     }
 
     # Also set as primary database provider if not already set
@@ -187,11 +261,14 @@ DATABASE_URL=
     click.echo("Your project is configured for Neon serverless Postgres.")
     click.echo()
     click.echo("Next steps:")
-    click.echo("  1. Add DATABASE_URL to .env.local")
+    click.echo("  1. Ensure DATABASE_URL is in .env.local")
     click.echo("  2. For branching: neonctl branches create --name <branch>")
     click.echo("  3. For migrations: use your ORM's migration tool")
     click.echo()
-    click.echo("Documentation: recipes/integrations/neon.md")
+    click.echo("For pooled connections (recommended for serverless):")
+    click.echo("  Add ?pgbouncer=true to your DATABASE_URL")
+    click.echo()
+    click.echo("Documentation: recipes/databases/neon.md")
     click.echo()
 
     return True

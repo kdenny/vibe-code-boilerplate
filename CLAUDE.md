@@ -800,6 +800,8 @@ Use these slash commands for common workflows:
 | `/vercel` | Deploy and manage Vercel projects |
 | `/fly` | Deploy and manage Fly.io applications |
 | `/supabase` | Manage Supabase database, auth, and local development |
+| `/sentry` | Configure Sentry error monitoring and releases |
+| `/neon` | Manage Neon serverless Postgres and database branches |
 
 Skills are defined in `.claude/commands/` and can be customized per project.
 
@@ -815,6 +817,8 @@ bin/vibe setup              # Initial configuration
 bin/vibe setup --wizard vercel   # Configure Vercel deployment
 bin/vibe setup --wizard fly      # Configure Fly.io deployment
 bin/vibe setup --wizard supabase # Configure Supabase database
+bin/vibe setup --wizard sentry   # Configure Sentry error monitoring
+bin/vibe setup --wizard neon     # Configure Neon serverless Postgres
 bin/vibe doctor             # Health check
 bin/doctor                  # Alias for doctor
 
