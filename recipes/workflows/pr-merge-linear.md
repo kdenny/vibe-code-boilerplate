@@ -1,60 +1,36 @@
-# PR merge → Linear ticket status (Deployed)
+# PR merged → Linear ticket status
 
-When a PR is merged, the workflow `.github/workflows/pr-merged.yml` automatically updates the associated Linear ticket to a "deployed" state (e.g. **Deployed**, **Done**, **Released**).
+> **This functionality is now handled by Linear's native GitHub integration.**
+>
+> See [linear-github-integration.md](../tickets/linear-github-integration.md) for setup instructions.
 
-This is the companion to [pr-opened-linear.md](pr-opened-linear.md) which handles the `In Progress → In Review` transition when PRs are opened.
+## What Changed
 
-## Complete Linear Workflow
+Previously, this boilerplate used a custom GitHub Actions workflow (`pr-merged.yml`) to update Linear tickets when PRs were merged. This has been replaced by Linear's native GitHub integration, which:
 
-```
-Backlog → In Progress → In Review → Deployed
-           (manual)     (PR opened) (PR merged)
-```
+- Is simpler to set up (one OAuth click)
+- Is maintained by Linear (not you)
+- Automatically moves tickets to Done/Deployed on merge
+- Requires no API keys in GitHub
 
-## Setup
+## Migration
 
-1. **Repository secret**
-   - Add `LINEAR_API_KEY` in the repo: **Settings → Secrets and variables → Actions → New repository secret**.
-   - Use a Linear API key with write access (e.g. from [Linear → Settings → API](https://linear.app/settings/api)).
+If you were using the old workflow:
 
-2. **Target state (optional)**
-   - Default state name is **Deployed**.
-   - To use a different state (e.g. **Done**, **Released**), add a repository **variable** (not secret): **Settings → Secrets and variables → Actions → Variables → New repository variable**:
-     - Name: `LINEAR_DEPLOYED_STATE`
-     - Value: exact state name as in your Linear workflow.
+1. Delete `.github/workflows/pr-merged.yml` (if it exists)
+2. Remove the `LINEAR_API_KEY` repo secret (unless needed for other purposes)
+3. Remove the `LINEAR_DEPLOYED_STATE` repo variable
+4. Follow the [native integration setup guide](../tickets/linear-github-integration.md)
+5. Configure auto-close in Linear to use your desired target state (Done, Deployed, etc.)
 
-3. **Branch naming**
-   - The workflow only updates a ticket when the merged PR’s **branch name** starts with a ticket ID (e.g. `PROJ-123` or `PROJ-123-add-feature`). If the branch doesn’t match, the job does nothing.
+## Local Hooks (Optional)
 
-## Behavior
+For even faster feedback during development, you can enable local Claude Code hooks that mark tickets "Done" when you commit.
 
-- Runs on `pull_request` with `types: [closed]`, only when `merged == true`.
-- Extracts ticket ID from the PR head branch (pattern `^[A-Z]+-[0-9]+`).
-- Looks up the issue in Linear by identifier, resolves the team’s workflow state by name, and updates the issue’s state.
-- If anything fails (no API key, ticket not found, state name not found), the job **logs a warning and exits successfully** so the merge is not blocked.
+See [linear-hooks.md](linear-hooks.md) for details.
 
-## Manual fallback
+## UAT Workflow
 
-If the workflow isn’t configured or you need to move a ticket manually:
+If your team uses a testing/verification step before marking tickets as Done, configure Linear's auto-close to use an intermediate state (e.g., "To Test") and manually move tickets to Done after verification.
 
-```bash
-bin/ticket update PROJ-123 --status "Deployed"
-```
-
-Use the exact state name your Linear workflow uses (e.g. **Done**, **Released**).
-
-## Config (local)
-
-In `.vibe/config.json`, `tracker.config.deployed_state` is optional and used for local/documentation; the GitHub Actions workflow uses the repo variable `LINEAR_DEPLOYED_STATE` (default `Deployed`).
-
-## UAT Workflow (Optional)
-
-If your team uses a testing step before marking tickets done, set `LINEAR_DEPLOYED_STATE` to your testing state (e.g. `To Test`, `QA`, `Staging`). After verification, manually move tickets to `Done`.
-
-See [uat-testing.md](uat-testing.md) for full UAT workflow documentation.
-
-## Related
-
-- [pr-opened-linear.md](pr-opened-linear.md) - Updates ticket to In Review when PR is opened
-- [uat-testing.md](uat-testing.md) - Optional UAT workflow (To Test → Done)
-- [linear-setup.md](../tickets/linear-setup.md) - Initial Linear configuration
+See [uat-testing.md](uat-testing.md) for details.

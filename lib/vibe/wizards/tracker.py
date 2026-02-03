@@ -75,6 +75,34 @@ def _setup_linear(config: dict[str, Any]) -> bool:
     }
 
     click.echo("\nLinear configured successfully!")
+
+    # Prompt to enable native GitHub integration
+    click.echo()
+    click.echo("+" + "-" * 58 + "+")
+    click.echo("|  Enable Linear's GitHub Integration (Recommended)        |")
+    click.echo("+" + "-" * 58 + "+")
+    click.echo("|                                                          |")
+    click.echo("|  Linear's native integration automatically:              |")
+    click.echo("|  - Links PRs to tickets based on branch names            |")
+    click.echo("|  - Shows PR status in Linear                             |")
+    click.echo("|  - Moves tickets to Done when PRs are merged             |")
+    click.echo("|                                                          |")
+    click.echo("|  Setup: Linear Settings > Integrations > GitHub          |")
+    click.echo("|  Guide: recipes/tickets/linear-github-integration.md     |")
+    click.echo("|                                                          |")
+    click.echo("+" + "-" * 58 + "+")
+    click.echo()
+
+    if click.confirm("Open Linear GitHub integration docs now?", default=True):
+        click.echo()
+        click.echo("To enable the integration:")
+        click.echo("  1. Go to: https://linear.app/settings/integrations/github")
+        click.echo("  2. Click 'Connect GitHub'")
+        click.echo("  3. Authorize Linear to access your repos")
+        click.echo("  4. Enable auto-close on merge (recommended)")
+        click.echo()
+        click.echo("See recipes/tickets/linear-github-integration.md for full guide.")
+
     return True
 
 

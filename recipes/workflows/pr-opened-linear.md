@@ -1,49 +1,29 @@
-# PR opened → Linear ticket status (In Review)
+# PR opened → Linear ticket status
 
-When a PR is opened, the workflow `.github/workflows/pr-opened.yml` automatically updates the associated Linear ticket to "In Review" status.
+> **This functionality is now handled by Linear's native GitHub integration.**
+>
+> See [linear-github-integration.md](../tickets/linear-github-integration.md) for setup instructions.
 
-This is the companion to [pr-merge-linear.md](pr-merge-linear.md) which handles the `In Review → Deployed` transition when PRs are merged.
+## What Changed
 
-## Complete Linear Workflow
+Previously, this boilerplate used a custom GitHub Actions workflow (`pr-opened.yml`) to update Linear tickets when PRs were opened. This has been replaced by Linear's native GitHub integration, which:
 
-```
-Backlog → In Progress → In Review → Deployed
-           (manual)     (PR opened) (PR merged)
-```
+- Is simpler to set up (one OAuth click)
+- Is maintained by Linear (not you)
+- Provides more features (PR status badges, bidirectional sync)
+- Requires no API keys in GitHub
 
-## Setup
+## Migration
 
-1. **Repository secret**
-   - Add `LINEAR_API_KEY` in the repo: **Settings → Secrets and variables → Actions → New repository secret**.
-   - Use a Linear API key with write access (e.g. from [Linear → Settings → API](https://linear.app/settings/api)).
+If you were using the old workflow:
 
-2. **Target state (optional)**
-   - Default state name is **In Review**.
-   - To use a different state name, add a repository **variable** (not secret): **Settings → Secrets and variables → Actions → Variables → New repository variable**:
-     - Name: `LINEAR_IN_REVIEW_STATE`
-     - Value: exact state name as in your Linear workflow.
+1. Delete `.github/workflows/pr-opened.yml` (if it exists)
+2. Remove the `LINEAR_API_KEY` repo secret (unless needed for other purposes)
+3. Remove the `LINEAR_IN_REVIEW_STATE` repo variable
+4. Follow the [native integration setup guide](../tickets/linear-github-integration.md)
 
-3. **Branch naming**
-   - The workflow only updates a ticket when the PR's **branch name** starts with a ticket ID (e.g. `PROJ-123` or `PROJ-123-add-feature`). If the branch doesn't match, the job does nothing.
+## Local Hooks (Optional)
 
-## Behavior
+For even faster feedback during development, you can enable local Claude Code hooks that mark tickets "In Progress" when you mention them.
 
-- Runs on `pull_request` with `types: [opened, reopened]`.
-- Extracts ticket ID from the PR head branch (pattern `^[A-Z]+-[0-9]+`).
-- Looks up the issue in Linear by identifier, resolves the team's workflow state by name (case-insensitive), and updates the issue's state.
-- If anything fails (no API key, ticket not found, state name not found), the job **logs a warning and exits successfully** so the PR creation is not blocked.
-
-## Manual fallback
-
-If the workflow isn't configured or you need to move a ticket manually:
-
-```bash
-bin/ticket update PROJ-123 --status "In Review"
-```
-
-Use the exact state name your Linear workflow uses.
-
-## Related
-
-- [pr-merge-linear.md](pr-merge-linear.md) - Updates ticket to Deployed when PR is merged
-- [linear-setup.md](../tickets/linear-setup.md) - Initial Linear configuration
+See [linear-hooks.md](linear-hooks.md) for details.

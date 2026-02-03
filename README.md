@@ -15,8 +15,7 @@ Linear ticket → bin/vibe do PROJ-123 → Worktree created → Code → PR → 
 ## What This Is
 
 This boilerplate provides:
-- **Linear Integration** - Full CRUD, automatic status updates, label management
-- **Automatic Ticket Updates** - PR opened → In Review, PR merged → Deployed (zero manual status changes)
+- **Linear Integration** - Native GitHub sync, auto PR linking, automatic status updates
 - **Local Hooks** - Ticket auto-marked "In Progress" when you mention it (optional)
 - **Git Worktrees** - Each ticket gets isolated workspace, no branch switching conflicts
 - **PR Policy Enforcement** - Risk labels, ticket references, testing instructions
@@ -217,8 +216,6 @@ This lets the system:
 │   ├── workflows/            # CI/CD
 │   │   ├── security.yml      # Secret scanning, SBOM
 │   │   ├── pr-policy.yml     # PR validation
-│   │   ├── pr-opened.yml     # Linear → In Review
-│   │   ├── pr-merged.yml     # Linear → Deployed
 │   │   ├── lint.yml          # Python linting
 │   │   └── tests.yml         # Test runner
 │   └── PULL_REQUEST_TEMPLATE.md
@@ -240,14 +237,13 @@ Recipes are markdown guides for common tasks. Each has:
 
 | Recipe | Description |
 |--------|-------------|
+| `tickets/linear-github-integration.md` | Native GitHub integration (auto PR linking) |
+| `tickets/linear-setup.md` | Linear configuration and labels |
 | `workflows/linear-hooks.md` | Local hooks for automatic Linear updates |
-| `workflows/pr-opened-linear.md` | PR opened → In Review automation |
-| `workflows/pr-merge-linear.md` | PR merged → Deployed automation |
 | `workflows/multi-agent-coordination.md` | Multiple AI agents working together |
 | `workflows/git-worktrees.md` | Using worktrees for parallel work |
 | `security/secret-management.md` | Secrets philosophy |
 | `agents/human-required-work.md` | When to create HUMAN tickets |
-| `tickets/linear-setup.md` | Linear integration |
 | `tickets/linear-label-ids.md` | Using label IDs in API calls |
 
 ## Configuration
@@ -279,21 +275,24 @@ Main configuration is in `.vibe/config.json`:
 }
 ```
 
-### Automatic Linear Status Updates
+### Automatic Linear Status Updates (Native Integration)
 
-The boilerplate includes GitHub Actions that automatically update Linear ticket status:
+Linear's native GitHub integration handles automatic ticket updates — no custom workflows needed.
 
-| Event | Workflow | Status Change |
-|-------|----------|---------------|
-| PR opened | `pr-opened.yml` | → In Review |
-| PR merged | `pr-merged.yml` | → Deployed |
+| Event | What Happens |
+|-------|--------------|
+| PR opened | PR appears in Linear ticket, status badge shows "Open" |
+| PR merged | Ticket auto-moves to Done/Deployed (configurable) |
 
-**Setup:**
-1. Add repository secret `LINEAR_API_KEY` (from [Linear Settings → API](https://linear.app/settings/api))
-2. Optional: Set repository variable `LINEAR_DEPLOYED_STATE` (default: `Deployed`)
-3. Optional: Set repository variable `LINEAR_IN_REVIEW_STATE` (default: `In Review`)
+**Setup (one-time):**
+1. Go to [Linear Settings → Integrations → GitHub](https://linear.app/settings/integrations/github)
+2. Click **Connect GitHub** and authorize
+3. Select your repositories
+4. Enable **auto-close on merge** (recommended)
 
-**How it works:** The workflows extract the ticket ID from the branch name (e.g., `PROJ-123-add-feature` → `PROJ-123`). If no ticket ID is found or the API key is missing, the workflow logs a warning and continues without failing.
+**How it works:** Linear automatically links PRs to tickets based on branch name (e.g., `PROJ-123-add-feature` → ticket PROJ-123). No API keys or repo secrets needed.
+
+See `recipes/tickets/linear-github-integration.md` for the full setup guide.
 
 ### Local Hooks (Optional)
 
