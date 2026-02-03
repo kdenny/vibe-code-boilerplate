@@ -720,6 +720,15 @@ When implementing specific features, consult these recipes:
 - `recipes/integrations/sentry.md` - Sentry error monitoring and performance tracking
 - `recipes/integrations/neon.md` - Neon serverless Postgres with database branching
 
+### Deployment
+- `recipes/deployment/fly-io.md` - Fly.io container deployment (global distribution, volumes, managed services)
+- `recipes/deployment/vercel.md` - Vercel deployment (Next.js, serverless, edge functions)
+
+### Databases
+- `recipes/databases/supabase.md` - Supabase (Postgres, auth, real-time, storage)
+- `recipes/databases/neon.md` - Neon serverless Postgres with database branching
+- `recipes/databases/byo-postgres.md` - Bring your own Postgres configuration
+
 ---
 
 ## Skills Reference
@@ -736,6 +745,10 @@ Use these slash commands for common workflows:
 | `/ticket get PROJ-123` | Get ticket details |
 | `/ticket create "Title"` | Create a new ticket |
 | `/cleanup` | Clean up merged worktrees |
+| `/promptvault` | Manage PromptVault prompts, snippets, and variables |
+| `/vercel` | Deploy and manage Vercel projects |
+| `/fly` | Deploy and manage Fly.io applications |
+| `/supabase` | Manage Supabase database, auth, and local development |
 
 Skills are defined in `.claude/commands/` and can be customized per project.
 
@@ -748,6 +761,9 @@ These are the underlying CLI commands (skills call these automatically):
 ```bash
 # Setup and health
 bin/vibe setup              # Initial configuration
+bin/vibe setup --wizard vercel   # Configure Vercel deployment
+bin/vibe setup --wizard fly      # Configure Fly.io deployment
+bin/vibe setup --wizard supabase # Configure Supabase database
 bin/vibe doctor             # Health check
 bin/doctor                  # Alias for doctor
 

@@ -14,6 +14,7 @@ from lib.vibe.wizards.github import (
     run_github_wizard,
     try_auto_configure_github,
 )
+from lib.vibe.wizards.supabase import run_supabase_wizard
 from lib.vibe.wizards.tracker import run_tracker_wizard
 from lib.vibe.wizards.vercel import run_vercel_wizard
 
@@ -293,6 +294,7 @@ def run_individual_wizard(wizard_name: str) -> bool:
         "env": run_env_wizard,
         "vercel": run_vercel_wizard,
         "fly": run_fly_wizard,
+        "supabase": run_supabase_wizard,
     }
 
     if wizard_name not in wizards:
