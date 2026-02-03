@@ -200,7 +200,7 @@ def run_playwright_wizard(config: dict[str, Any]) -> bool:
             click.echo("  (Follow the prompts to configure your setup)")
             click.echo()
 
-            result = subprocess.run(["npm", "init", "playwright@latest"])
+            result = subprocess.run(["npm", "init", "playwright@latest"], timeout=300)
 
             if result.returncode != 0:
                 click.echo("\n  Playwright initialization had issues.")
@@ -221,7 +221,7 @@ def run_playwright_wizard(config: dict[str, Any]) -> bool:
             click.echo("  Playwright config exists but packages not installed.")
             if click.confirm("  Install Playwright packages?", default=True):
                 click.echo("  Running: npm install -D @playwright/test")
-                result = subprocess.run(["npm", "install", "-D", "@playwright/test"])
+                result = subprocess.run(["npm", "install", "-D", "@playwright/test"], timeout=120)
                 if result.returncode == 0:
                     click.echo("  ✓ Playwright packages installed")
                 else:
@@ -235,7 +235,7 @@ def run_playwright_wizard(config: dict[str, Any]) -> bool:
     click.echo("\nStep 4: Browser installation...")
     if click.confirm("  Install Playwright browsers? (Required for running tests)", default=True):
         click.echo("  Running: npx playwright install")
-        result = subprocess.run(["npx", "playwright", "install"])
+        result = subprocess.run(["npx", "playwright", "install"], timeout=600)
         if result.returncode == 0:
             click.echo("  ✓ Browsers installed")
         else:
