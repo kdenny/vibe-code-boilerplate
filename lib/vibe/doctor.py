@@ -66,6 +66,9 @@ def run_doctor(verbose: bool = False, check_github_actions: bool = False) -> lis
         # Integration checks
         results.extend(check_integrations(config, verbose))
 
+        # Infrastructure readiness (helpful guidance)
+        results.extend(check_infrastructure_readiness(config))
+
     # Local hooks check
     results.append(check_local_hooks())
 
@@ -601,6 +604,92 @@ def check_integrations(config: dict, verbose: bool = False) -> list[CheckResult]
     return results
 
 
+def check_infrastructure_readiness(config: dict) -> list[CheckResult]:
+    """
+    Check infrastructure configuration (database, hosting, monitoring).
+
+    Shows helpful guidance for early infrastructure setup.
+    """
+    results = []
+
+    # Database check
+    database = config.get("database", {})
+    db_provider = database.get("provider")
+    has_neon = database.get("neon", {}).get("enabled")
+    has_supabase = database.get("supabase", {}).get("enabled")
+
+    if db_provider or has_neon or has_supabase:
+        provider_name = db_provider or ("Neon" if has_neon else "Supabase")
+        results.append(
+            CheckResult(
+                name="Database",
+                status=Status.PASS,
+                message=f"{provider_name.title()} configured",
+                category="infrastructure",
+            )
+        )
+    else:
+        results.append(
+            CheckResult(
+                name="Database",
+                status=Status.SKIP,
+                message="Not configured",
+                fix_hint="Run 'bin/vibe setup -w database' to set up Neon or Supabase",
+                category="infrastructure",
+            )
+        )
+
+    # Hosting check
+    has_vercel = config.get("vercel", {}).get("enabled")
+    has_fly = config.get("fly", {}).get("enabled")
+
+    if has_vercel or has_fly:
+        provider = "Vercel" if has_vercel else "Fly.io"
+        results.append(
+            CheckResult(
+                name="Hosting",
+                status=Status.PASS,
+                message=f"{provider} configured",
+                category="infrastructure",
+            )
+        )
+    else:
+        results.append(
+            CheckResult(
+                name="Hosting",
+                status=Status.SKIP,
+                message="Not configured",
+                fix_hint="Run 'bin/vibe setup -w vercel' or '-w fly' when ready to deploy",
+                category="infrastructure",
+            )
+        )
+
+    # Monitoring check
+    has_sentry = os.environ.get("SENTRY_DSN")
+
+    if has_sentry:
+        results.append(
+            CheckResult(
+                name="Monitoring",
+                status=Status.PASS,
+                message="Sentry configured",
+                category="infrastructure",
+            )
+        )
+    else:
+        results.append(
+            CheckResult(
+                name="Monitoring",
+                status=Status.SKIP,
+                message="Not configured",
+                fix_hint="Add SENTRY_DSN to .env.local for error tracking",
+                category="infrastructure",
+            )
+        )
+
+    return results
+
+
 def check_github_actions_setup() -> list[CheckResult]:
     """Check GitHub Actions secrets and workflow status."""
     results = []
@@ -744,10 +833,11 @@ def print_results(results: list[CheckResult], show_skipped: bool = True) -> int:
             categories[cat] = []
         categories[cat].append(result)
 
-    # Print general first, then integrations, then github_actions
-    category_order = ["general", "integration", "github_actions"]
+    # Print general first, then infrastructure, integrations, then github_actions
+    category_order = ["general", "infrastructure", "integration", "github_actions"]
     category_names = {
         "general": "Core Checks",
+        "infrastructure": "Infrastructure (configure early for smooth deploys)",
         "integration": "Integrations",
         "github_actions": "GitHub Actions",
     }

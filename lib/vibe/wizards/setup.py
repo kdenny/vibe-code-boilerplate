@@ -190,6 +190,11 @@ def run_setup(force: bool = False) -> bool:
         next_num += 1
         click.echo(f"  {next_num}. Check recipes/ for best practices")
         click.echo()
+        click.echo("Infrastructure (configure early for smooth deploys):")
+        click.echo("  • Database: bin/vibe setup -w database")
+        click.echo("  • Hosting:  bin/vibe setup -w vercel  (or -w fly)")
+        click.echo("  • Errors:   Add SENTRY_DSN to .env.local")
+        click.echo()
         return True
 
     # Existing config or reconfiguration: show wizard header and possibly confirm
@@ -272,6 +277,11 @@ def run_setup(force: bool = False) -> bool:
     click.echo("  3. Update README.md with app name, tech stack, and setup instructions")
     click.echo("  4. If using Linear: add LINEAR_API_KEY to .env.local")
     click.echo("  5. Check out the recipes/ directory for best practices")
+    click.echo()
+    click.echo("Infrastructure (configure early for smooth deploys):")
+    click.echo("  • Database: bin/vibe setup -w database")
+    click.echo("  • Hosting:  bin/vibe setup -w vercel  (or -w fly)")
+    click.echo("  • Errors:   Add SENTRY_DSN to .env.local")
     click.echo()
 
     return True
