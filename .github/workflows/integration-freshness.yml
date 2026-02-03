@@ -1,0 +1,136 @@
+# Monthly integration freshness check
+#
+# Runs on the 1st of each month to check if any integrations are stale (> 30 days).
+# If stale integrations are found, creates a GitHub issue to trigger a re-verification.
+#
+# Requires no secrets - uses default GITHUB_TOKEN for issue creation.
+
+name: Integration Freshness Check
+
+on:
+  schedule:
+    # Run at 9 AM UTC on the 1st of each month
+    - cron: '0 9 1 * *'
+  workflow_dispatch:
+    # Allow manual trigger for testing
+
+jobs:
+  check-freshness:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check integration freshness
+        id: check
+        run: |
+          FRESHNESS_FILE=".vibe/integration-freshness.json"
+
+          if [ ! -f "$FRESHNESS_FILE" ]; then
+            echo "No freshness file found at $FRESHNESS_FILE"
+            echo "stale_count=0" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Get today's date in seconds since epoch
+          TODAY=$(date +%s)
+          STALE_DAYS=30
+          STALE_SECONDS=$((STALE_DAYS * 24 * 60 * 60))
+
+          # Extract integrations and check dates
+          STALE_LIST=""
+          STALE_COUNT=0
+
+          for integration in $(jq -r '.integrations | keys[]' "$FRESHNESS_FILE"); do
+            last_checked=$(jq -r ".integrations[\"$integration\"].last_checked" "$FRESHNESS_FILE")
+
+            if [ "$last_checked" = "null" ] || [ -z "$last_checked" ]; then
+              STALE_LIST="${STALE_LIST}• **$integration**: never checked\n"
+              STALE_COUNT=$((STALE_COUNT + 1))
+              continue
+            fi
+
+            # Convert date to epoch (macOS and Linux compatible)
+            if date -d "$last_checked" +%s >/dev/null 2>&1; then
+              # GNU date (Linux)
+              CHECKED_DATE=$(date -d "$last_checked" +%s)
+            else
+              # BSD date (macOS) - not available in CI, use Python fallback
+              CHECKED_DATE=$(python3 -c "from datetime import datetime; print(int(datetime.strptime('$last_checked', '%Y-%m-%d').timestamp()))")
+            fi
+
+            DAYS_AGO=$(( (TODAY - CHECKED_DATE) / 86400 ))
+
+            if [ $DAYS_AGO -gt $STALE_DAYS ]; then
+              version=$(jq -r ".integrations[\"$integration\"].version_checked // \"unknown\"" "$FRESHNESS_FILE")
+              STALE_LIST="${STALE_LIST}• **$integration** ($version): last checked $last_checked ($DAYS_AGO days ago)\n"
+              STALE_COUNT=$((STALE_COUNT + 1))
+            fi
+          done
+
+          echo "stale_count=$STALE_COUNT" >> $GITHUB_OUTPUT
+
+          # Write stale list to a file for the next step
+          if [ $STALE_COUNT -gt 0 ]; then
+            echo -e "$STALE_LIST" > /tmp/stale_integrations.txt
+            echo "Found $STALE_COUNT stale integration(s)"
+          else
+            echo "All integrations are fresh"
+          fi
+
+      - name: Create issue for stale integrations
+        if: steps.check.outputs.stale_count != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Check if an open issue already exists
+          EXISTING=$(gh issue list --label "Chore" --label "HUMAN" --search "Monthly integration freshness check needed" --json number --jq '.[0].number // empty')
+
+          if [ -n "$EXISTING" ]; then
+            echo "Issue #$EXISTING already exists, adding comment instead"
+            COMMENT="## Monthly Freshness Check - $(date +%Y-%m-%d)\n\nThe following integrations are stale:\n\n$(cat /tmp/stale_integrations.txt)"
+            gh issue comment "$EXISTING" --body "$(echo -e "$COMMENT")"
+            exit 0
+          fi
+
+          # Create new issue
+          BODY=$(cat <<ISSUE_BODY
+          ## Monthly Integration Freshness Check
+
+          The following integrations haven't been verified in over 30 days:
+
+          $(cat /tmp/stale_integrations.txt)
+
+          ## Verification Checklist
+
+          For each stale integration, verify:
+
+          - [ ] CLI installation command still works
+          - [ ] Authentication flow unchanged
+          - [ ] Configuration file format unchanged
+          - [ ] Environment variable names unchanged
+          - [ ] Recipe documentation matches current CLI output
+          - [ ] Wizard steps match current workflow
+
+          ## After Verification
+
+          1. Update \`.vibe/integration-freshness.json\` with:
+             - \`last_checked\`: today's date
+             - \`version_checked\`: current CLI version
+          2. Commit the change
+          3. Close this issue
+
+          ---
+          *This issue was automatically created by the integration-freshness workflow.*
+          ISSUE_BODY
+          )
+
+          gh issue create \
+            --title "Monthly integration freshness check needed" \
+            --body "$BODY" \
+            --label "Chore" \
+            --label "HUMAN"

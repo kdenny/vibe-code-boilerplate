@@ -1,0 +1,42 @@
+{
+  "$schema": "./integration-freshness.schema.json",
+  "_comment": "Tracks when integrations were last verified. See recipes/workflows/integration-freshness.md",
+  "integrations": {
+    "vercel": {
+      "last_checked": "2026-02-02",
+      "checked_by": "agent",
+      "version_checked": "vercel@37.x",
+      "notes": "CLI install, auth, project linking, env pull"
+    },
+    "fly": {
+      "last_checked": "2026-02-02",
+      "checked_by": "agent",
+      "version_checked": "flyctl@0.3.x",
+      "notes": "CLI install, auth, launch, deploy commands"
+    },
+    "supabase": {
+      "last_checked": "2026-02-02",
+      "checked_by": "agent",
+      "version_checked": "supabase@1.x",
+      "notes": "CLI install, login, init, link, migrations"
+    },
+    "sentry": {
+      "last_checked": "2026-02-02",
+      "checked_by": "agent",
+      "version_checked": "sentry-cli@2.x",
+      "notes": "CLI install, login, Next.js wizard, releases"
+    },
+    "neon": {
+      "last_checked": "2026-02-02",
+      "checked_by": "agent",
+      "version_checked": "neonctl@1.x",
+      "notes": "CLI install, auth, branches, connection strings"
+    },
+    "linear": {
+      "last_checked": "2026-02-02",
+      "checked_by": "agent",
+      "version_checked": "API v2",
+      "notes": "API authentication, issue operations, GitHub integration"
+    }
+  }
+}

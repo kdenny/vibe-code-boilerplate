@@ -5,6 +5,7 @@ import os
 import shutil
 import subprocess
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
 
@@ -68,6 +69,9 @@ def run_doctor(verbose: bool = False, check_github_actions: bool = False) -> lis
 
         # Infrastructure readiness (helpful guidance)
         results.extend(check_infrastructure_readiness(config))
+
+        # Integration freshness check
+        results.append(check_integration_freshness())
 
     # Local hooks check
     results.append(check_local_hooks())
@@ -688,6 +692,82 @@ def check_infrastructure_readiness(config: dict) -> list[CheckResult]:
         )
 
     return results
+
+
+def check_integration_freshness() -> CheckResult:
+    """Check if any integrations are stale (> 30 days since verification)."""
+    freshness_file = Path(".vibe/integration-freshness.json")
+
+    if not freshness_file.exists():
+        return CheckResult(
+            name="Integration freshness",
+            status=Status.SKIP,
+            message="No freshness tracking file",
+            fix_hint="See recipes/workflows/integration-freshness.md",
+            category="integration",
+        )
+
+    try:
+        data = json.loads(freshness_file.read_text())
+        integrations = data.get("integrations", {})
+
+        if not integrations:
+            return CheckResult(
+                name="Integration freshness",
+                status=Status.SKIP,
+                message="No integrations tracked",
+                category="integration",
+            )
+
+        today = datetime.now()
+        stale_days = 30
+        stale_integrations = []
+
+        for name, info in integrations.items():
+            last_checked = info.get("last_checked")
+            if not last_checked:
+                stale_integrations.append(f"{name} (never)")
+                continue
+
+            try:
+                checked_date = datetime.strptime(last_checked, "%Y-%m-%d")
+                days_ago = (today - checked_date).days
+                if days_ago > stale_days:
+                    stale_integrations.append(f"{name} ({days_ago}d)")
+            except ValueError:
+                stale_integrations.append(f"{name} (invalid date)")
+
+        if stale_integrations:
+            return CheckResult(
+                name="Integration freshness",
+                status=Status.WARN,
+                message=f"Stale: {', '.join(stale_integrations)}",
+                fix_hint="Re-verify integrations and update .vibe/integration-freshness.json",
+                category="integration",
+            )
+
+        return CheckResult(
+            name="Integration freshness",
+            status=Status.PASS,
+            message=f"All {len(integrations)} integrations verified within {stale_days}d",
+            category="integration",
+        )
+
+    except json.JSONDecodeError as e:
+        return CheckResult(
+            name="Integration freshness",
+            status=Status.WARN,
+            message=f"Invalid JSON: {e}",
+            fix_hint="Fix .vibe/integration-freshness.json syntax",
+            category="integration",
+        )
+    except Exception as e:
+        return CheckResult(
+            name="Integration freshness",
+            status=Status.WARN,
+            message=f"Error checking: {e}",
+            category="integration",
+        )
 
 
 def check_github_actions_setup() -> list[CheckResult]:

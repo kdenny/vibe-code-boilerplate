@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Integration Freshness",
+  "description": "Tracks when integrations were last verified",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "_comment": {
+      "type": "string"
+    },
+    "integrations": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "last_checked": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "Date of last verification (YYYY-MM-DD)"
+          },
+          "checked_by": {
+            "type": "string",
+            "description": "Who verified (agent, human name, or CI)"
+          },
+          "version_checked": {
+            "type": "string",
+            "description": "CLI/API version that was tested"
+          },
+          "notes": {
+            "type": "string",
+            "description": "What was specifically verified"
+          }
+        },
+        "required": ["last_checked"]
+      }
+    }
+  },
+  "required": ["integrations"]
+}
