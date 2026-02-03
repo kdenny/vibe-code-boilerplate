@@ -74,9 +74,10 @@ class RetrofitApplier:
         results = []
 
         actions_to_apply = (
-            plan.auto_applicable_actions if auto_only else [
-                a for a in plan.actions
-                if a.action_type in (ActionType.ADOPT, ActionType.CONFIGURE)
+            plan.auto_applicable_actions
+            if auto_only
+            else [
+                a for a in plan.actions if a.action_type in (ActionType.ADOPT, ActionType.CONFIGURE)
             ]
         )
 
@@ -86,9 +87,7 @@ class RetrofitApplier:
 
             if interactive:
                 if not click.confirm(f"Apply: {action.description}?", default=True):
-                    results.append(
-                        ApplyResult(False, action.name, "Skipped by user")
-                    )
+                    results.append(ApplyResult(False, action.name, "Skipped by user"))
                     continue
 
             result = self.apply_action(action)
@@ -182,9 +181,7 @@ class RetrofitApplier:
         workflows_dir = self.project_path / ".github" / "workflows"
 
         if self.dry_run:
-            return ApplyResult(
-                True, "github_actions", f"Would create workflows in {workflows_dir}"
-            )
+            return ApplyResult(True, "github_actions", f"Would create workflows in {workflows_dir}")
 
         # Create directory if needed
         workflows_dir.mkdir(parents=True, exist_ok=True)
@@ -300,9 +297,14 @@ class RetrofitApplier:
         for name, color, description in labels:
             result = subprocess.run(
                 [
-                    "gh", "label", "create", name,
-                    "--color", color,
-                    "--description", description,
+                    "gh",
+                    "label",
+                    "create",
+                    name,
+                    "--color",
+                    color,
+                    "--description",
+                    description,
                     "--force",  # Update if exists
                 ],
                 capture_output=True,

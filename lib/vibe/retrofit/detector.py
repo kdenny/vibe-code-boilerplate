@@ -210,7 +210,9 @@ class ProjectDetector:
                     f"Detected pattern '{pattern}' from {count}/{len(branches)} branches",
                 )
 
-            return DetectionResult(False, 0.3, "{PROJ}-{num}", "No clear pattern, suggesting default")
+            return DetectionResult(
+                False, 0.3, "{PROJ}-{num}", "No clear pattern, suggesting default"
+            )
 
         except FileNotFoundError:
             return DetectionResult(False, 0.0)
@@ -225,7 +227,9 @@ class ProjectDetector:
             )
             if result.returncode == 0:
                 worktrees = [
-                    line for line in result.stdout.strip().split("\n") if line and "(bare)" not in line
+                    line
+                    for line in result.stdout.strip().split("\n")
+                    if line and "(bare)" not in line
                 ]
                 # More than just the main checkout means worktrees are in use
                 if len(worktrees) > 1:
@@ -280,9 +284,7 @@ class ProjectDetector:
             content = pyproject.read_text()
             match = re.search(r'python\s*[=<>]+\s*["\']?(\d+\.\d+)', content)
             if match:
-                return DetectionResult(
-                    True, 0.9, match.group(1), "Detected from pyproject.toml"
-                )
+                return DetectionResult(True, 0.9, match.group(1), "Detected from pyproject.toml")
 
         # Check runtime.txt (Heroku-style)
         runtime = self.project_path / "runtime.txt"
@@ -384,7 +386,9 @@ class ProjectDetector:
                 if "@mui/material" in deps:
                     return DetectionResult(True, 1.0, "mui", "Found MUI in dependencies")
                 if "bootstrap" in deps:
-                    return DetectionResult(True, 1.0, "bootstrap", "Found Bootstrap in dependencies")
+                    return DetectionResult(
+                        True, 1.0, "bootstrap", "Found Bootstrap in dependencies"
+                    )
 
             except (json.JSONDecodeError, OSError):
                 pass
@@ -424,9 +428,7 @@ class ProjectDetector:
             configs_found.append("docker-compose")
 
         if configs_found:
-            return DetectionResult(
-                True, 1.0, configs_found, f"Found: {', '.join(configs_found)}"
-            )
+            return DetectionResult(True, 1.0, configs_found, f"Found: {', '.join(configs_found)}")
 
         return DetectionResult(False, 0.0)
 
@@ -443,9 +445,7 @@ class ProjectDetector:
             if env_path.exists():
                 content = env_path.read_text()
                 if "SUPABASE_URL" in content or "NEXT_PUBLIC_SUPABASE_URL" in content:
-                    return DetectionResult(
-                        True, 0.8, "env", f"Found Supabase config in {env_file}"
-                    )
+                    return DetectionResult(True, 0.8, "env", f"Found Supabase config in {env_file}")
 
         return DetectionResult(False, 0.0)
 
@@ -560,7 +560,10 @@ class ProjectDetector:
 
         # Check for Linear-style branch names
         branch_result = self.detect_branch_pattern()
-        if branch_result.detected and branch_result.value in ("{PROJ}-{num}", "{type}/{PROJ}-{num}"):
+        if branch_result.detected and branch_result.value in (
+            "{PROJ}-{num}",
+            "{type}/{PROJ}-{num}",
+        ):
             return DetectionResult(
                 True, 0.6, "branch-pattern", "Branch pattern suggests Linear-style tickets"
             )
@@ -575,9 +578,7 @@ class ProjectDetector:
             if env_path.exists():
                 content = env_path.read_text()
                 if "SHORTCUT_API_TOKEN" in content or "CLUBHOUSE_" in content:
-                    return DetectionResult(
-                        True, 0.8, "env", f"Found Shortcut config in {env_file}"
-                    )
+                    return DetectionResult(True, 0.8, "env", f"Found Shortcut config in {env_file}")
 
         return DetectionResult(False, 0.0)
 

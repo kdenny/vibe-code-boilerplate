@@ -71,8 +71,7 @@ class RetrofitPlan:
         return [
             a
             for a in self.actions
-            if a.auto_applicable
-            and a.action_type in (ActionType.ADOPT, ActionType.CONFIGURE)
+            if a.auto_applicable and a.action_type in (ActionType.ADOPT, ActionType.CONFIGURE)
         ]
 
 
@@ -442,7 +441,9 @@ class RetrofitAnalyzer:
             lines.append(f"  Main branch: {self.profile.main_branch.value}")
         if self.profile.branch_pattern.detected:
             conf = self.profile.branch_pattern.confidence
-            lines.append(f"  Branch pattern: {self.profile.branch_pattern.value} ({conf:.0%} conf.)")
+            lines.append(
+                f"  Branch pattern: {self.profile.branch_pattern.value} ({conf:.0%} conf.)"
+            )
         if self.profile.frontend_framework.detected:
             lines.append(f"  Frontend: {self.profile.frontend_framework.value}")
         if self.profile.backend_framework.detected:

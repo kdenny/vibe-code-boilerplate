@@ -266,7 +266,9 @@ def retrofit(
     click.echo(analyzer.generate_summary(plan))
 
     if analyze_only:
-        click.echo("Analysis complete. Use --dry-run to preview changes or remove --analyze-only to apply.")
+        click.echo(
+            "Analysis complete. Use --dry-run to preview changes or remove --analyze-only to apply."
+        )
         return
 
     # Check for conflicts
