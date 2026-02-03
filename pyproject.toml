@@ -30,6 +30,10 @@ dev = [
     "mypy>=1.0.0",
     "ruff>=0.1.0",
 ]
+# Optional: Better TOML parsing for fly.toml (falls back to simple parsing if not installed)
+fly = [
+    "tomli>=2.0.0",
+]
 
 [project.scripts]
 vibe = "lib.vibe.cli.main:main"
