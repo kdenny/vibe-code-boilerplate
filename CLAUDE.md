@@ -70,6 +70,58 @@ The canonical configuration is in `.vibe/config.json`. Key fields are populated 
 
 ---
 
+## LLM-Powered Applications
+
+When building applications that make API calls to LLMs (OpenAI, Anthropic, etc.), use **PromptVault** for prompt management.
+
+### When to Use PromptVault
+
+**Use PromptVault when the application:**
+- Has prompts that will evolve over time
+- Shares context or instructions across multiple prompts
+- Needs version control for prompts
+- Separates prompt engineering from code
+
+**Skip PromptVault for:**
+- One-off scripts or experiments
+- Prompts that never change
+- Applications without LLM API calls
+
+### Quick Setup
+
+```bash
+# During initial setup
+bin/vibe setup   # Select "Yes" for PromptVault when prompted
+
+# Or add later
+bin/vibe setup --wizard promptvault
+```
+
+### Usage Pattern
+
+Instead of hardcoding prompts:
+
+```python
+# DON'T do this
+prompt = "You are a helpful assistant for {company}. Help with: {query}"
+```
+
+Use PromptVault:
+
+```python
+# DO this
+from your_app.prompts import get_compiled_prompt
+
+prompt = get_compiled_prompt("customer-support", {
+    "company": company_name,
+    "query": user_query
+})
+```
+
+See `recipes/integrations/promptvault.md` for full documentation and the `/promptvault` skill for scaffolding.
+
+---
+
 ## Core Rules
 
 ### When to Ask for Clarification
@@ -641,7 +693,10 @@ When implementing specific features, consult these recipes:
 - `recipes/tickets/creating-tickets.md` - Creating tickets (blocking, labels, milestones)
 - `recipes/tickets/human-followup-deployment.md` - HUMAN follow-up tickets for deployment setup
 - `recipes/tickets/linear-setup.md` - Linear configuration
-- `recipes/tickets/shortcut.md` - Shortcut (stub)
+- `recipes/tickets/shortcut.md` - Shortcut configuration
+
+### Integrations
+- `recipes/integrations/promptvault.md` - PromptVault for LLM prompt management
 
 ---
 
