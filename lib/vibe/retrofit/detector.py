@@ -123,6 +123,7 @@ class ProjectDetector:
                 ["git", "-C", str(self.project_path), "symbolic-ref", "refs/remotes/origin/HEAD"],
                 capture_output=True,
                 text=True,
+                timeout=5,
             )
             if result.returncode == 0:
                 ref = result.stdout.strip()
@@ -134,6 +135,7 @@ class ProjectDetector:
                 ["git", "-C", str(self.project_path), "branch", "-r"],
                 capture_output=True,
                 text=True,
+                timeout=5,
             )
             if result.returncode == 0:
                 branches = result.stdout
@@ -147,6 +149,7 @@ class ProjectDetector:
                 ["git", "-C", str(self.project_path), "branch"],
                 capture_output=True,
                 text=True,
+                timeout=5,
             )
             if result.returncode == 0:
                 branches = result.stdout
@@ -155,8 +158,8 @@ class ProjectDetector:
                 if "master" in branches:
                     return DetectionResult(True, 0.8, "master", "Found local master branch")
 
-        except FileNotFoundError:
-            pass  # git not installed
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            pass  # git not installed or timed out
 
         return DetectionResult(False, 0.0, "main", "Could not detect main branch, defaulting")
 
@@ -167,6 +170,7 @@ class ProjectDetector:
                 ["git", "-C", str(self.project_path), "branch", "-a"],
                 capture_output=True,
                 text=True,
+                timeout=5,
             )
             if result.returncode != 0:
                 return DetectionResult(False, 0.0)
@@ -214,7 +218,7 @@ class ProjectDetector:
                 False, 0.3, "{PROJ}-{num}", "No clear pattern, suggesting default"
             )
 
-        except FileNotFoundError:
+        except (FileNotFoundError, subprocess.TimeoutExpired):
             return DetectionResult(False, 0.0)
 
     def detect_worktrees(self) -> DetectionResult:
@@ -224,6 +228,7 @@ class ProjectDetector:
                 ["git", "-C", str(self.project_path), "worktree", "list"],
                 capture_output=True,
                 text=True,
+                timeout=5,
             )
             if result.returncode == 0:
                 worktrees = [
@@ -239,7 +244,7 @@ class ProjectDetector:
                 return DetectionResult(
                     False, 0.0, 1, "Only main checkout found (no additional worktrees)"
                 )
-        except FileNotFoundError:
+        except (FileNotFoundError, subprocess.TimeoutExpired):
             pass
         return DetectionResult(False, 0.0)
 
