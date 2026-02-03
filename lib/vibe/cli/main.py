@@ -226,5 +226,123 @@ def secrets_sync(env_file: str, provider: str, environment: str) -> None:
     click.echo("Secret syncing not yet fully implemented.")
 
 
+@main.command()
+@click.option("--dry-run", is_flag=True, help="Show what would be done without making changes")
+@click.option("--auto", is_flag=True, help="Apply all auto-applicable actions without prompting")
+@click.option("--analyze-only", is_flag=True, help="Only show analysis, don't apply any changes")
+@click.option(
+    "--boilerplate-path",
+    "-b",
+    type=click.Path(exists=True, path_type=Path),
+    help="Path to boilerplate source (for copying workflows)",
+)
+def retrofit(
+    dry_run: bool,
+    auto: bool,
+    analyze_only: bool,
+    boilerplate_path: Path | None,
+) -> None:
+    """Apply boilerplate to an existing project (guided adoption)."""
+    from lib.vibe.retrofit.analyzer import RetrofitAnalyzer
+    from lib.vibe.retrofit.applier import RetrofitApplier
+    from lib.vibe.retrofit.detector import ProjectDetector
+
+    click.echo("=" * 60)
+    click.echo("  Retrofit: Apply Boilerplate to Existing Project")
+    click.echo("=" * 60)
+    click.echo()
+
+    # Step 1: Detect existing configuration
+    click.echo("Analyzing project...")
+    detector = ProjectDetector()
+    profile = detector.detect_all()
+
+    # Step 2: Generate retrofit plan
+    analyzer = RetrofitAnalyzer(profile)
+    plan = analyzer.analyze()
+
+    # Step 3: Show analysis summary
+    click.echo()
+    click.echo(analyzer.generate_summary(plan))
+
+    if analyze_only:
+        click.echo(
+            "Analysis complete. Use --dry-run to preview changes or remove --analyze-only to apply."
+        )
+        return
+
+    # Check for conflicts
+    if plan.conflicts:
+        click.echo("!" * 60)
+        click.echo("  CONFLICTS DETECTED - Manual resolution required")
+        click.echo("!" * 60)
+        click.echo()
+        for conflict in plan.conflicts:
+            click.echo(f"  • {conflict.description}")
+            click.echo(f"    Current: {conflict.current_value}")
+            click.echo(f"    Suggested: {conflict.suggested_value}")
+            click.echo(f"    {conflict.details}")
+            click.echo()
+
+    # Step 4: Apply changes
+    if dry_run:
+        click.echo("Dry run - showing what would be applied:")
+        click.echo("-" * 40)
+
+    applier = RetrofitApplier(
+        project_path=Path.cwd(),
+        boilerplate_path=boilerplate_path,
+        dry_run=dry_run,
+    )
+
+    if auto:
+        # Apply all auto-applicable actions without prompting
+        click.echo("\nApplying auto-applicable actions...")
+        results = applier.apply_plan(plan, auto_only=True, interactive=False)
+    else:
+        # Interactive mode
+        if not plan.auto_applicable_actions:
+            click.echo("\nNo auto-applicable actions found.")
+            click.echo("Run 'bin/vibe setup' for manual configuration options.")
+            return
+
+        click.echo("\nThe following actions can be applied automatically:")
+        for action in plan.auto_applicable_actions:
+            click.echo(f"  • {action.description}")
+
+        click.echo()
+        if not click.confirm("Apply these changes?", default=True):
+            click.echo("Retrofit cancelled.")
+            return
+
+        results = applier.apply_plan(plan, auto_only=True, interactive=True)
+
+    # Step 5: Summary
+    click.echo()
+    click.echo("=" * 60)
+    click.echo("  Retrofit Summary")
+    click.echo("=" * 60)
+
+    successful = [r for r in results if r.success]
+    failed = [r for r in results if not r.success]
+
+    if successful:
+        click.echo(f"\n✓ Applied {len(successful)} action(s):")
+        for result in successful:
+            click.echo(f"  • {result.message}")
+
+    if failed:
+        click.echo(f"\n✗ Failed {len(failed)} action(s):")
+        for result in failed:
+            click.echo(f"  • {result.action_name}: {result.message}")
+
+    # Next steps
+    click.echo("\nNext steps:")
+    click.echo("  1. Run 'bin/vibe doctor' to verify configuration")
+    click.echo("  2. Run 'bin/vibe setup -w tracker' to configure ticket tracking")
+    click.echo("  3. Review .vibe/config.json and adjust settings as needed")
+    click.echo("  4. Update CLAUDE.md with your project's context")
+
+
 if __name__ == "__main__":
     main()

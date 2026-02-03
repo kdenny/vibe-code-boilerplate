@@ -814,6 +814,8 @@ These are the underlying CLI commands (skills call these automatically):
 ```bash
 # Setup and health
 bin/vibe setup              # Initial configuration
+bin/vibe retrofit           # Apply boilerplate to existing project
+bin/vibe retrofit --analyze-only  # See what retrofit would change
 bin/vibe setup --wizard vercel   # Configure Vercel deployment
 bin/vibe setup --wizard fly      # Configure Fly.io deployment
 bin/vibe setup --wizard supabase # Configure Supabase database

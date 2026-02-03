@@ -29,6 +29,7 @@ This boilerplate provides:
 
 Use this boilerplate when:
 - Starting a new project with AI-assisted development
+- **Retrofitting an existing project** with standardized workflows
 - You want consistent workflows across projects
 - You need ticket tracking integration
 - You want enforced PR standards
@@ -98,6 +99,31 @@ bin/vibe pr
 
 `bin/vibe do` fetches latest `main` and creates the new branch from `origin/main`, so you always start from a fresh base. You can run it from the main repo or from any worktree.
 
+## Retrofitting Existing Projects
+
+Already have a project? Use `retrofit` to add boilerplate workflows without starting over:
+
+```bash
+# Run from your existing project directory
+bin/vibe retrofit --analyze-only  # See what would change
+bin/vibe retrofit                  # Interactive guided adoption
+```
+
+Retrofit automatically detects:
+- **Git configuration**: main/master branch, existing branch patterns
+- **Frameworks**: React, Next.js, Vue, FastAPI, Django, etc.
+- **Deployment**: Vercel, Fly.io, Docker configs
+- **Database**: Supabase, Neon, Postgres, etc.
+- **Existing workflows**: Preserves your GitHub Actions
+
+Then it applies only what's missing:
+- `.vibe/config.json` with detected settings
+- PR template with risk assessment
+- GitHub labels (type, risk, area)
+- Minimal CI workflows (security, PR policy)
+
+See `recipes/workflows/retrofit-guide.md` for the full guide.
+
 ## Branch Naming
 
 Branches follow the pattern in `.vibe/config.json`:
@@ -118,6 +144,7 @@ This lets the system:
 | Script | Description |
 |--------|-------------|
 | `bin/vibe setup` | Initial configuration wizard |
+| `bin/vibe retrofit` | Apply boilerplate to existing project |
 | `bin/vibe do <ticket>` | Start work on a ticket (creates worktree) |
 | `bin/vibe doctor` | Check project health |
 | `bin/doctor` | Shortcut for `bin/vibe doctor` |
@@ -240,6 +267,7 @@ Recipes are markdown guides for common tasks. Each has:
 
 | Recipe | Description |
 |--------|-------------|
+| `workflows/retrofit-guide.md` | Apply boilerplate to existing projects |
 | `workflows/linear-hooks.md` | Local hooks for automatic Linear updates |
 | `workflows/pr-opened-linear.md` | PR opened → In Review automation |
 | `workflows/pr-merge-linear.md` | PR merged → Deployed automation |
