@@ -1,6 +1,7 @@
 """Development tools detection and validation."""
 
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -354,8 +355,6 @@ def require_interactive(wizard_name: str) -> tuple[bool, str | None]:
 # =============================================================================
 # Input Validation
 # =============================================================================
-
-import re
 
 
 def validate_github_owner(value: str) -> tuple[bool, str]:
