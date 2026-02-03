@@ -5,7 +5,7 @@ from pathlib import Path
 import click
 
 from lib.vibe.config import DEFAULT_CONFIG, config_exists, load_config, save_config
-from lib.vibe.state import DEFAULT_STATE, state_exists, save_state
+from lib.vibe.state import DEFAULT_STATE, save_state, state_exists
 from lib.vibe.wizards.branch import run_branch_wizard
 from lib.vibe.wizards.env import run_env_wizard
 from lib.vibe.wizards.github import (
@@ -175,9 +175,13 @@ def run_setup(force: bool = False) -> bool:
             next_num += 1
         click.echo(f"  {next_num}. Optional: run 'bin/vibe setup -w tracker' to add Linear")
         next_num += 1
-        click.echo(f"  {next_num}. Fill in the Project Overview in CLAUDE.md (for AI agent context)")
+        click.echo(
+            f"  {next_num}. Fill in the Project Overview in CLAUDE.md (for AI agent context)"
+        )
         next_num += 1
-        click.echo(f"  {next_num}. Update README.md with app name, description, tech stack, and setup instructions")
+        click.echo(
+            f"  {next_num}. Update README.md with app name, description, tech stack, and setup instructions"
+        )
         next_num += 1
         click.echo(f"  {next_num}. Check recipes/ for best practices")
         click.echo()

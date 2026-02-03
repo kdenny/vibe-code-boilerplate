@@ -364,7 +364,8 @@ def check_stale_worktrees() -> CheckResult:
 
         # Count worktrees (excluding main)
         worktrees = [
-            line for line in result.stdout.split("\n")
+            line
+            for line in result.stdout.split("\n")
             if line.startswith("worktree ") and not line.endswith(str(Path.cwd()))
         ]
 
@@ -395,20 +396,24 @@ def check_integrations(config: dict, verbose: bool = False) -> list[CheckResult]
 
     # PromptVault
     if os.environ.get("PROMPTVAULT_API_KEY"):
-        results.append(CheckResult(
-            name="PromptVault",
-            status=Status.PASS,
-            message="API key configured",
-            category="integration",
-        ))
+        results.append(
+            CheckResult(
+                name="PromptVault",
+                status=Status.PASS,
+                message="API key configured",
+                category="integration",
+            )
+        )
     else:
-        results.append(CheckResult(
-            name="PromptVault",
-            status=Status.SKIP,
-            message="Not configured (optional)",
-            fix_hint="Add PROMPTVAULT_API_KEY to .env.local for LLM apps",
-            category="integration",
-        ))
+        results.append(
+            CheckResult(
+                name="PromptVault",
+                status=Status.SKIP,
+                message="Not configured (optional)",
+                fix_hint="Add PROMPTVAULT_API_KEY to .env.local for LLM apps",
+                category="integration",
+            )
+        )
 
     # Fly.io
     if shutil.which("fly") or shutil.which("flyctl"):
@@ -419,34 +424,42 @@ def check_integrations(config: dict, verbose: bool = False) -> list[CheckResult]
                 text=True,
             )
             if result.returncode == 0:
-                results.append(CheckResult(
-                    name="Fly.io",
-                    status=Status.PASS,
-                    message="CLI authenticated",
-                    category="integration",
-                ))
+                results.append(
+                    CheckResult(
+                        name="Fly.io",
+                        status=Status.PASS,
+                        message="CLI authenticated",
+                        category="integration",
+                    )
+                )
             else:
-                results.append(CheckResult(
-                    name="Fly.io",
-                    status=Status.WARN,
-                    message="CLI installed but not authenticated",
-                    fix_hint="Run 'fly auth login'",
-                    category="integration",
-                ))
+                results.append(
+                    CheckResult(
+                        name="Fly.io",
+                        status=Status.WARN,
+                        message="CLI installed but not authenticated",
+                        fix_hint="Run 'fly auth login'",
+                        category="integration",
+                    )
+                )
         except Exception:
-            results.append(CheckResult(
+            results.append(
+                CheckResult(
+                    name="Fly.io",
+                    status=Status.SKIP,
+                    message="CLI check failed",
+                    category="integration",
+                )
+            )
+    else:
+        results.append(
+            CheckResult(
                 name="Fly.io",
                 status=Status.SKIP,
-                message="CLI check failed",
+                message="CLI not installed (optional)",
                 category="integration",
-            ))
-    else:
-        results.append(CheckResult(
-            name="Fly.io",
-            status=Status.SKIP,
-            message="CLI not installed (optional)",
-            category="integration",
-        ))
+            )
+        )
 
     # Vercel
     if shutil.which("vercel"):
@@ -457,57 +470,71 @@ def check_integrations(config: dict, verbose: bool = False) -> list[CheckResult]
                 text=True,
             )
             if result.returncode == 0:
-                results.append(CheckResult(
-                    name="Vercel",
-                    status=Status.PASS,
-                    message="CLI authenticated",
-                    category="integration",
-                ))
+                results.append(
+                    CheckResult(
+                        name="Vercel",
+                        status=Status.PASS,
+                        message="CLI authenticated",
+                        category="integration",
+                    )
+                )
             else:
-                results.append(CheckResult(
-                    name="Vercel",
-                    status=Status.WARN,
-                    message="CLI installed but not authenticated",
-                    fix_hint="Run 'vercel login'",
-                    category="integration",
-                ))
+                results.append(
+                    CheckResult(
+                        name="Vercel",
+                        status=Status.WARN,
+                        message="CLI installed but not authenticated",
+                        fix_hint="Run 'vercel login'",
+                        category="integration",
+                    )
+                )
         except Exception:
-            results.append(CheckResult(
+            results.append(
+                CheckResult(
+                    name="Vercel",
+                    status=Status.SKIP,
+                    message="CLI check failed",
+                    category="integration",
+                )
+            )
+    else:
+        results.append(
+            CheckResult(
                 name="Vercel",
                 status=Status.SKIP,
-                message="CLI check failed",
+                message="CLI not installed (optional)",
                 category="integration",
-            ))
-    else:
-        results.append(CheckResult(
-            name="Vercel",
-            status=Status.SKIP,
-            message="CLI not installed (optional)",
-            category="integration",
-        ))
+            )
+        )
 
     # Supabase
     if shutil.which("supabase"):
-        results.append(CheckResult(
-            name="Supabase",
-            status=Status.PASS,
-            message="CLI installed",
-            category="integration",
-        ))
+        results.append(
+            CheckResult(
+                name="Supabase",
+                status=Status.PASS,
+                message="CLI installed",
+                category="integration",
+            )
+        )
     elif os.environ.get("SUPABASE_URL") and os.environ.get("SUPABASE_KEY"):
-        results.append(CheckResult(
-            name="Supabase",
-            status=Status.PASS,
-            message="Environment variables configured",
-            category="integration",
-        ))
+        results.append(
+            CheckResult(
+                name="Supabase",
+                status=Status.PASS,
+                message="Environment variables configured",
+                category="integration",
+            )
+        )
     else:
-        results.append(CheckResult(
-            name="Supabase",
-            status=Status.SKIP,
-            message="Not configured (optional)",
-            category="integration",
-        ))
+        results.append(
+            CheckResult(
+                name="Supabase",
+                status=Status.SKIP,
+                message="Not configured (optional)",
+                category="integration",
+            )
+        )
 
     return results
 
@@ -517,12 +544,14 @@ def check_github_actions_setup() -> list[CheckResult]:
     results = []
 
     if not shutil.which("gh"):
-        results.append(CheckResult(
-            name="GitHub Actions",
-            status=Status.SKIP,
-            message="gh CLI required for this check",
-            category="github_actions",
-        ))
+        results.append(
+            CheckResult(
+                name="GitHub Actions",
+                status=Status.SKIP,
+                message="gh CLI required for this check",
+                category="github_actions",
+            )
+        )
         return results
 
     # Check for required secrets
@@ -539,36 +568,44 @@ def check_github_actions_setup() -> list[CheckResult]:
 
             # Check for LINEAR_API_KEY
             if "LINEAR_API_KEY" in secret_names:
-                results.append(CheckResult(
-                    name="GH Secret: LINEAR_API_KEY",
-                    status=Status.PASS,
-                    message="Secret exists",
-                    category="github_actions",
-                ))
+                results.append(
+                    CheckResult(
+                        name="GH Secret: LINEAR_API_KEY",
+                        status=Status.PASS,
+                        message="Secret exists",
+                        category="github_actions",
+                    )
+                )
             else:
-                results.append(CheckResult(
-                    name="GH Secret: LINEAR_API_KEY",
-                    status=Status.WARN,
-                    message="Not set (needed for workflow status updates)",
-                    fix_hint="Add via: gh secret set LINEAR_API_KEY",
-                    category="github_actions",
-                ))
+                results.append(
+                    CheckResult(
+                        name="GH Secret: LINEAR_API_KEY",
+                        status=Status.WARN,
+                        message="Not set (needed for workflow status updates)",
+                        fix_hint="Add via: gh secret set LINEAR_API_KEY",
+                        category="github_actions",
+                    )
+                )
 
         else:
-            results.append(CheckResult(
-                name="GitHub Secrets",
-                status=Status.WARN,
-                message="Could not list secrets (check permissions)",
-                category="github_actions",
-            ))
+            results.append(
+                CheckResult(
+                    name="GitHub Secrets",
+                    status=Status.WARN,
+                    message="Could not list secrets (check permissions)",
+                    category="github_actions",
+                )
+            )
 
     except Exception as e:
-        results.append(CheckResult(
-            name="GitHub Secrets",
-            status=Status.WARN,
-            message=f"Error checking secrets: {e}",
-            category="github_actions",
-        ))
+        results.append(
+            CheckResult(
+                name="GitHub Secrets",
+                status=Status.WARN,
+                message=f"Error checking secrets: {e}",
+                category="github_actions",
+            )
+        )
 
     # Check recent workflow runs
     try:
@@ -583,35 +620,43 @@ def check_github_actions_setup() -> list[CheckResult]:
             failed = [r for r in runs if r.get("conclusion") == "failure"]
 
             if failed:
-                results.append(CheckResult(
-                    name="Recent workflows",
-                    status=Status.WARN,
-                    message=f"{len(failed)}/{len(runs)} recent runs failed",
-                    fix_hint="Check: gh run list --limit 5",
-                    category="github_actions",
-                ))
+                results.append(
+                    CheckResult(
+                        name="Recent workflows",
+                        status=Status.WARN,
+                        message=f"{len(failed)}/{len(runs)} recent runs failed",
+                        fix_hint="Check: gh run list --limit 5",
+                        category="github_actions",
+                    )
+                )
             else:
-                results.append(CheckResult(
-                    name="Recent workflows",
-                    status=Status.PASS,
-                    message="All recent runs passed",
-                    category="github_actions",
-                ))
+                results.append(
+                    CheckResult(
+                        name="Recent workflows",
+                        status=Status.PASS,
+                        message="All recent runs passed",
+                        category="github_actions",
+                    )
+                )
         else:
-            results.append(CheckResult(
-                name="Recent workflows",
-                status=Status.SKIP,
-                message="No recent workflow runs",
-                category="github_actions",
-            ))
+            results.append(
+                CheckResult(
+                    name="Recent workflows",
+                    status=Status.SKIP,
+                    message="No recent workflow runs",
+                    category="github_actions",
+                )
+            )
 
     except Exception:
-        results.append(CheckResult(
-            name="Recent workflows",
-            status=Status.SKIP,
-            message="Could not check workflow runs",
-            category="github_actions",
-        ))
+        results.append(
+            CheckResult(
+                name="Recent workflows",
+                status=Status.SKIP,
+                message="Could not check workflow runs",
+                category="github_actions",
+            )
+        )
 
     return results
 

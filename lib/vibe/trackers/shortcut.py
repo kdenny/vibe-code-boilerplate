@@ -236,7 +236,11 @@ class ShortcutTracker(TrackerBase):
             response.raise_for_status()
             labels = response.json()
             return [
-                {"id": str(label.get("id", "")), "name": label.get("name", ""), "color": label.get("color", "")}
+                {
+                    "id": str(label.get("id", "")),
+                    "name": label.get("name", ""),
+                    "color": label.get("color", ""),
+                }
                 for label in labels
             ]
         except Exception:
