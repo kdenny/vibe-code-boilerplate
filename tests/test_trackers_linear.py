@@ -11,19 +11,19 @@ class TestLinearTrackerInit:
     """Tests for LinearTracker initialization."""
 
     def test_init_with_api_key(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test123")
-        assert tracker._api_key == "lin_api_test123"
-        assert tracker._headers["Authorization"] == "lin_api_test123"
+        tracker = LinearTracker(api_key="test-fake-key-not-real")
+        assert tracker._api_key == "test-fake-key-not-real"
+        assert tracker._headers["Authorization"] == "test-fake-key-not-real"
         assert tracker._headers["Content-Type"] == "application/json"
 
     def test_init_with_team_id(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test", team_id="team_abc")
+        tracker = LinearTracker(api_key="test-fake-key", team_id="team_abc")
         assert tracker._team_id == "team_abc"
 
     def test_init_from_env(self) -> None:
-        with patch.dict("os.environ", {"LINEAR_API_KEY": "lin_api_from_env"}):
+        with patch.dict("os.environ", {"LINEAR_API_KEY": "test-key-from-env"}):
             tracker = LinearTracker()
-        assert tracker._api_key == "lin_api_from_env"
+        assert tracker._api_key == "test-key-from-env"
 
     def test_init_no_key_empty_headers(self) -> None:
         with patch.dict("os.environ", {}, clear=True):
@@ -48,17 +48,17 @@ class TestLinearTrackerAuthenticate:
         mock_response = {"data": {"viewer": {"id": "user123", "name": "Test User"}}}
 
         with patch.object(tracker, "_execute_query", return_value=mock_response):
-            result = tracker.authenticate(api_key="lin_api_valid")
+            result = tracker.authenticate(api_key="test-valid-key")
 
         assert result is True
-        assert tracker._api_key == "lin_api_valid"
+        assert tracker._api_key == "test-valid-key"
 
     def test_authenticate_failure_no_viewer(self) -> None:
         tracker = LinearTracker()
         mock_response = {"data": {}}
 
         with patch.object(tracker, "_execute_query", return_value=mock_response):
-            result = tracker.authenticate(api_key="lin_api_invalid")
+            result = tracker.authenticate(api_key="test-invalid-key")  # noqa: S106
 
         assert result is False
 
@@ -66,7 +66,7 @@ class TestLinearTrackerAuthenticate:
         tracker = LinearTracker()
 
         with patch.object(tracker, "_execute_query", side_effect=Exception("API error")):
-            result = tracker.authenticate(api_key="lin_api_error")
+            result = tracker.authenticate(api_key="test-error-key")  # noqa: S106
 
         assert result is False
 
@@ -80,12 +80,14 @@ class TestLinearTrackerExecuteQuery:
     """Tests for _execute_query method."""
 
     def test_execute_query_success(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test")
+        tracker = LinearTracker(api_key="test-fake-key")
         mock_response = MagicMock()
         mock_response.json.return_value = {"data": {"viewer": {"id": "123"}}}
         mock_response.raise_for_status = MagicMock()
 
-        with patch("lib.vibe.trackers.linear.requests.post", return_value=mock_response) as mock_post:
+        with patch(
+            "lib.vibe.trackers.linear.requests.post", return_value=mock_response
+        ) as mock_post:
             result = tracker._execute_query("query { viewer { id } }")
 
         mock_post.assert_called_once_with(
@@ -97,13 +99,17 @@ class TestLinearTrackerExecuteQuery:
         assert result == {"data": {"viewer": {"id": "123"}}}
 
     def test_execute_query_with_variables(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test")
+        tracker = LinearTracker(api_key="test-fake-key")
         mock_response = MagicMock()
         mock_response.json.return_value = {"data": {"issue": {"id": "abc"}}}
         mock_response.raise_for_status = MagicMock()
 
-        with patch("lib.vibe.trackers.linear.requests.post", return_value=mock_response) as mock_post:
-            result = tracker._execute_query("query GetIssue($id: String!) { issue(id: $id) { id } }", {"id": "TEST-1"})
+        with patch(
+            "lib.vibe.trackers.linear.requests.post", return_value=mock_response
+        ) as mock_post:
+            _result = tracker._execute_query(
+                "query GetIssue($id: String!) { issue(id: $id) { id } }", {"id": "TEST-1"}
+            )
 
         mock_post.assert_called_once()
         call_args = mock_post.call_args
@@ -114,7 +120,7 @@ class TestLinearTrackerGetTicket:
     """Tests for get_ticket method."""
 
     def test_get_ticket_success(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test")
+        tracker = LinearTracker(api_key="test-fake-key")
         mock_issue = {
             "id": "uuid-123",
             "identifier": "TEST-1",
@@ -139,7 +145,7 @@ class TestLinearTrackerGetTicket:
         assert ticket.url == "https://linear.app/test/issue/TEST-1"
 
     def test_get_ticket_not_found(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test")
+        tracker = LinearTracker(api_key="test-fake-key")
         mock_response = {"data": {"issue": None}}
 
         with patch.object(tracker, "_execute_query", return_value=mock_response):
@@ -148,7 +154,7 @@ class TestLinearTrackerGetTicket:
         assert ticket is None
 
     def test_get_ticket_exception(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test")
+        tracker = LinearTracker(api_key="test-fake-key")
 
         with patch.object(tracker, "_execute_query", side_effect=Exception("API error")):
             ticket = tracker.get_ticket("TEST-1")
@@ -160,7 +166,7 @@ class TestLinearTrackerListTickets:
     """Tests for list_tickets method."""
 
     def test_list_tickets_success(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test")
+        tracker = LinearTracker(api_key="test-fake-key")
         mock_issues = [
             {
                 "id": "uuid-1",
@@ -192,7 +198,7 @@ class TestLinearTrackerListTickets:
         assert tickets[1].labels == ["Feature"]
 
     def test_list_tickets_with_status_filter(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test")
+        tracker = LinearTracker(api_key="test-fake-key")
         mock_response = {"data": {"issues": {"nodes": []}}}
 
         with patch.object(tracker, "_execute_query", return_value=mock_response) as mock_query:
@@ -203,7 +209,7 @@ class TestLinearTrackerListTickets:
         assert variables["filter"]["state"] == {"name": {"eq": "Todo"}}
 
     def test_list_tickets_with_label_filter(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test")
+        tracker = LinearTracker(api_key="test-fake-key")
         mock_response = {"data": {"issues": {"nodes": []}}}
 
         with patch.object(tracker, "_execute_query", return_value=mock_response) as mock_query:
@@ -214,7 +220,7 @@ class TestLinearTrackerListTickets:
         assert variables["filter"]["labels"] == {"name": {"in": ["Bug", "Feature"]}}
 
     def test_list_tickets_with_team_filter(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test", team_id="team_abc")
+        tracker = LinearTracker(api_key="test-fake-key", team_id="team_abc")
         mock_response = {"data": {"issues": {"nodes": []}}}
 
         with patch.object(tracker, "_execute_query", return_value=mock_response) as mock_query:
@@ -225,7 +231,7 @@ class TestLinearTrackerListTickets:
         assert variables["filter"]["team"] == {"id": {"eq": "team_abc"}}
 
     def test_list_tickets_with_limit(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test")
+        tracker = LinearTracker(api_key="test-fake-key")
         mock_response = {"data": {"issues": {"nodes": []}}}
 
         with patch.object(tracker, "_execute_query", return_value=mock_response) as mock_query:
@@ -236,7 +242,7 @@ class TestLinearTrackerListTickets:
         assert variables["first"] == 10
 
     def test_list_tickets_exception_returns_empty(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test")
+        tracker = LinearTracker(api_key="test-fake-key")
 
         with patch.object(tracker, "_execute_query", side_effect=Exception("API error")):
             tickets = tracker.list_tickets()
@@ -248,7 +254,7 @@ class TestLinearTrackerCreateTicket:
     """Tests for create_ticket method."""
 
     def test_create_ticket_success(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test", team_id="team_abc")
+        tracker = LinearTracker(api_key="test-fake-key", team_id="team_abc")
         mock_issue = {
             "id": "uuid-new",
             "identifier": "TEST-100",
@@ -267,7 +273,7 @@ class TestLinearTrackerCreateTicket:
         assert ticket.title == "New Issue"
 
     def test_create_ticket_with_labels(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test", team_id="team_abc")
+        tracker = LinearTracker(api_key="test-fake-key", team_id="team_abc")
         mock_issue = {
             "id": "uuid-new",
             "identifier": "TEST-101",
@@ -279,16 +285,17 @@ class TestLinearTrackerCreateTicket:
         }
         mock_response = {"data": {"issueCreate": {"success": True, "issue": mock_issue}}}
 
-        with patch.object(tracker, "_execute_query", return_value=mock_response), patch.object(
-            tracker, "_get_label_ids", return_value=["label-id-1"]
-        ) as mock_labels:
+        with (
+            patch.object(tracker, "_execute_query", return_value=mock_response),
+            patch.object(tracker, "_get_label_ids", return_value=["label-id-1"]) as mock_labels,
+        ):
             ticket = tracker.create_ticket("Labeled Issue", "Description", labels=["Bug"])
 
         mock_labels.assert_called_once_with("team_abc", ["Bug"])
         assert ticket.labels == ["Bug"]
 
     def test_create_ticket_failure(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test", team_id="team_abc")
+        tracker = LinearTracker(api_key="test-fake-key", team_id="team_abc")
         mock_response = {"data": {"issueCreate": {"success": False, "issue": None}}}
 
         with patch.object(tracker, "_execute_query", return_value=mock_response):
@@ -300,7 +307,7 @@ class TestLinearTrackerUpdateTicket:
     """Tests for update_ticket method."""
 
     def test_update_ticket_title(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test")
+        tracker = LinearTracker(api_key="test-fake-key")
         mock_issue = {
             "id": "uuid-1",
             "identifier": "TEST-1",
@@ -318,7 +325,7 @@ class TestLinearTrackerUpdateTicket:
         assert ticket.title == "Updated Title"
 
     def test_update_ticket_status(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test")
+        tracker = LinearTracker(api_key="test-fake-key")
         # First call returns the current ticket, second call is the update
         mock_current_issue = {
             "id": "uuid-1",
@@ -346,21 +353,23 @@ class TestLinearTrackerUpdateTicket:
                 with patch.object(
                     tracker,
                     "_execute_query",
-                    return_value={"data": {"issueUpdate": {"success": True, "issue": mock_updated_issue}}},
+                    return_value={
+                        "data": {"issueUpdate": {"success": True, "issue": mock_updated_issue}}
+                    },
                 ):
                     ticket = tracker.update_ticket("TEST-1", status="Done")
 
         assert ticket.status == "Done"
 
     def test_update_ticket_status_not_found(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test")
+        tracker = LinearTracker(api_key="test-fake-key")
 
         with patch.object(tracker, "get_ticket", return_value=None):
             with pytest.raises(RuntimeError, match="Ticket not found"):
                 tracker.update_ticket("NONEXISTENT-999", status="Done")
 
     def test_update_ticket_status_no_team(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test")
+        tracker = LinearTracker(api_key="test-fake-key")
         mock_issue = {
             "id": "uuid-1",
             "identifier": "TEST-1",
@@ -378,7 +387,7 @@ class TestLinearTrackerUpdateTicket:
                 tracker.update_ticket("TEST-1", status="Done")
 
     def test_update_ticket_status_invalid_state(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test")
+        tracker = LinearTracker(api_key="test-fake-key")
         mock_issue = {
             "id": "uuid-1",
             "identifier": "TEST-1",
@@ -397,7 +406,7 @@ class TestLinearTrackerUpdateTicket:
                     tracker.update_ticket("TEST-1", status="InvalidState")
 
     def test_update_ticket_failure(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test")
+        tracker = LinearTracker(api_key="test-fake-key")
         mock_response = {"data": {"issueUpdate": {"success": False, "issue": None}}}
 
         with patch.object(tracker, "_execute_query", return_value=mock_response):
@@ -409,7 +418,7 @@ class TestLinearTrackerCommentTicket:
     """Tests for comment_ticket method."""
 
     def test_comment_ticket_success(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test")
+        tracker = LinearTracker(api_key="test-fake-key")
         mock_issue = {
             "id": "uuid-1",
             "identifier": "TEST-1",
@@ -419,11 +428,15 @@ class TestLinearTrackerCommentTicket:
             "labels": {"nodes": []},
             "url": "https://linear.app/test/issue/TEST-1",
         }
-        mock_comment_response = {"data": {"commentCreate": {"success": True, "comment": {"id": "comment-1"}}}}
+        mock_comment_response = {
+            "data": {"commentCreate": {"success": True, "comment": {"id": "comment-1"}}}
+        }
 
         with patch.object(tracker, "get_ticket") as mock_get:
             mock_get.return_value = tracker._parse_issue(mock_issue)
-            with patch.object(tracker, "_execute_query", return_value=mock_comment_response) as mock_query:
+            with patch.object(
+                tracker, "_execute_query", return_value=mock_comment_response
+            ) as mock_query:
                 tracker.comment_ticket("TEST-1", "This is a comment")
 
         # Verify the comment mutation was called
@@ -433,14 +446,14 @@ class TestLinearTrackerCommentTicket:
         assert variables["input"]["body"] == "This is a comment"
 
     def test_comment_ticket_not_found(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test")
+        tracker = LinearTracker(api_key="test-fake-key")
 
         with patch.object(tracker, "get_ticket", return_value=None):
             with pytest.raises(RuntimeError, match="Ticket not found"):
                 tracker.comment_ticket("NONEXISTENT-999", "Comment")
 
     def test_comment_ticket_no_issue_id(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test")
+        tracker = LinearTracker(api_key="test-fake-key")
         mock_issue = {
             "id": None,
             "identifier": "TEST-1",
@@ -461,7 +474,7 @@ class TestLinearTrackerValidateConfig:
     """Tests for validate_config method."""
 
     def test_validate_config_valid(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test", team_id="team_abc")
+        tracker = LinearTracker(api_key="test-fake-key", team_id="team_abc")
 
         with patch.object(tracker, "authenticate", return_value=True):
             valid, issues = tracker.validate_config()
@@ -479,7 +492,7 @@ class TestLinearTrackerValidateConfig:
         assert "LINEAR_API_KEY not set" in issues
 
     def test_validate_config_no_team_id(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test")
+        tracker = LinearTracker(api_key="test-fake-key")
 
         with patch.object(tracker, "authenticate", return_value=True):
             valid, issues = tracker.validate_config()
@@ -488,7 +501,7 @@ class TestLinearTrackerValidateConfig:
         assert "Linear team ID not configured" in issues
 
     def test_validate_config_invalid_key(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_invalid", team_id="team_abc")
+        tracker = LinearTracker(api_key="test-invalid-key", team_id="team_abc")
 
         with patch.object(tracker, "authenticate", return_value=False):
             valid, issues = tracker.validate_config()
@@ -501,7 +514,7 @@ class TestLinearTrackerGetLabelIds:
     """Tests for _get_label_ids method."""
 
     def test_get_label_ids_success(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test")
+        tracker = LinearTracker(api_key="test-fake-key")
         mock_labels = [
             {"id": "label-1", "name": "Bug"},
             {"id": "label-2", "name": "Feature"},
@@ -515,7 +528,7 @@ class TestLinearTrackerGetLabelIds:
         assert label_ids == ["label-1", "label-2"]
 
     def test_get_label_ids_partial_match(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test")
+        tracker = LinearTracker(api_key="test-fake-key")
         mock_labels = [{"id": "label-1", "name": "Bug"}]
         mock_response = {"data": {"team": {"labels": {"nodes": mock_labels}}}}
 
@@ -525,17 +538,17 @@ class TestLinearTrackerGetLabelIds:
         assert label_ids == ["label-1"]
 
     def test_get_label_ids_no_team(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test")
+        tracker = LinearTracker(api_key="test-fake-key")
         label_ids = tracker._get_label_ids(None, ["Bug"])
         assert label_ids == []
 
     def test_get_label_ids_no_labels(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test")
+        tracker = LinearTracker(api_key="test-fake-key")
         label_ids = tracker._get_label_ids("team_abc", [])
         assert label_ids == []
 
     def test_get_label_ids_exception(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test")
+        tracker = LinearTracker(api_key="test-fake-key")
 
         with patch.object(tracker, "_execute_query", side_effect=Exception("API error")):
             label_ids = tracker._get_label_ids("team_abc", ["Bug"])
@@ -547,7 +560,7 @@ class TestLinearTrackerListLabels:
     """Tests for list_labels method."""
 
     def test_list_labels_success(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test", team_id="team_abc")
+        tracker = LinearTracker(api_key="test-fake-key", team_id="team_abc")
         mock_labels = [
             {"id": "label-1", "name": "Bug", "color": "#ff0000"},
             {"id": "label-2", "name": "Feature", "color": "#00ff00"},
@@ -562,7 +575,7 @@ class TestLinearTrackerListLabels:
         assert labels[1] == {"id": "label-2", "name": "Feature", "color": "#00ff00"}
 
     def test_list_labels_no_team(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test")
+        tracker = LinearTracker(api_key="test-fake-key")
         mock_response = {"data": {"issueLabels": {"nodes": []}}}
 
         with patch.object(tracker, "_execute_query", return_value=mock_response) as mock_query:
@@ -573,7 +586,7 @@ class TestLinearTrackerListLabels:
         assert call_args[0][1] is None
 
     def test_list_labels_exception(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test")
+        tracker = LinearTracker(api_key="test-fake-key")
 
         with patch.object(tracker, "_execute_query", side_effect=Exception("API error")):
             labels = tracker.list_labels()
@@ -585,7 +598,7 @@ class TestLinearTrackerGetWorkflowStateId:
     """Tests for _get_workflow_state_id method."""
 
     def test_get_workflow_state_id_success(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test")
+        tracker = LinearTracker(api_key="test-fake-key")
         mock_states = [
             {"id": "state-1", "name": "Backlog"},
             {"id": "state-2", "name": "Todo"},
@@ -600,7 +613,7 @@ class TestLinearTrackerGetWorkflowStateId:
         assert state_id == "state-4"
 
     def test_get_workflow_state_id_case_insensitive(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test")
+        tracker = LinearTracker(api_key="test-fake-key")
         mock_states = [{"id": "state-1", "name": "In Progress"}]
         mock_response = {"data": {"team": {"states": {"nodes": mock_states}}}}
 
@@ -610,7 +623,7 @@ class TestLinearTrackerGetWorkflowStateId:
         assert state_id == "state-1"
 
     def test_get_workflow_state_id_not_found(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test")
+        tracker = LinearTracker(api_key="test-fake-key")
         mock_states = [{"id": "state-1", "name": "Todo"}]
         mock_response = {"data": {"team": {"states": {"nodes": mock_states}}}}
 
@@ -620,7 +633,7 @@ class TestLinearTrackerGetWorkflowStateId:
         assert state_id is None
 
     def test_get_workflow_state_id_exception(self) -> None:
-        tracker = LinearTracker(api_key="lin_api_test")
+        tracker = LinearTracker(api_key="test-fake-key")
 
         with patch.object(tracker, "_execute_query", side_effect=Exception("API error")):
             state_id = tracker._get_workflow_state_id("team_abc", "Done")
