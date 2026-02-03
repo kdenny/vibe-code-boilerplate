@@ -17,6 +17,56 @@ This file contains instructions for AI agents (Claude, GPT, etc.) working on pro
 
 ---
 
+## Before You Build: Validate Your Idea
+
+**For vibe coders who prompt faster than they think.** Before investing time building something, use `/assess` to validate that it's worth building.
+
+### When to Use `/assess`
+
+| Situation | Use `/assess`? |
+|-----------|---------------|
+| Starting a new app or significant feature | **Yes** |
+| Building something that might already exist | **Yes** |
+| Pivoting an existing project | **Yes** |
+| Learning project / tutorial | Optional |
+| Bug fix or small improvement | No |
+| Client project with defined requirements | No |
+
+### What `/assess` Does
+
+1. **Understands your idea** through interactive Q&A
+2. **Researches competitors** via web search (with your consent)
+3. **Identifies market gaps** you could fill
+4. **Challenges your assumptions** with hard questions
+5. **Recommends**: Proceed / Reconsider / Pivot
+
+### Example
+
+```
+You: I want to build an AI-powered todo app
+
+/assess
+
+[Interactive session: questions about problem, users, differentiation]
+[Web research: finds Todoist AI, Motion, Reclaim.ai, etc.]
+[Analysis: existing solutions are mature, market is crowded]
+
+Recommendation: RECONSIDER
+- Todoist already has AI prioritization
+- Motion does AI scheduling well
+- Consider: What's your 10x differentiator?
+- Alternative: Build a plugin for existing tool instead?
+```
+
+### Works on Existing Projects
+
+Running `/assess` on an existing project will:
+- Read your codebase to understand what you've built
+- Check if the competitive landscape has changed
+- Help you decide: double down, pivot, or sunset
+
+---
+
 ## README Maintenance
 
 Keep the project **README.md** accurate so humans and agents can onboard quickly.
@@ -737,6 +787,7 @@ Use these slash commands for common workflows:
 
 | Skill | Description |
 |-------|-------------|
+| `/assess` | **Business validation** - Research competitors and validate your idea before building |
 | `/setup` | Run the initial project setup wizard |
 | `/do PROJ-123` | Start working on a ticket (creates worktree) |
 | `/pr` | Create a pull request for the current branch |
