@@ -8,6 +8,7 @@ from lib.vibe.config import DEFAULT_CONFIG, config_exists, load_config, save_con
 from lib.vibe.state import DEFAULT_STATE, save_state, state_exists
 from lib.vibe.wizards.branch import run_branch_wizard
 from lib.vibe.wizards.env import run_env_wizard
+from lib.vibe.wizards.fly import run_fly_wizard
 from lib.vibe.wizards.github import (
     run_dependency_graph_prompt,
     run_github_wizard,
@@ -291,6 +292,7 @@ def run_individual_wizard(wizard_name: str) -> bool:
         "branch": run_branch_wizard,
         "env": run_env_wizard,
         "vercel": run_vercel_wizard,
+        "fly": run_fly_wizard,
     }
 
     if wizard_name not in wizards:
