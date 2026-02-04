@@ -241,6 +241,67 @@ def secrets_sync(env_file: str, provider: str, environment: str) -> None:
     click.echo("Secret syncing not yet fully implemented.")
 
 
+@main.command("init-actions")
+@click.option("--linear", is_flag=True, help="Include Linear integration workflows")
+@click.option("--linear-api-key", envvar="LINEAR_API_KEY", help="LINEAR_API_KEY to set as secret")
+@click.option("--dry-run", is_flag=True, help="Preview changes without applying")
+@click.option("--all", "include_all", is_flag=True, help="Include all available workflows")
+def init_actions(
+    linear: bool, linear_api_key: str | None, dry_run: bool, include_all: bool
+) -> None:
+    """Initialize GitHub Actions workflows, secrets, and labels.
+
+    Sets up:
+    - Core workflows (PR policy, security, lint, tests)
+    - Required labels (risk levels, types)
+    - Optionally: Linear integration workflows and secrets
+
+    Examples:
+
+        bin/vibe init-actions                    # Core workflows only
+        bin/vibe init-actions --linear           # Include Linear workflows
+        bin/vibe init-actions --dry-run          # Preview what would be done
+    """
+    from lib.vibe.github_actions import init_github_actions
+
+    if dry_run:
+        click.echo("Dry run - showing what would be done:\n")
+
+    result = init_github_actions(
+        include_linear=linear or include_all,
+        linear_api_key=linear_api_key,
+        dry_run=dry_run,
+    )
+
+    if result.workflows_copied:
+        click.echo(f"Workflows {'would be ' if dry_run else ''}copied:")
+        for wf in result.workflows_copied:
+            click.echo(f"  - {wf}")
+    else:
+        click.echo("No new workflows to copy (already exist or none selected)")
+
+    if result.labels_created:
+        click.echo(f"\nLabels {'would be ' if dry_run else ''}created/updated:")
+        for label in result.labels_created:
+            click.echo(f"  - {label}")
+
+    if result.secrets_set:
+        click.echo(f"\nSecrets {'would be ' if dry_run else ''}set:")
+        for secret in result.secrets_set:
+            click.echo(f"  - {secret}")
+
+    if result.errors:
+        click.echo("\nErrors:")
+        for error in result.errors:
+            click.echo(f"  - {error}")
+
+    if not dry_run:
+        click.echo("\nGitHub Actions initialized!")
+        click.echo("Run 'git add .github && git commit' to commit the workflows.")
+
+    sys.exit(0 if result.success else 1)
+
+
 @main.command("cors-check")
 @click.argument("url")
 @click.option("--origin", "-o", default="http://localhost:3000", help="Origin to test from")
