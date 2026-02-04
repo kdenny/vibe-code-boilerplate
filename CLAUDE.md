@@ -847,6 +847,8 @@ bin/vibe setup --wizard supabase   # Configure Supabase database
 bin/vibe setup --wizard sentry     # Configure Sentry error monitoring
 bin/vibe setup --wizard neon       # Configure Neon serverless Postgres
 bin/vibe setup --wizard playwright # Configure Playwright E2E testing
+bin/vibe init-actions       # Initialize GitHub Actions (workflows, labels, secrets)
+bin/vibe init-actions --dry-run    # Preview what would be initialized
 bin/vibe doctor             # Health check
 bin/doctor                  # Alias for doctor
 

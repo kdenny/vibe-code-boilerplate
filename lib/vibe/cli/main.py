@@ -36,6 +36,22 @@ def setup(force: bool, wizard: str | None) -> None:
     sys.exit(0 if success else 1)
 
 
+@main.command("init-actions")
+@click.option("--dry-run", is_flag=True, help="Show what would be done without making changes")
+def init_actions(dry_run: bool) -> None:
+    """Initialize GitHub Actions workflows, secrets, and labels.
+
+    Copies core workflow files to .github/workflows/, creates repository
+    labels, and optionally sets up Linear integration secrets.
+
+    Use --dry-run to preview what would be done.
+    """
+    from lib.vibe.wizards.github_actions import run_github_actions_wizard
+
+    success = run_github_actions_wizard(dry_run=dry_run)
+    sys.exit(0 if success else 1)
+
+
 @main.command()
 @click.option("--verbose", "-v", is_flag=True, help="Show verbose output")
 def doctor(verbose: bool) -> None:
