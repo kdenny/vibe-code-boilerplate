@@ -25,6 +25,7 @@ This boilerplate provides:
 - **Recipe Library** - 30+ best practices guides for common tasks
 - **HUMAN follow-up tickets** - Auto-create HUMAN-labeled tickets for deployment setup
 - **Multi-Assistant Support** - Generate instruction files for Claude, Cursor, Copilot from single source
+- **Figma Integration** - Design-to-code workflow with codebase context for Figma AI prompts
 
 ## Works With Any Language
 
@@ -343,6 +344,8 @@ Recipes are markdown guides for common tasks. Each has:
 | `agents/human-required-work.md` | When to create HUMAN tickets |
 | `tickets/linear-setup.md` | Linear integration |
 | `tickets/linear-label-ids.md` | Using label IDs in API calls |
+| `design/figma-ai-prompts.md` | Optimizing Figma AI prompts with codebase context |
+| `design/figma-to-code.md` | Design-to-implementation workflow |
 
 ## Configuration
 

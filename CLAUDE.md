@@ -902,6 +902,10 @@ When implementing specific features, consult these recipes:
 - `recipes/databases/neon.md` - Neon serverless Postgres with database branching
 - `recipes/databases/byo-postgres.md` - Bring your own Postgres configuration
 
+### Design
+- `recipes/design/figma-ai-prompts.md` - Optimizing Figma AI prompts with codebase context
+- `recipes/design/figma-to-code.md` - Design-to-implementation workflow guide
+
 ---
 
 ## Skills Reference
@@ -925,6 +929,7 @@ Use these slash commands for common workflows:
 | `/supabase` | Manage Supabase database, auth, and local development |
 | `/sentry` | Configure Sentry error monitoring and releases |
 | `/neon` | Manage Neon serverless Postgres and database branches |
+| `/figma` | Design-to-code workflow: analyze codebase, generate Figma AI prompts, create tickets |
 
 Skills are defined in `.claude/commands/` and can be customized per project.
 
@@ -966,6 +971,13 @@ bin/secrets sync            # Sync to provider
 bin/vibe generate-agent-instructions  # Generate instruction files for all assistants
 bin/vibe generate-agent-instructions --format cursor  # Generate for specific format
 bin/vibe generate-agent-instructions --dry-run  # Preview without writing
+
+# Design-to-code workflow
+bin/vibe figma analyze      # Analyze frontend (frameworks, tokens, components)
+bin/vibe figma analyze --figma-context  # Output context for Figma AI prompts
+bin/vibe figma analyze --json  # JSON output for scripting
+bin/vibe figma prompt       # Generate optimized Figma AI prompt
+bin/vibe figma tickets      # Break design into implementation tickets
 ```
 
 ---

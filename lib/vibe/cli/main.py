@@ -6,6 +6,7 @@ from pathlib import Path
 
 import click
 
+from lib.vibe.cli.figma import figma
 from lib.vibe.doctor import print_results, run_doctor
 from lib.vibe.wizards.setup import run_individual_wizard, run_setup
 
@@ -617,6 +618,10 @@ def generate_agent_instructions(
     click.echo("  1. Review the generated files")
     click.echo("  2. Customize agent_instructions/ for your project")
     click.echo("  3. Re-run this command after changes to sync files")
+
+
+# Register figma command group
+main.add_command(figma)
 
 
 if __name__ == "__main__":
