@@ -25,6 +25,25 @@ This boilerplate provides:
 - **Recipe Library** - 30+ best practices guides for common tasks
 - **HUMAN follow-up tickets** - Auto-create HUMAN-labeled tickets for deployment setup
 
+## How We Compare
+
+This boilerplate focuses on **workflow automation** rather than context engineering or component marketplaces.
+
+| Feature | This Boilerplate | Alternatives |
+|---------|------------------|--------------|
+| Ticket Integration | Linear, Shortcut with auto-status | Most have none |
+| Worktree Management | Built-in | Rare |
+| PR Policy Enforcement | Risk labels, ticket refs | Common but simpler |
+| Sub-Agent Architecture | Not built-in | shinpr has this |
+| MCP Servers | Not built-in | serpro69, davila7 |
+| Multi-Assistant Support | Claude Code only | botingw has 10+ |
+
+**Best for**: Teams using Linear/Shortcut who want automated ticket→PR→deploy lifecycle.
+
+**Not best for**: Multi-assistant setups, teams without ticket trackers, or those wanting component marketplaces.
+
+See [docs/competitive-analysis.md](docs/competitive-analysis.md) for detailed comparison.
+
 ## When to Use It
 
 Use this boilerplate when:
