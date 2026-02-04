@@ -207,6 +207,58 @@ See `recipes/integrations/promptvault.md` for full documentation and the `/promp
 
 ---
 
+## Agent Commands Quick Reference
+
+**Use these blessed commands.** They handle edge cases, update state correctly, and follow project conventions.
+
+### Essential Commands
+
+| Command | When to Use | What It Does |
+|---------|-------------|--------------|
+| `bin/vibe do PROJ-123` | Starting work on a ticket | Creates worktree from latest main, sets up branch |
+| `bin/vibe pr` | Done with feature | Opens PR with template, from worktree |
+| `bin/vibe doctor` | After any git/worktree changes | Validates setup, syncs state |
+| `bin/vibe setup --quick` | New project setup | Sensible defaults, no prompts |
+
+### Ticket Operations
+
+| Command | When to Use |
+|---------|-------------|
+| `bin/ticket list` | See available tickets |
+| `bin/ticket get PROJ-123` | Get ticket details before starting |
+| `bin/ticket create "Title"` | Create new ticket |
+| `bin/ticket update PROJ-123 --status "In Progress"` | Update ticket status |
+
+### Debugging
+
+| Command | When to Use |
+|---------|-------------|
+| `bin/vibe cors-check <url>` | Diagnosing CORS errors |
+| `bin/vibe retrofit --analyze-only` | See what retrofit would change |
+| `bin/vibe init-actions --dry-run` | Preview GitHub Actions setup |
+
+### Integration Setup
+
+| Command | What It Configures |
+|---------|-------------------|
+| `bin/vibe setup -w tracker` | Linear/Shortcut |
+| `bin/vibe setup -w vercel` | Vercel deployment |
+| `bin/vibe setup -w fly` | Fly.io deployment |
+| `bin/vibe setup -w supabase` | Supabase database |
+| `bin/vibe setup -w sentry` | Sentry error monitoring |
+| `bin/vibe init-actions` | GitHub Actions workflows |
+
+### Worktree Cleanup
+
+After PR is merged:
+```bash
+git worktree remove ../project-worktrees/PROJ-123
+git branch -d PROJ-123
+bin/vibe doctor
+```
+
+---
+
 ## Core Rules
 
 ### When to Ask for Clarification
