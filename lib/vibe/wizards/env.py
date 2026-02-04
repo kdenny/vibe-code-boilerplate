@@ -4,6 +4,8 @@ from typing import Any
 
 import click
 
+from lib.vibe.ui.components import NumberedMenu
+
 
 def run_env_wizard(config: dict[str, Any]) -> bool:
     """
@@ -21,24 +23,32 @@ def run_env_wizard(config: dict[str, Any]) -> bool:
     click.echo()
 
     # Secret scanner
-    click.echo("Secret Scanner Options:")
-    click.echo("  1. Gitleaks (default) - Fast, widely used")
-    click.echo("  2. TruffleHog - More comprehensive")
-    click.echo("  3. None - Disable secret scanning")
-    click.echo()
+    scanner_menu = NumberedMenu(
+        title="Secret Scanner Options:",
+        options=[
+            ("Gitleaks", "Fast, widely used (Recommended)"),
+            ("TruffleHog", "More comprehensive scanning"),
+            ("None", "Disable secret scanning"),
+        ],
+        default=1,
+    )
 
-    scanner_choice = click.prompt("Select secret scanner", type=int, default=1)
+    scanner_choice = scanner_menu.show()
     scanner_map = {1: "gitleaks", 2: "trufflehog", 3: None}
     secret_scanner = scanner_map.get(scanner_choice, "gitleaks")
 
     # SBOM generator
-    click.echo("\nSBOM (Software Bill of Materials) Options:")
-    click.echo("  1. Syft (default) - Comprehensive SBOM generation")
-    click.echo("  2. GitHub Dependency Graph only")
-    click.echo("  3. None - Disable SBOM generation")
-    click.echo()
+    sbom_menu = NumberedMenu(
+        title="\nSBOM (Software Bill of Materials) Options:",
+        options=[
+            ("Syft", "Comprehensive SBOM generation (Recommended)"),
+            ("GitHub Dependency Graph", "Use GitHub's built-in feature"),
+            ("None", "Disable SBOM generation"),
+        ],
+        default=1,
+    )
 
-    sbom_choice = click.prompt("Select SBOM approach", type=int, default=1)
+    sbom_choice = sbom_menu.show()
     sbom_map = {1: "syft", 2: "github", 3: None}
     sbom_generator = sbom_map.get(sbom_choice, "syft")
 

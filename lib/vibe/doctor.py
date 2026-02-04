@@ -35,13 +35,18 @@ class CheckResult:
     category: str = "general"
 
 
-def run_doctor(verbose: bool = False, check_github_actions: bool = False) -> list[CheckResult]:
+def run_doctor(
+    verbose: bool = False,
+    check_github_actions: bool = False,
+    live_checks: bool = False,
+) -> list[CheckResult]:
     """
     Run all health checks.
 
     Args:
         verbose: Show additional details
         check_github_actions: Also check GitHub Actions secrets/workflows
+        live_checks: Run live integration checks (API calls to verify connections)
 
     Returns:
         List of check results
@@ -73,6 +78,10 @@ def run_doctor(verbose: bool = False, check_github_actions: bool = False) -> lis
         # Integration freshness check
         results.append(check_integration_freshness())
 
+        # Live integration checks (actual API calls)
+        if live_checks:
+            results.extend(run_live_validation_checks(config))
+
     # Local hooks check
     results.append(check_local_hooks())
 
@@ -85,6 +94,33 @@ def run_doctor(verbose: bool = False, check_github_actions: bool = False) -> lis
 
     # Update last run time
     set_last_doctor_run()
+
+    return results
+
+
+def run_live_validation_checks(config: dict) -> list[CheckResult]:
+    """
+    Run live integration validation checks.
+
+    These checks make actual API calls to verify integrations are working.
+    """
+    from lib.vibe.ui.validation import SetupValidator
+
+    results = []
+    validator = SetupValidator(config)
+    validation_results = validator.run_all()
+
+    for vr in validation_results:
+        status = Status.PASS if vr.success else Status.FAIL
+        results.append(
+            CheckResult(
+                name=f"Live: {vr.name}",
+                status=status,
+                message=vr.message,
+                fix_hint=vr.details if not vr.success else None,
+                category="live_validation",
+            )
+        )
 
     return results
 
@@ -952,12 +988,19 @@ def print_results(results: list[CheckResult], show_skipped: bool = True) -> int:
             categories[cat] = []
         categories[cat].append(result)
 
-    # Print general first, then infrastructure, integrations, then github_actions
-    category_order = ["general", "infrastructure", "integration", "github_actions"]
+    # Print general first, then infrastructure, integrations, live validation, then github_actions
+    category_order = [
+        "general",
+        "infrastructure",
+        "integration",
+        "live_validation",
+        "github_actions",
+    ]
     category_names = {
         "general": "Core Checks",
         "infrastructure": "Infrastructure (configure early for smooth deploys)",
         "integration": "Integrations",
+        "live_validation": "Live Integration Checks",
         "github_actions": "GitHub Actions",
     }
 
@@ -1010,6 +1053,7 @@ if __name__ == "__main__":
 
     verbose = "--verbose" in sys.argv or "-v" in sys.argv
     check_actions = "--github-actions" in sys.argv or "-g" in sys.argv
+    live = "--live" in sys.argv or "-l" in sys.argv
 
-    results = run_doctor(verbose=verbose, check_github_actions=check_actions)
+    results = run_doctor(verbose=verbose, check_github_actions=check_actions, live_checks=live)
     sys.exit(print_results(results))

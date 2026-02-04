@@ -47,9 +47,14 @@ def setup(force: bool, wizard: str | None, quick: bool) -> None:
 
 @main.command()
 @click.option("--verbose", "-v", is_flag=True, help="Show verbose output")
-def doctor(verbose: bool) -> None:
-    """Check project health and configuration."""
-    results = run_doctor(verbose=verbose)
+@click.option("--live", "-l", is_flag=True, help="Run live integration checks (API calls)")
+def doctor(verbose: bool, live: bool) -> None:
+    """Check project health and configuration.
+
+    Use --live to perform actual API calls and verify that integrations
+    are working (e.g., test Linear API key, check Vercel auth).
+    """
+    results = run_doctor(verbose=verbose, live_checks=live)
     sys.exit(print_results(results))
 
 
@@ -343,6 +348,9 @@ def cors_check(
 @click.option("--auto", is_flag=True, help="Apply all auto-applicable actions without prompting")
 @click.option("--analyze-only", is_flag=True, help="Only show analysis, don't apply any changes")
 @click.option(
+    "--interactive", "-i", is_flag=True, help="Interactive multi-select mode for choosing actions"
+)
+@click.option(
     "--json", "json_output", is_flag=True, help="Output results as JSON (for agent/script use)"
 )
 @click.option(
@@ -355,16 +363,18 @@ def retrofit(
     dry_run: bool,
     auto: bool,
     analyze_only: bool,
+    interactive: bool,
     json_output: bool,
     boilerplate_path: Path | None,
 ) -> None:
     """Apply boilerplate to an existing project (guided adoption)."""
     import json
 
-    from lib.vibe.retrofit.analyzer import RetrofitAnalyzer
+    from lib.vibe.retrofit.analyzer import ActionType, RetrofitAnalyzer
     from lib.vibe.retrofit.applier import RetrofitApplier
     from lib.vibe.retrofit.detector import ProjectDetector
     from lib.vibe.tools import require_interactive
+    from lib.vibe.ui.components import MultiSelect
 
     # Check for interactive terminal if we'll need user input
     if not auto and not analyze_only and not json_output:
@@ -477,8 +487,42 @@ def retrofit(
         # Apply all auto-applicable actions without prompting
         click.echo("\nApplying auto-applicable actions...")
         results = applier.apply_plan(plan, auto_only=True, interactive=False)
+    elif interactive:
+        # Interactive multi-select mode
+        applicable_actions = [
+            a for a in plan.actions if a.action_type in (ActionType.ADOPT, ActionType.CONFIGURE)
+        ]
+
+        if not applicable_actions:
+            click.echo("\nNo applicable actions found.")
+            click.echo("Run 'bin/vibe setup' for manual configuration options.")
+            return
+
+        click.echo()
+        multi_select = MultiSelect(
+            title="Select actions to apply:",
+            options=[
+                (a.name, a.description, a.auto_applicable) for a in applicable_actions
+            ],
+        )
+        selected_indices = multi_select.show()
+
+        if not selected_indices:
+            click.echo("No actions selected. Retrofit cancelled.")
+            return
+
+        # Filter to only selected actions
+        selected_actions = [applicable_actions[i - 1] for i in selected_indices]
+
+        # Apply selected actions
+        results = []
+        for action in selected_actions:
+            result = applier.apply_action(action)
+            results.append(result)
+            status = "PASS" if result.success else "FAIL"
+            click.echo(f"  {status} {result.message}")
     else:
-        # Interactive mode
+        # Default interactive mode (confirm all auto-applicable)
         if not plan.auto_applicable_actions:
             click.echo("\nNo auto-applicable actions found.")
             click.echo("Run 'bin/vibe setup' for manual configuration options.")

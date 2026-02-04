@@ -8,6 +8,7 @@ from pathlib import Path
 import click
 
 from lib.vibe.frontend.analyzer import FrontendAnalyzer
+from lib.vibe.ui.components import MultiSelect, NumberedMenu
 
 
 @click.group()
@@ -152,22 +153,31 @@ def _print_analysis_summary(analysis) -> None:
 @click.option(
     "--feature",
     "-f",
-    prompt="What feature/page are you designing?",
     help="Feature or page being designed",
 )
 @click.option(
     "--user-goal",
     "-g",
-    prompt="What is the user's goal?",
     help="The user goal this design serves",
 )
 @click.option(
     "--devices",
     "-d",
-    default="desktop,mobile",
     help="Target devices (comma-separated)",
 )
-def prompt_cmd(project_path: str, feature: str, user_goal: str, devices: str) -> None:
+@click.option(
+    "--interactive",
+    "-i",
+    is_flag=True,
+    help="Use interactive mode for guided input",
+)
+def prompt_cmd(
+    project_path: str,
+    feature: str | None,
+    user_goal: str | None,
+    devices: str | None,
+    interactive: bool,
+) -> None:
     """Generate an optimized Figma AI prompt with codebase context.
 
     Analyzes your codebase and generates a Figma AI prompt that includes:
@@ -179,11 +189,87 @@ def prompt_cmd(project_path: str, feature: str, user_goal: str, devices: str) ->
     analyzer = FrontendAnalyzer(path)
     analysis = analyzer.analyze()
 
+    # Interactive mode or prompts for missing values
+    if interactive or (not feature and not user_goal):
+        # Feature type selection
+        if not feature:
+            feature_menu = NumberedMenu(
+                title="What type of feature are you designing?",
+                options=[
+                    ("Page", "A full page layout (dashboard, settings, profile)"),
+                    ("Form", "User input form (signup, checkout, settings)"),
+                    ("Component", "Reusable UI component (card, modal, dropdown)"),
+                    ("Feature", "A specific feature area (sidebar, header, navigation)"),
+                    ("Custom", "Enter a custom description"),
+                ],
+                default=1,
+            )
+            feature_choice = feature_menu.show()
+            feature_map = {
+                1: "page",
+                2: "form",
+                3: "component",
+                4: "feature section",
+            }
+            if feature_choice == 5:
+                feature = click.prompt("Describe the feature")
+            else:
+                feature_type = feature_map.get(feature_choice, "page")
+                feature = click.prompt(f"Name of the {feature_type}")
+                feature = f"{feature} {feature_type}"
+
+        # User goal selection
+        if not user_goal:
+            goal_menu = NumberedMenu(
+                title="What is the primary user goal?",
+                options=[
+                    ("View information", "Display data or content to the user"),
+                    ("Complete a task", "Guide user through a workflow or form"),
+                    ("Make a decision", "Help user choose between options"),
+                    ("Manage content", "CRUD operations on user's data"),
+                    ("Custom", "Enter a custom user goal"),
+                ],
+                default=1,
+            )
+            goal_choice = goal_menu.show()
+            goal_map = {
+                1: "view and understand their information",
+                2: "complete their task efficiently",
+                3: "make an informed decision",
+                4: "manage and organize their content",
+            }
+            if goal_choice == 5:
+                user_goal = click.prompt("Describe the user's goal")
+            else:
+                user_goal = goal_map.get(goal_choice, "complete their task")
+
+        # Device selection with multi-select
+        if not devices:
+            device_select = MultiSelect(
+                title="Which devices should the design support?",
+                options=[
+                    ("Desktop", "1280px+ width", True),
+                    ("Tablet", "768px width", False),
+                    ("Mobile", "375px width", True),
+                ],
+            )
+            selected = device_select.show()
+            device_names = ["desktop", "tablet", "mobile"]
+            devices = ",".join(device_names[i - 1] for i in selected)
+
+    # Fallback to prompts if still missing
+    if not feature:
+        feature = click.prompt("What feature/page are you designing?")
+    if not user_goal:
+        user_goal = click.prompt("What is the user's goal?")
+    if not devices:
+        devices = "desktop,mobile"
+
     device_list = [d.strip() for d in devices.split(",")]
 
     prompt = _generate_figma_prompt(analysis, feature, user_goal, device_list)
 
-    click.secho("\n🎨 Figma AI Prompt", fg="cyan", bold=True)
+    click.secho("\n Figma AI Prompt", fg="cyan", bold=True)
     click.echo("=" * 50)
     click.echo()
     click.echo(prompt)

@@ -9,6 +9,7 @@ from typing import Any
 import click
 
 from lib.vibe.tools import require_interactive
+from lib.vibe.ui.components import NumberedMenu
 
 
 def check_sentry_cli() -> bool:
@@ -135,11 +136,19 @@ def run_sentry_wizard(config: dict[str, Any]) -> bool:
         click.echo(f"  Detected framework: {framework}")
     else:
         click.echo("  Could not auto-detect framework")
-        framework = click.prompt(
-            "  Select framework",
-            type=click.Choice(["nextjs", "python", "node", "other"]),
-            default="other",
+        menu = NumberedMenu(
+            title="  Select framework:",
+            options=[
+                ("Next.js", "React framework with SSR"),
+                ("Python", "Django, Flask, FastAPI, etc."),
+                ("Node.js", "Express, Fastify, etc."),
+                ("Other", "See docs.sentry.io for setup"),
+            ],
+            default=4,
         )
+        choice = menu.show()
+        framework_map = {1: "nextjs", 2: "python", 3: "node", 4: "other"}
+        framework = framework_map.get(choice, "other")
 
     # Step 4: Framework-specific setup
     click.echo(f"\nStep 4: Setting up Sentry for {framework}...")
