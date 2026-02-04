@@ -231,6 +231,9 @@ def secrets_sync(env_file: str, provider: str, environment: str) -> None:
 @click.option("--auto", is_flag=True, help="Apply all auto-applicable actions without prompting")
 @click.option("--analyze-only", is_flag=True, help="Only show analysis, don't apply any changes")
 @click.option(
+    "--json", "json_output", is_flag=True, help="Output results as JSON (for agent/script use)"
+)
+@click.option(
     "--boilerplate-path",
     "-b",
     type=click.Path(exists=True, path_type=Path),
@@ -240,26 +243,89 @@ def retrofit(
     dry_run: bool,
     auto: bool,
     analyze_only: bool,
+    json_output: bool,
     boilerplate_path: Path | None,
 ) -> None:
     """Apply boilerplate to an existing project (guided adoption)."""
+    import json
+
     from lib.vibe.retrofit.analyzer import RetrofitAnalyzer
     from lib.vibe.retrofit.applier import RetrofitApplier
     from lib.vibe.retrofit.detector import ProjectDetector
+    from lib.vibe.tools import require_interactive
 
-    click.echo("=" * 60)
-    click.echo("  Retrofit: Apply Boilerplate to Existing Project")
-    click.echo("=" * 60)
-    click.echo()
+    # Check for interactive terminal if we'll need user input
+    if not auto and not analyze_only and not json_output:
+        ok, error = require_interactive("Retrofit")
+        if not ok:
+            click.echo(f"\n{error}")
+            click.echo("\nTip: Use --auto to apply changes without prompting,")
+            click.echo("     or --analyze-only to see what would be detected,")
+            click.echo("     or --json for machine-readable output.")
+            sys.exit(1)
+
+    if not json_output:
+        click.echo("=" * 60)
+        click.echo("  Retrofit: Apply Boilerplate to Existing Project")
+        click.echo("=" * 60)
+        click.echo()
 
     # Step 1: Detect existing configuration
-    click.echo("Analyzing project...")
+    if not json_output:
+        click.echo("Analyzing project...")
     detector = ProjectDetector()
     profile = detector.detect_all()
 
     # Step 2: Generate retrofit plan
     analyzer = RetrofitAnalyzer(profile)
     plan = analyzer.analyze()
+
+    # JSON output mode - return structured data for agents
+    if json_output:
+        output = {
+            "profile": {
+                "main_branch": profile.main_branch.value if profile.main_branch.detected else None,
+                "branch_pattern": profile.branch_pattern.value
+                if profile.branch_pattern.detected
+                else None,
+                "frontend_framework": profile.frontend_framework.value
+                if profile.frontend_framework.detected
+                else None,
+                "backend_framework": profile.backend_framework.value
+                if profile.backend_framework.detected
+                else None,
+                "test_framework": profile.test_framework.value
+                if profile.test_framework.detected
+                else None,
+                "has_vibe_config": profile.has_vibe_config.detected,
+            },
+            "actions": [
+                {
+                    "name": a.name,
+                    "description": a.description,
+                    "type": a.action_type.value,
+                    "auto_applicable": a.auto_applicable,
+                    "priority": a.priority.value,
+                }
+                for a in plan.actions
+            ],
+            "conflicts": [
+                {
+                    "description": c.description,
+                    "current": c.current_value,
+                    "suggested": c.suggested_value,
+                    "details": c.details,
+                }
+                for c in plan.conflicts
+            ],
+            "summary": {
+                "total_actions": len(plan.actions),
+                "auto_applicable": len(plan.auto_applicable_actions),
+                "has_conflicts": len(plan.conflicts) > 0,
+            },
+        }
+        click.echo(json.dumps(output, indent=2))
+        return
 
     # Step 3: Show analysis summary
     click.echo()
