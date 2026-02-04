@@ -501,9 +501,7 @@ def retrofit(
         click.echo()
         multi_select = MultiSelect(
             title="Select actions to apply:",
-            options=[
-                (a.name, a.description, a.auto_applicable) for a in applicable_actions
-            ],
+            options=[(a.name, a.description, a.auto_applicable) for a in applicable_actions],
         )
         selected_indices = multi_select.show()
 
