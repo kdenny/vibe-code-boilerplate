@@ -75,8 +75,8 @@ jobs:
           fi
 
           STATE_ID=$(echo "$STATE_RESULT" | jq -r --arg name "$IN_REVIEW_STATE" '
-            .data.team.states.nodes[] | select(.name | ascii_downcase == ($name | ascii_downcase)) | .id
-          ' // empty')
+            (.data.team.states.nodes[] | select(.name | ascii_downcase == ($name | ascii_downcase)) | .id) // empty
+          ')
 
           if [ -z "$STATE_ID" ]; then
             echo "::warning::No workflow state named '$IN_REVIEW_STATE' for team; available states may differ."
