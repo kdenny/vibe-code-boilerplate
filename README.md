@@ -25,6 +25,32 @@ This boilerplate provides:
 - **Recipe Library** - 30+ best practices guides for common tasks
 - **HUMAN follow-up tickets** - Auto-create HUMAN-labeled tickets for deployment setup
 
+## Works With Any Language
+
+**This boilerplate works with any tech stack** — JavaScript/TypeScript, Go, Rust, Ruby, Java, or any other language.
+
+The CLI tools (`bin/vibe`, `bin/ticket`) are written in Python, but they run **alongside** your project, not as part of it:
+
+| Component | Language | Part of your app? |
+|-----------|----------|-------------------|
+| `bin/vibe`, `bin/ticket` CLI | Python | No — workflow tooling only |
+| GitHub Actions workflows | YAML | No — CI/CD automation |
+| PR templates, CLAUDE.md | Markdown | No — documentation |
+| Your application code | **Any language** | Yes |
+
+**What this means:**
+- No Python dependencies in your `package.json`, `Cargo.toml`, `go.mod`, etc.
+- Your app's build/test/deploy remains unchanged
+- Works with monorepos containing multiple languages
+- The Python tooling only handles workflow automation (tickets, worktrees, PR policies)
+
+**Example stacks that work out of the box:**
+- Next.js + Vercel
+- Go + Fly.io
+- Rust + Docker
+- Ruby on Rails
+- Any combination in a monorepo
+
 ## How We Compare
 
 This boilerplate focuses on **workflow automation** rather than context engineering or component marketplaces.

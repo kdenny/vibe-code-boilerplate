@@ -17,6 +17,24 @@ This file contains instructions for AI agents (Claude, GPT, etc.) working on pro
 
 ---
 
+## Language-Agnostic Tooling
+
+**This boilerplate works with any programming language.** The CLI tools (`bin/vibe`, `bin/ticket`) are written in Python, but they're workflow automation that runs **alongside** your project, not part of it.
+
+**If the project uses JavaScript, Go, Rust, Ruby, or any other language:**
+- The Python tooling is for workflow automation only (tickets, worktrees, PR policies)
+- No Python dependencies are added to your project's package.json, Cargo.toml, go.mod, etc.
+- Your app's build, test, and deploy processes are unchanged
+- When writing code, use the project's actual language and frameworks
+
+**Example:** A Next.js project using this boilerplate:
+- App code: TypeScript/React
+- Tests: Jest or Vitest
+- Build: `npm run build`
+- Workflow tooling: `bin/vibe do PROJ-123` (Python, but doesn't affect your app)
+
+---
+
 ## Before You Build: Validate Your Idea
 
 **For vibe coders who prompt faster than they think.** Before investing time building something, use `/assess` to validate that it's worth building.
