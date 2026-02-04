@@ -866,6 +866,12 @@ When implementing specific features, consult these recipes:
 - `recipes/workflows/pr-risk-assessment.md` - Risk classification
 - `recipes/workflows/testing-instructions-writing.md` - Testing docs
 
+### Agents
+- `recipes/agents/sub-agent-patterns.md` - Breaking complex tasks into specialized sub-agents
+- `recipes/agents/asking-clarifying-questions.md` - When to ask vs. proceed
+- `recipes/agents/human-required-work.md` - When to create HUMAN tickets
+- `recipes/agents/readme-maintenance.md` - Keeping README up to date
+
 ### Security
 - `recipes/security/secret-management.md` - Handling secrets
 - `recipes/security/permissions-hardening.md` - GitHub Actions security
