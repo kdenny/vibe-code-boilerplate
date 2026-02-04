@@ -279,9 +279,9 @@ def run_setup(force: bool = False, quick: bool = False) -> bool:
     skill_level = skill_selector.show()
 
     # Calculate total steps (varies based on what's already configured)
-    github_configured = (
-        config.get("github", {}).get("auth_method") and config.get("github", {}).get("owner")
-    )
+    github_configured = config.get("github", {}).get("auth_method") and config.get(
+        "github", {}
+    ).get("owner")
     total_steps = 2 if github_configured else 3  # GitHub + Tracker (+ optional)
 
     progress = ProgressIndicator(total_steps=total_steps)

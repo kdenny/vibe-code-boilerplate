@@ -127,9 +127,7 @@ class TestSkillLevelSelector:
 
     @patch("click.prompt")
     @patch("click.echo")
-    def test_show_returns_intermediate(
-        self, mock_echo: MagicMock, mock_prompt: MagicMock
-    ) -> None:
+    def test_show_returns_intermediate(self, mock_echo: MagicMock, mock_prompt: MagicMock) -> None:
         mock_prompt.return_value = 2
         selector = SkillLevelSelector()
         result = selector.show()
@@ -230,9 +228,7 @@ class TestMultiSelect:
 
     @patch("click.prompt")
     @patch("click.echo")
-    def test_show_toggle_selection(
-        self, mock_echo: MagicMock, mock_prompt: MagicMock
-    ) -> None:
+    def test_show_toggle_selection(self, mock_echo: MagicMock, mock_prompt: MagicMock) -> None:
         # First prompt: toggle option 1 (A off), second prompt: toggle option 2 (B on), third: confirm
         mock_prompt.side_effect = ["1", "2", ""]
         multi = MultiSelect(
@@ -347,9 +343,7 @@ class TestWhatNextFlow:
 
     @patch("click.prompt")
     @patch("click.echo")
-    def test_show_returns_wizard_name(
-        self, mock_echo: MagicMock, mock_prompt: MagicMock
-    ) -> None:
+    def test_show_returns_wizard_name(self, mock_echo: MagicMock, mock_prompt: MagicMock) -> None:
         mock_prompt.return_value = 1  # Select first option
         config: dict = {"tracker": {"type": None}}
         flow = WhatNextFlow("github", config)
@@ -359,9 +353,7 @@ class TestWhatNextFlow:
 
     @patch("click.prompt")
     @patch("click.echo")
-    def test_show_returns_none_for_done(
-        self, mock_echo: MagicMock, mock_prompt: MagicMock
-    ) -> None:
+    def test_show_returns_none_for_done(self, mock_echo: MagicMock, mock_prompt: MagicMock) -> None:
         # Select last option which is "Done"
         mock_prompt.return_value = 3  # tracker, database, Done
         config: dict = {"tracker": {"type": None}}

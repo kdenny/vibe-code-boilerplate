@@ -22,9 +22,15 @@ class WizardContext:
         # Database -> Deployment pairings
         ("database", "neon"): ("vercel", "Neon works great with Vercel serverless functions"),
         ("database", "supabase"): ("vercel", "Supabase + Vercel is a popular production stack"),
-        ("database", "postgres"): ("fly", "Fly.io provides easy Postgres hosting alongside your app"),
+        ("database", "postgres"): (
+            "fly",
+            "Fly.io provides easy Postgres hosting alongside your app",
+        ),
         # Deployment -> Monitoring pairings
-        ("deployment", "vercel"): ("sentry", "Sentry integrates well with Vercel for error tracking"),
+        ("deployment", "vercel"): (
+            "sentry",
+            "Sentry integrates well with Vercel for error tracking",
+        ),
         ("deployment", "fly"): ("sentry", "Sentry helps monitor your Fly.io deployments"),
         # Framework -> Deployment pairings
         ("framework", "nextjs"): ("vercel", "Next.js is optimized for Vercel deployment"),
@@ -128,9 +134,7 @@ class WizardContext:
             "vercel": lambda: bool(
                 self.config.get("deployment", {}).get("vercel", {}).get("enabled")
             ),
-            "fly": lambda: bool(
-                self.config.get("deployment", {}).get("fly", {}).get("enabled")
-            ),
+            "fly": lambda: bool(self.config.get("deployment", {}).get("fly", {}).get("enabled")),
             "sentry": lambda: bool(
                 self.config.get("observability", {}).get("sentry", {}).get("enabled")
             ),

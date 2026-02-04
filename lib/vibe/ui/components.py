@@ -268,8 +268,7 @@ class MultiSelect:
         """
         self.title = title
         self.options = [
-            SelectOption(label=opt[0], description=opt[1], selected=opt[2])
-            for opt in options
+            SelectOption(label=opt[0], description=opt[1], selected=opt[2]) for opt in options
         ]
 
     def show(self) -> list[int]:
@@ -352,9 +351,7 @@ class WhatNextFlow:
     """
 
     # Mapping of completed wizard -> suggested next wizards
-    WIZARD_SUGGESTIONS: dict[str, list[tuple[str, str, int]]] = field(
-        default_factory=lambda: {}
-    )
+    WIZARD_SUGGESTIONS: dict[str, list[tuple[str, str, int]]] = field(default_factory=lambda: {})
 
     def __init__(self, completed_wizard: str, config: dict[str, Any]):
         """Initialize flow.
@@ -442,9 +439,13 @@ class WhatNextFlow:
             "supabase": lambda: bool(
                 self.config.get("database", {}).get("supabase", {}).get("enabled")
             ),
-            "vercel": lambda: bool(self.config.get("deployment", {}).get("vercel", {}).get("enabled")),
+            "vercel": lambda: bool(
+                self.config.get("deployment", {}).get("vercel", {}).get("enabled")
+            ),
             "fly": lambda: bool(self.config.get("deployment", {}).get("fly", {}).get("enabled")),
-            "sentry": lambda: bool(self.config.get("observability", {}).get("sentry", {}).get("enabled")),
+            "sentry": lambda: bool(
+                self.config.get("observability", {}).get("sentry", {}).get("enabled")
+            ),
             "playwright": lambda: bool(
                 self.config.get("testing", {}).get("playwright", {}).get("enabled")
             ),
