@@ -131,6 +131,75 @@ This boilerplate focuses on **workflow automation** rather than context engineer
 
 See [docs/competitive-analysis.md](docs/competitive-analysis.md) for detailed comparison.
 
+## New to Development?
+
+If you're new to software development, here's what you need to know to use this boilerplate effectively.
+
+### Key Terms Explained
+
+| Term | What It Means | Why It Matters |
+|------|---------------|----------------|
+| **Repository (repo)** | A folder that Git tracks. Contains your code plus its entire history. | This boilerplate is a repo. Your project will be a repo. |
+| **Branch** | A parallel version of your code. Like a "save slot" you can switch between. | Lets you work on features without breaking the main code. |
+| **Worktree** | A separate copy of your repo in its own folder, pointing to a specific branch. | Work on multiple features simultaneously without switching branches. |
+| **PR (Pull Request)** | A request to merge your branch's changes into the main branch. Others can review it first. | How your code gets from "done" to "deployed". |
+| **Ticket** | A task in a project management tool (Linear, Shortcut). Has a title, description, and status. | Tracks what you're working on and why. |
+| **CI (Continuous Integration)** | Automated checks that run when you submit a PR. Tests, linting, security scans. | Catches problems before they reach production. |
+
+### The Development Flow (Step by Step)
+
+Here's what happens when you work on a feature:
+
+```
+1. You have a ticket (PROJ-123: "Add login button")
+   ↓
+2. Run: bin/vibe do PROJ-123
+   → Creates a separate folder for your work
+   → You won't accidentally break other code
+   ↓
+3. Write your code (or have AI write it)
+   → All changes stay in your folder
+   ↓
+4. Run: bin/vibe pr
+   → Creates a Pull Request for review
+   → CI checks run automatically
+   ↓
+5. After approval, merge the PR
+   → Your ticket status updates automatically
+   → PROJ-123 goes from "In Review" → "Deployed"
+```
+
+### What You Need Before Starting
+
+1. **Python 3.11+** - [Download here](https://www.python.org/downloads/)
+2. **Git** - [Download here](https://git-scm.com/downloads)
+3. **GitHub CLI (`gh`)** - [Install instructions](https://cli.github.com/)
+4. **A GitHub account** - [Sign up free](https://github.com/)
+5. *Optional:* A Linear account for ticket tracking - [Sign up free](https://linear.app/)
+
+### Your First Project (5 Minutes)
+
+```bash
+# 1. Get this boilerplate
+git clone https://github.com/kdenny/vibe-code-boilerplate.git my-project
+cd my-project
+
+# 2. Quick setup (no prompts, sensible defaults)
+bin/vibe setup --quick
+
+# 3. Verify everything works
+bin/vibe doctor
+
+# 4. Start building!
+# Tell Claude/Cursor what you want to build.
+```
+
+### Getting Help
+
+- **Stuck on a command?** Run it with `--help` (e.g., `bin/vibe setup --help`)
+- **Something broken?** Run `bin/vibe doctor` to check your setup
+- **Need examples?** Check the `recipes/` folder for step-by-step guides
+
 ## When to Use It
 
 Use this boilerplate when:
