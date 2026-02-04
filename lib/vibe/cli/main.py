@@ -226,6 +226,41 @@ def secrets_sync(env_file: str, provider: str, environment: str) -> None:
     click.echo("Secret syncing not yet fully implemented.")
 
 
+@main.command("cors-check")
+@click.argument("url")
+@click.option("--origin", "-o", default="http://localhost:3000", help="Origin to test from")
+@click.option("--method", "-m", default="GET", help="HTTP method to test")
+@click.option("--header", "-H", multiple=True, help="Headers to include in preflight")
+@click.option("--json", "json_output", is_flag=True, help="Output as JSON")
+def cors_check(
+    url: str, origin: str, method: str, header: tuple[str, ...], json_output: bool
+) -> None:
+    """Check CORS configuration for a URL.
+
+    Diagnoses CORS issues by sending preflight and actual requests,
+    then analyzing the response headers.
+
+    Examples:
+
+        bin/vibe cors-check https://api.example.com/users
+
+        bin/vibe cors-check https://api.example.com/users -o http://myapp.com
+
+        bin/vibe cors-check https://api.example.com/users -m POST -H Authorization
+    """
+    from lib.vibe.cors import check_cors, format_cors_result
+
+    result = check_cors(
+        url=url,
+        origin=origin,
+        method=method,
+        headers=list(header) if header else None,
+    )
+
+    click.echo(format_cors_result(result, json_output=json_output))
+    sys.exit(0 if result.success else 1)
+
+
 @main.command()
 @click.option("--dry-run", is_flag=True, help="Show what would be done without making changes")
 @click.option("--auto", is_flag=True, help="Apply all auto-applicable actions without prompting")

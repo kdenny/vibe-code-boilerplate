@@ -769,6 +769,9 @@ When implementing specific features, consult these recipes:
 - `recipes/testing/playwright.md` - E2E testing with Playwright (setup, retrofit, CI/CD)
 - `recipes/testing/vitest.md` - Unit testing with Vitest
 
+### Debugging
+- `recipes/debugging/cors-errors.md` - CORS diagnosis and framework-specific fixes
+
 ### Integrations
 - `recipes/integrations/promptvault.md` - PromptVault for LLM prompt management
 - `recipes/integrations/sentry.md` - Sentry error monitoring and performance tracking
@@ -948,3 +951,21 @@ git branch -D PROJ-123
 bin/vibe do PROJ-123
 ```
 See [Cleaning Up Worktrees](#cleaning-up-worktrees--follow-this-order) for the full cleanup procedure.
+
+### CORS Errors
+
+When you see CORS errors (browser blocking API requests):
+
+1. **Diagnose first:**
+   ```bash
+   bin/vibe cors-check https://api.example.com/endpoint -o http://localhost:3000
+   ```
+
+2. **Check the output** for missing headers and specific suggestions.
+
+3. **Apply framework-specific fix** from `recipes/debugging/cors-errors.md`.
+
+Common quick fixes:
+- **Missing headers entirely**: Add CORS middleware to your server
+- **Wrong origin**: Add your frontend's URL to allowed origins
+- **Credentials issue**: Can't use `*` with credentials; specify exact origins
