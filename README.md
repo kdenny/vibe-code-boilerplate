@@ -12,9 +12,66 @@ Linear ticket → bin/vibe do PROJ-123 → Worktree created → Code → PR → 
 
 **What this is NOT:** An application boilerplate (React, FastAPI, etc.). You build your app structure on top of this foundation.
 
-## What This Is
+## Why Use This?
 
-This boilerplate provides:
+**The short answer:** Close the loop between your tickets and your code automatically.
+
+### What you can do with this that you can't do with vanilla Claude Code
+
+| Capability | Vanilla Claude Code | With This Boilerplate |
+|------------|--------------------|-----------------------|
+| Ticket → branch → code → PR | Manual setup each time | `bin/vibe do PROJ-123` - one command |
+| Ticket auto-updates on PR open/merge | None | Automatic (In Progress → In Review → Deployed) |
+| Worktree per ticket | Manual `git worktree` commands | Automatic, with cleanup |
+| PR risk labels enforced | Hope you remember | CI blocks PR without label |
+| Ticket reference in PR required | Hope you remember | CI blocks PR without ref |
+| Multi-agent conflict prevention | Roll your own | Built-in guidelines + worktree isolation |
+
+### The 80/20 - Features that deliver most value
+
+1. **Ticket lifecycle automation** - Open ticket, do `bin/vibe do`, code, PR, merge. Ticket status updates itself. Zero manual status changes.
+2. **Worktree isolation** - Each ticket gets its own directory. No branch switching. No stashing. Work on multiple tickets in parallel.
+3. **PR policy enforcement** - CI ensures every PR has a ticket reference and risk label. No more "oops I forgot" PRs.
+
+### Minimal setup to get value
+
+```bash
+bin/vibe setup --quick   # ~1 minute, sensible defaults
+```
+
+That's it. You get:
+- PR template with risk assessment
+- Branch naming convention
+- Worktree management via `bin/vibe do`
+
+Add Linear integration later when you're ready: `bin/vibe setup -w tracker`
+
+## Feature Classification
+
+This boilerplate provides three types of features relative to vanilla Claude Code:
+
+| Type | Description | Examples |
+|------|-------------|----------|
+| **Core** | Unlikely to be replaced by Claude Code | Linear/Shortcut integration, ticket→PR lifecycle automation, PR policy enforcement |
+| **Complementary** | Enhances Claude Code's native features | Worktree management, multi-agent coordination, risk assessment workflows |
+| **Recipes** | Reference documentation that may overlap with Claude Code docs | Best practices, framework guides, debugging tips |
+
+## Tracker Dependency
+
+**This boilerplate is Linear-first.** The ticket automation features are built around Linear's API.
+
+- **Linear**: Full support (recommended)
+- **Shortcut**: Supported via API
+- **GitHub Issues/Jira/Notion**: Not currently supported
+
+If you don't use Linear or Shortcut, you can still use:
+- Worktree management (`bin/vibe do <branch-name>`)
+- PR template and policy enforcement
+- Multi-agent coordination guidelines
+- Recipe library
+
+## What This Provides
+
 - **Linear Integration** - Full CRUD, automatic status updates, label management
 - **Automatic Ticket Updates** - PR opened → In Review, PR merged → Deployed (zero manual status changes)
 - **Local Hooks** - Ticket auto-marked "In Progress" when you mention it (optional)
@@ -62,13 +119,15 @@ This boilerplate focuses on **workflow automation** rather than context engineer
 | Ticket Integration | Linear, Shortcut with auto-status | Most have none |
 | Worktree Management | Built-in | Rare |
 | PR Policy Enforcement | Risk labels, ticket refs | Common but simpler |
-| Sub-Agent Architecture | Not built-in | shinpr has this |
+| Multi-Assistant Support | Claude, Cursor, Copilot | botingw has 10+ |
 | MCP Servers | Not built-in | serpro69, davila7 |
-| Multi-Assistant Support | Claude Code only | botingw has 10+ |
+| Sub-Agent Architecture | Not built-in (planned) | shinpr has this |
 
 **Best for**: Teams using Linear/Shortcut who want automated ticket→PR→deploy lifecycle.
 
-**Not best for**: Multi-assistant setups, teams without ticket trackers, or those wanting component marketplaces.
+**Also good for**: Teams who want PR policy enforcement and worktree management even without a ticket tracker.
+
+**Not best for**: Teams wanting Jira/GitHub Issues integration, component marketplaces, or MCP servers.
 
 See [docs/competitive-analysis.md](docs/competitive-analysis.md) for detailed comparison.
 
