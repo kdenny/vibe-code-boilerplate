@@ -97,6 +97,13 @@ echo "LINEAR_API_KEY=lin_api_your_key_here" >> .env.local
 
 Get your key from [Linear Settings → API](https://linear.app/settings/api).
 
+**Note:** The CLI automatically loads `.env` files, so you don't need to `source` them manually. Load order:
+1. `.env` - Base defaults
+2. `.env.local` - Local overrides (gitignored)
+3. `.env.{environment}` - Environment-specific (if `VIBE_ENV` or `NODE_ENV` is set)
+
+To disable auto-loading: `VIBE_NO_DOTENV=1 bin/vibe ...`
+
 ### 4. Verify Setup
 
 ```bash

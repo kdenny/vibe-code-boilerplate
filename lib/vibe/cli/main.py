@@ -1,5 +1,6 @@
 """Main CLI entry point for vibe commands."""
 
+import os
 import sys
 from pathlib import Path
 
@@ -7,6 +8,12 @@ import click
 
 from lib.vibe.doctor import print_results, run_doctor
 from lib.vibe.wizards.setup import run_individual_wizard, run_setup
+
+# Auto-load .env files at startup (unless disabled)
+if os.environ.get("VIBE_NO_DOTENV") != "1":
+    from lib.vibe.env import auto_load_env
+
+    auto_load_env(verbose=os.environ.get("VIBE_VERBOSE") == "1")
 
 
 @click.group()
