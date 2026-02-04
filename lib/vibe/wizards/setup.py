@@ -131,7 +131,7 @@ def ensure_commit_convention(base_path: Path | None = None) -> bool:
     return True
 
 
-def run_setup(force: bool = False) -> bool:
+def run_setup(force: bool = False, quick: bool = False) -> bool:
     """
     Run the initial setup wizard.
 
@@ -140,6 +140,7 @@ def run_setup(force: bool = False) -> bool:
 
     Args:
         force: Force re-running setup even if config exists
+        quick: Quick mode - sensible defaults, no prompts, skip optional config
 
     Returns:
         True if setup completed successfully
@@ -147,8 +148,8 @@ def run_setup(force: bool = False) -> bool:
     config_file_existed = config_exists()
     config = load_config()
 
-    # Fresh project: zero-prompt auto-initialization (never drop into interactive wizard)
-    if is_fresh_project(config, config_file_existed) and not force:
+    # Quick mode OR fresh project: zero-prompt auto-initialization
+    if quick or (is_fresh_project(config, config_file_existed) and not force):
         apply_git_workflow_defaults(config)
         config["tracker"]["type"] = None
         config["tracker"]["config"] = {}

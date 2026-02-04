@@ -94,15 +94,28 @@ Follow the recipes in recipes/ for specific implementations.
 
 ## Quick Start
 
-### 1. Run Setup Wizard
+### Option A: Quick Setup (< 1 minute)
+
+```bash
+bin/vibe setup --quick
+```
+
+This sets up sensible defaults with no prompts:
+- Git workflow (branching, worktrees, rebasing)
+- PR template with risk assessment
+- GitHub auto-configured from `gh` CLI
+
+Add integrations later with `bin/vibe setup -w tracker`, `-w vercel`, etc.
+
+### Option B: Full Setup (Interactive)
 
 ```bash
 bin/vibe setup
 ```
 
-This will prompt you for:
+This prompts you for:
 - GitHub authentication (gh CLI or PAT)
-- Ticket tracker (Linear)
+- Ticket tracker (Linear/Shortcut)
 - Optional: Branch naming, environment configuration
 
 ### 2. Update CLAUDE.md

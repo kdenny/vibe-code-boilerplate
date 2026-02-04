@@ -26,10 +26,18 @@ def main() -> None:
 @main.command()
 @click.option("--force", "-f", is_flag=True, help="Force reconfiguration")
 @click.option("--wizard", "-w", help="Run a specific wizard (github, tracker, branch, env)")
-def setup(force: bool, wizard: str | None) -> None:
-    """Run the setup wizard to configure your project."""
+@click.option("--quick", "-q", is_flag=True, help="Quick setup with sensible defaults, no prompts")
+def setup(force: bool, wizard: str | None, quick: bool) -> None:
+    """Run the setup wizard to configure your project.
+
+    Use --quick for a fast setup (< 1 minute) with sensible defaults and no
+    prompts. Perfect for trying out the boilerplate or when you want to
+    configure integrations later.
+    """
     if wizard:
         success = run_individual_wizard(wizard)
+    elif quick:
+        success = run_setup(force=force, quick=True)
     else:
         success = run_setup(force=force)
 
