@@ -92,7 +92,32 @@ I'm starting a new project. Reference the vibe-code-boilerplate at
 Follow the recipes in recipes/ for specific implementations.
 ```
 
-## Quick Start
+## Quick Start (5 minutes)
+
+Get productive immediately with minimal setup:
+
+```bash
+# 1. Quick setup (no prompts, sensible defaults)
+bin/vibe setup --quick
+
+# 2. Verify it worked
+bin/vibe doctor
+
+# 3. Start coding!
+```
+
+That's it. You now have:
+- Git workflow defaults (branching, rebasing, worktrees)
+- PR template with risk assessment
+- Basic CLAUDE.md for AI agents
+
+**Add integrations later** with `bin/vibe setup -w tracker` (Linear) or other wizards.
+
+---
+
+## Full Setup
+
+For complete configuration including ticket tracking:
 
 ### 1. Run Setup Wizard
 

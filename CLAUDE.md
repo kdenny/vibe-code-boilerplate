@@ -838,7 +838,8 @@ These are the underlying CLI commands (skills call these automatically):
 
 ```bash
 # Setup and health
-bin/vibe setup              # Initial configuration
+bin/vibe setup              # Initial configuration (interactive)
+bin/vibe setup --quick      # Quick setup (no prompts, sensible defaults)
 bin/vibe retrofit           # Apply boilerplate to existing project
 bin/vibe retrofit --analyze-only  # See what retrofit would change
 bin/vibe setup --wizard vercel     # Configure Vercel deployment
