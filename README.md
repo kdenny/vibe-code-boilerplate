@@ -24,6 +24,7 @@ This boilerplate provides:
 - **Secret Management** - Allowlists, provider sync, Gitleaks scanning
 - **Recipe Library** - 30+ best practices guides for common tasks
 - **HUMAN follow-up tickets** - Auto-create HUMAN-labeled tickets for deployment setup
+- **Multi-Assistant Support** - Generate instruction files for Claude, Cursor, Copilot from single source
 
 ## Works With Any Language
 

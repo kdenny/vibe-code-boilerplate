@@ -35,6 +35,52 @@ This file contains instructions for AI agents (Claude, GPT, etc.) working on pro
 
 ---
 
+## Multi-Assistant Support
+
+This boilerplate supports multiple AI coding assistants. A single source of truth in `agent_instructions/` generates format-specific files for:
+
+| Assistant | File Generated |
+|-----------|----------------|
+| Claude Code | `CLAUDE.md` |
+| Cursor IDE | `.cursor/rules` |
+| GitHub Copilot | `.github/copilot-instructions.md` |
+
+### Maintaining Instructions
+
+Edit the source files in `agent_instructions/`:
+- `CORE.md` - Project context and core rules
+- `COMMANDS.md` - Available commands
+- `WORKFLOW.md` - Standard workflows
+
+Then regenerate assistant files:
+
+```bash
+bin/vibe generate-agent-instructions
+```
+
+### Source File Format
+
+The source files use simple markdown:
+
+```markdown
+# CORE.md
+## Project Overview
+- **Name**: My Project
+- **Description**: What it does
+
+## Core Rules
+- Read files before modifying
+- Use existing patterns
+
+## Anti-Patterns
+- Guessing file contents
+- Over-engineering
+```
+
+See `agent_instructions/` for the full template.
+
+---
+
 ## Before You Build: Validate Your Idea
 
 **For vibe coders who prompt faster than they think.** Before investing time building something, use `/assess` to validate that it's worth building.
@@ -915,6 +961,11 @@ bin/vibe do PROJ-123        # Create worktree for ticket
 # Secrets
 bin/secrets list            # List secrets
 bin/secrets sync            # Sync to provider
+
+# Multi-assistant support
+bin/vibe generate-agent-instructions  # Generate instruction files for all assistants
+bin/vibe generate-agent-instructions --format cursor  # Generate for specific format
+bin/vibe generate-agent-instructions --dry-run  # Preview without writing
 ```
 
 ---

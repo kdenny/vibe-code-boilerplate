@@ -521,5 +521,103 @@ def retrofit(
     click.echo("  4. Update CLAUDE.md with your project's context")
 
 
+@main.command("generate-agent-instructions")
+@click.option("--dry-run", is_flag=True, help="Show what would be generated without writing files")
+@click.option(
+    "--format",
+    "-f",
+    "formats",
+    multiple=True,
+    type=click.Choice(["claude", "cursor", "copilot", "all"]),
+    default=["all"],
+    help="Which formats to generate (default: all)",
+)
+@click.option(
+    "--source-dir",
+    "-s",
+    type=click.Path(exists=True, path_type=Path),
+    default="agent_instructions",
+    help="Source directory for instruction files",
+)
+@click.option(
+    "--output-dir",
+    "-o",
+    type=click.Path(path_type=Path),
+    default=".",
+    help="Output directory for generated files",
+)
+def generate_agent_instructions(
+    dry_run: bool,
+    formats: tuple[str, ...],
+    source_dir: Path,
+    output_dir: Path,
+) -> None:
+    """Generate assistant-specific instruction files from common spec.
+
+    Reads instruction spec from agent_instructions/ and generates:
+    - CLAUDE.md (Claude Code)
+    - .cursor/rules (Cursor IDE)
+    - .github/copilot-instructions.md (GitHub Copilot)
+
+    This allows maintaining a single source of truth for agent instructions.
+    """
+    from lib.vibe.agents.generator import InstructionGenerator
+    from lib.vibe.agents.spec import AssistantFormat, InstructionSpec
+
+    source_path = Path(source_dir)
+    if not source_path.exists():
+        click.secho(f"Source directory not found: {source_path}", fg="red", err=True)
+        click.echo("Create agent_instructions/ with CORE.md, COMMANDS.md, WORKFLOW.md")
+        sys.exit(1)
+
+    # Determine which formats to generate
+    format_map = {
+        "claude": AssistantFormat.CLAUDE,
+        "cursor": AssistantFormat.CURSOR,
+        "copilot": AssistantFormat.COPILOT,
+    }
+
+    if "all" in formats:
+        selected_formats = list(format_map.values())
+    else:
+        selected_formats = [format_map[f] for f in formats if f in format_map]
+
+    # Load spec from source files
+    click.echo(f"Loading instruction spec from {source_path}/...")
+    spec = InstructionSpec.from_files(source_path)
+
+    click.echo(f"  - Loaded {len(spec.core_rules)} core rules")
+    click.echo(f"  - Loaded {len(spec.commands)} commands")
+    click.echo(f"  - Loaded {len(spec.workflows)} workflows")
+
+    # Generate files
+    generator = InstructionGenerator(spec)
+    output_path = Path(output_dir)
+
+    if dry_run:
+        click.echo()
+        click.secho("Dry run - would generate:", fg="yellow")
+        for fmt in selected_formats:
+            full_path = output_path / fmt.output_path
+            click.echo(f"  {full_path} ({fmt.description})")
+        return
+
+    click.echo()
+    click.secho("Generating instruction files...", fg="cyan")
+
+    results = generator.generate_all(output_path, selected_formats)
+
+    for format_name, file_path in results.items():
+        click.echo(f"  {click.style('✓', fg='green')} {file_path}")
+
+    click.echo()
+    click.secho("Done! Generated files are ready.", fg="green")
+    click.echo()
+    click.echo("Next steps:")
+    click.echo("  1. Review the generated files")
+    click.echo("  2. Customize agent_instructions/ for your project")
+    click.echo("  3. Re-run this command after changes to sync files")
+
+
 if __name__ == "__main__":
     main()
