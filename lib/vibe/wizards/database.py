@@ -5,6 +5,7 @@ from typing import Any
 import click
 
 from lib.vibe.tools import require_interactive
+from lib.vibe.ui.components import NumberedMenu
 from lib.vibe.wizards.neon import run_neon_wizard
 from lib.vibe.wizards.supabase import run_supabase_wizard
 
@@ -47,23 +48,22 @@ def _ask_features() -> dict[str, bool]:
 
 def _ask_branching() -> str:
     """Ask about database branching preferences."""
-    click.echo("\nWhat's your database branching strategy?")
-    click.echo()
-    click.echo("  1. One database branch per git branch (isolated testing)")
-    click.echo("  2. Separate staging/production databases")
-    click.echo("  3. Single database for everything")
-    click.echo()
-
-    choice = click.prompt(
-        "  Select",
-        type=click.Choice(["1", "2", "3"]),
-        default="2",
+    menu = NumberedMenu(
+        title="\nWhat's your database branching strategy?",
+        options=[
+            ("Per git branch", "One database branch per git branch (isolated testing)"),
+            ("Staging/Production", "Separate staging and production databases"),
+            ("Single database", "One database for everything"),
+        ],
+        default=2,
     )
 
+    choice = menu.show()
+
     return {
-        "1": "per_branch",
-        "2": "staging_prod",
-        "3": "single",
+        1: "per_branch",
+        2: "staging_prod",
+        3: "single",
     }[choice]
 
 
@@ -194,11 +194,20 @@ def run_database_wizard(config: dict[str, Any]) -> bool:
     _print_recommendation(recommendation, reasons, features, branching)
 
     # Confirm or override
-    proceed = click.prompt(
-        f"Proceed with {recommendation.title()} setup?",
-        type=click.Choice(["yes", "neon", "supabase", "skip"]),
-        default="yes",
+    menu = NumberedMenu(
+        title=f"Proceed with {recommendation.title()} setup?",
+        options=[
+            ("Yes", f"Continue with {recommendation.title()}"),
+            ("Neon", "Switch to Neon instead"),
+            ("Supabase", "Switch to Supabase instead"),
+            ("Skip", "Skip database setup for now"),
+        ],
+        default=1,
     )
+
+    choice = menu.show()
+    proceed_map = {1: "yes", 2: "neon", 3: "supabase", 4: "skip"}
+    proceed = proceed_map[choice]
 
     if proceed == "skip":
         click.echo("\nDatabase setup skipped. Configure later with:")

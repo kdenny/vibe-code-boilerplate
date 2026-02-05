@@ -6,6 +6,7 @@ from typing import Any
 import click
 
 from lib.vibe.tools import require_interactive
+from lib.vibe.ui.components import NumberedMenu
 
 
 def run_tracker_wizard(config: dict[str, Any]) -> bool:
@@ -24,14 +25,17 @@ def run_tracker_wizard(config: dict[str, Any]) -> bool:
         click.echo(f"\n{error}")
         return False
 
-    click.echo("Select your ticket tracking system:")
-    click.echo()
-    click.echo("  1. Linear - Full integration")
-    click.echo("  2. Shortcut - Coming soon (stub)")
-    click.echo("  3. None - Skip ticket tracking")
-    click.echo()
+    menu = NumberedMenu(
+        title="Select your ticket tracking system:",
+        options=[
+            ("Linear", "Full integration with status syncing"),
+            ("Shortcut", "Coming soon (stub)"),
+            ("None", "Skip ticket tracking"),
+        ],
+        default=1,
+    )
 
-    choice = click.prompt("Select option", type=int, default=1)
+    choice = menu.show()
 
     if choice == 1:
         return _setup_linear(config)
