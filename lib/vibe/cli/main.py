@@ -252,8 +252,9 @@ def secrets_sync(env_file: str, provider: str, environment: str) -> None:
 @click.option("--linear-api-key", envvar="LINEAR_API_KEY", help="LINEAR_API_KEY to set as secret")
 @click.option("--dry-run", is_flag=True, help="Preview changes without applying")
 @click.option("--all", "include_all", is_flag=True, help="Include all available workflows")
+@click.option("--interactive", "-i", is_flag=True, help="Interactive mode for workflow selection")
 def init_actions(
-    linear: bool, linear_api_key: str | None, dry_run: bool, include_all: bool
+    linear: bool, linear_api_key: str | None, dry_run: bool, include_all: bool, interactive: bool
 ) -> None:
     """Initialize GitHub Actions workflows, secrets, and labels.
 
@@ -266,9 +267,41 @@ def init_actions(
 
         bin/vibe init-actions                    # Core workflows only
         bin/vibe init-actions --linear           # Include Linear workflows
+        bin/vibe init-actions --interactive      # Interactive workflow selection
         bin/vibe init-actions --dry-run          # Preview what would be done
     """
     from lib.vibe.github_actions import init_github_actions
+    from lib.vibe.ui.components import MultiSelect
+
+    # Interactive mode
+    if interactive:
+        click.echo("\n" + "=" * 50)
+        click.echo("  Initialize GitHub Actions")
+        click.echo("=" * 50)
+        click.echo()
+
+        workflow_select = MultiSelect(
+            title="Select workflows to install:",
+            options=[
+                ("Core Workflows", "PR policy, security, lint, tests (recommended)", True),
+                ("Linear Integration", "Sync PR status with Linear tickets", False),
+                ("Shortcut Integration", "Sync PR status with Shortcut stories", False),
+            ],
+        )
+        selected = workflow_select.show()
+
+        if not selected:
+            click.echo("No workflows selected. Cancelled.")
+            return
+
+        # Update flags based on selection
+        if 2 in selected:
+            linear = True
+            if not linear_api_key:
+                click.echo()
+                click.echo("Linear integration requires LINEAR_API_KEY.")
+                if click.confirm("Enter LINEAR_API_KEY now?", default=True):
+                    linear_api_key = click.prompt("LINEAR_API_KEY", hide_input=True)
 
     if dry_run:
         click.echo("Dry run - showing what would be done:\n")
@@ -370,11 +403,13 @@ def retrofit(
     """Apply boilerplate to an existing project (guided adoption)."""
     import json
 
+    from lib.vibe.config import load_config
     from lib.vibe.retrofit.analyzer import ActionType, RetrofitAnalyzer
     from lib.vibe.retrofit.applier import RetrofitApplier
     from lib.vibe.retrofit.detector import ProjectDetector
     from lib.vibe.tools import require_interactive
-    from lib.vibe.ui.components import MultiSelect
+    from lib.vibe.ui.components import MultiSelect, WhatNextFlow
+    from lib.vibe.wizards.setup import run_individual_wizard
 
     # Check for interactive terminal if we'll need user input
     if not auto and not analyze_only and not json_output:
@@ -563,9 +598,21 @@ def retrofit(
     click.echo("  3. Review .vibe/config.json and adjust settings as needed")
     click.echo("  4. Update CLAUDE.md with your project's context")
 
+    # Show WhatNextFlow for natural wizard chaining
+    config = load_config()
+    what_next = WhatNextFlow("env", config)  # Use "env" as retrofit touches env/config
+    next_wizard = what_next.show()
+    if next_wizard:
+        run_individual_wizard(next_wizard, show_what_next=True)
+
 
 @main.command("generate-agent-instructions")
 @click.option("--dry-run", is_flag=True, help="Show what would be generated without writing files")
+@click.option(
+    "--force",
+    is_flag=True,
+    help="Overwrite files even if they have project-specific content",
+)
 @click.option(
     "--format",
     "-f",
@@ -574,6 +621,9 @@ def retrofit(
     type=click.Choice(["claude", "cursor", "copilot", "all"]),
     default=["all"],
     help="Which formats to generate (default: all)",
+)
+@click.option(
+    "--interactive", "-i", is_flag=True, help="Interactive mode - select formats with MultiSelect"
 )
 @click.option(
     "--source-dir",
@@ -591,7 +641,9 @@ def retrofit(
 )
 def generate_agent_instructions(
     dry_run: bool,
+    force: bool,
     formats: tuple[str, ...],
+    interactive: bool,
     source_dir: Path,
     output_dir: Path,
 ) -> None:
@@ -606,6 +658,7 @@ def generate_agent_instructions(
     """
     from lib.vibe.agents.generator import InstructionGenerator
     from lib.vibe.agents.spec import AssistantFormat, InstructionSpec
+    from lib.vibe.ui.components import MultiSelect
 
     source_path = Path(source_dir)
     if not source_path.exists():
@@ -620,7 +673,34 @@ def generate_agent_instructions(
         "copilot": AssistantFormat.COPILOT,
     }
 
-    if "all" in formats:
+    if interactive:
+        # Interactive format selection
+        click.echo("\n" + "=" * 50)
+        click.echo("  Generate Agent Instructions")
+        click.echo("=" * 50)
+        click.echo()
+
+        multi_select = MultiSelect(
+            title="Select formats to generate:",
+            options=[
+                ("CLAUDE.md", "Claude Code instructions", True),
+                (".cursor/rules", "Cursor IDE instructions", True),
+                (".github/copilot-instructions.md", "GitHub Copilot instructions", False),
+            ],
+        )
+        selected_indices = multi_select.show()
+
+        if not selected_indices:
+            click.echo("No formats selected. Cancelled.")
+            return
+
+        index_to_format = {
+            1: AssistantFormat.CLAUDE,
+            2: AssistantFormat.CURSOR,
+            3: AssistantFormat.COPILOT,
+        }
+        selected_formats = [index_to_format[i] for i in selected_indices]
+    elif "all" in formats:
         selected_formats = list(format_map.values())
     else:
         selected_formats = [format_map[f] for f in formats if f in format_map]
@@ -648,13 +728,28 @@ def generate_agent_instructions(
     click.echo()
     click.secho("Generating instruction files...", fg="cyan")
 
-    results = generator.generate_all(output_path, selected_formats)
+    results = generator.generate_all(output_path, selected_formats, force=force)
 
     for format_name, file_path in results.items():
         click.echo(f"  {click.style('✓', fg='green')} {file_path}")
 
-    click.echo()
-    click.secho("Done! Generated files are ready.", fg="green")
+    # Report skipped files
+    skipped = generator.skipped_files
+    if skipped:
+        click.echo()
+        click.secho("Skipped (files have project-specific content):", fg="yellow")
+        for format_name, path_or_msg in skipped.items():
+            click.echo(f"  {click.style('○', fg='yellow')} {path_or_msg}")
+        click.echo()
+        click.echo("Use --force to overwrite these files.")
+
+    if results:
+        click.echo()
+        click.secho("Done! Generated files are ready.", fg="green")
+    elif skipped:
+        click.echo()
+        click.secho("No files generated (all skipped).", fg="yellow")
+
     click.echo()
     click.echo("Next steps:")
     click.echo("  1. Review the generated files")

@@ -7,6 +7,34 @@ from pathlib import Path
 
 from lib.vibe.agents.spec import AssistantFormat, InstructionSpec
 
+# Placeholder patterns that indicate a generated/template file
+_PLACEHOLDER_PATTERNS = [
+    "(your project name)",
+    "# DO NOT EDIT DIRECTLY - regenerate with:",
+    "# Generated:",
+    "# Source: agent_instructions/",
+]
+
+
+def _is_generated_file(content: str) -> bool:
+    """Check if file content appears to be generated (not customized)."""
+    return any(pattern in content for pattern in _PLACEHOLDER_PATTERNS)
+
+
+def _has_project_content(file_path: Path) -> bool:
+    """Check if file exists and has project-specific (non-template) content."""
+    if not file_path.exists():
+        return False
+
+    try:
+        content = file_path.read_text()
+        # If it's empty or has placeholder patterns, it's not project-specific
+        if not content.strip():
+            return False
+        return not _is_generated_file(content)
+    except Exception:
+        return False
+
 
 class InstructionGenerator:
     """Generates assistant-specific instruction files from a common spec."""
@@ -27,11 +55,20 @@ class InstructionGenerator:
         return generators[format]()
 
     def generate_all(
-        self, output_dir: Path, formats: list[AssistantFormat] | None = None
+        self,
+        output_dir: Path,
+        formats: list[AssistantFormat] | None = None,
+        force: bool = False,
     ) -> dict[str, Path]:
         """Generate all instruction files to the specified directory.
 
-        Returns a dict mapping format name to output path.
+        Args:
+            output_dir: Directory to write files to
+            formats: List of formats to generate (default: CLAUDE, CURSOR, COPILOT)
+            force: If True, overwrite files even if they have project-specific content
+
+        Returns:
+            Dict mapping format name to output path (only for files that were written)
         """
         if formats is None:
             formats = [
@@ -41,9 +78,26 @@ class InstructionGenerator:
             ]
 
         results = {}
+        skipped = {}
+
         for format in formats:
-            content = self.generate(format)
             output_path = output_dir / format.output_path
+
+            # Check if path is a directory (shouldn't be, but handle gracefully)
+            if output_path.exists() and output_path.is_dir():
+                # For .cursor/rules being a directory, use .cursorrules instead
+                if format == AssistantFormat.CURSOR:
+                    output_path = output_dir / ".cursorrules"
+                else:
+                    skipped[format.value] = f"{output_path} is a directory"
+                    continue
+
+            # Skip files with project-specific content unless --force
+            if not force and _has_project_content(output_path):
+                skipped[format.value] = output_path
+                continue
+
+            content = self.generate(format)
 
             # Create parent directories if needed
             output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -51,7 +105,15 @@ class InstructionGenerator:
             output_path.write_text(content)
             results[format.value] = output_path
 
+        # Store skipped info for caller to report
+        self._skipped = skipped
+
         return results
+
+    @property
+    def skipped_files(self) -> dict[str, Path | str]:
+        """Return files that were skipped due to project-specific content."""
+        return getattr(self, "_skipped", {})
 
     def _header(self, format_name: str) -> str:
         """Generate file header with timestamp."""
