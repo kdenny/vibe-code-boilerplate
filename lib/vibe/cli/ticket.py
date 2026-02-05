@@ -7,6 +7,7 @@ from pathlib import Path
 import click
 
 from lib.vibe.config import load_config, save_config
+from lib.vibe.ui.components import NumberedMenu, ProgressIndicator
 from lib.vibe.deployment_followup import (
     build_human_followup_body,
     detect_deployment_platforms,
@@ -122,24 +123,157 @@ def list_tickets(status: str | None, label: tuple, limit: int) -> None:
 
 
 @main.command()
-@click.argument("title")
+@click.argument("title", required=False)
 @click.option("--description", "-d", default="", help="Ticket description")
 @click.option("--label", "-l", multiple=True, help="Labels to add")
-def create(title: str, description: str, label: tuple) -> None:
-    """Create a new ticket."""
+@click.option("--blocked-by", multiple=True, help="Ticket IDs that block this ticket")
+@click.option("--interactive", "-i", is_flag=True, help="Interactive mode with guided prompts")
+def create(
+    title: str | None,
+    description: str,
+    label: tuple,
+    blocked_by: tuple,
+    interactive: bool,
+) -> None:
+    """Create a new ticket.
+
+    Use --interactive for guided ticket creation with prompts for
+    type, risk, and area labels.
+
+    Use --blocked-by to set up blocking relationships:
+
+        bin/ticket create "New feature" --blocked-by PROJ-123
+    """
     tracker = ensure_tracker_configured()
+
+    # Interactive mode
+    if interactive:
+        title, description, labels = _interactive_create()
+    else:
+        if not title:
+            click.echo("Error: Title is required. Use --interactive for guided mode.", err=True)
+            sys.exit(1)
+        labels = list(label) if label else None
 
     try:
         ticket = tracker.create_ticket(
             title=title,
             description=description,
-            labels=list(label) if label else None,
+            labels=labels,
         )
         click.echo(f"Created ticket: {ticket.id}")
         click.echo(f"URL: {ticket.url}")
+
+        # Set up blocking relationships if specified
+        if blocked_by and hasattr(tracker, "create_relation"):
+            click.echo()
+            for blocker_id in blocked_by:
+                try:
+                    tracker.create_relation(blocker_id, ticket.id, "blocks")
+                    click.echo(f"  ✓ {blocker_id} blocks {ticket.id}")
+                except RuntimeError as e:
+                    click.echo(f"  ✗ Failed to create relation: {e}", err=True)
+
     except NotImplementedError as e:
         click.echo(str(e), err=True)
         sys.exit(1)
+
+
+def _interactive_create() -> tuple[str, str, list[str]]:
+    """Interactive ticket creation with guided prompts.
+
+    Returns:
+        Tuple of (title, description, labels)
+    """
+    config = load_config()
+    label_config = config.get("labels", {})
+
+    click.echo("\n" + "=" * 50)
+    click.echo("  Interactive Ticket Creation")
+    click.echo("=" * 50)
+    click.echo()
+
+    progress = ProgressIndicator(total_steps=5)
+
+    # Step 1: Title
+    progress.advance("Ticket title")
+    title = click.prompt("Enter ticket title")
+
+    # Step 2: Type label
+    progress.advance("Type selection")
+    type_labels = label_config.get("type", ["Bug", "Feature", "Chore", "Refactor"])
+    type_menu = NumberedMenu(
+        title="Select ticket type:",
+        options=[(t, "") for t in type_labels],
+        default=2,  # Default to Feature
+    )
+    type_choice = type_menu.show()
+    selected_type = type_labels[type_choice - 1]
+
+    # Step 3: Risk label
+    progress.advance("Risk assessment")
+    risk_labels = label_config.get("risk", ["Low Risk", "Medium Risk", "High Risk"])
+    risk_menu = NumberedMenu(
+        title="Select risk level:",
+        options=[
+            ("Low Risk", "Docs, tests, typos, minor UI tweaks"),
+            ("Medium Risk", "New features, bug fixes, refactoring"),
+            ("High Risk", "Auth, payments, database, infrastructure"),
+        ],
+        default=1,
+    )
+    risk_choice = risk_menu.show()
+    selected_risk = risk_labels[risk_choice - 1]
+
+    # Step 4: Area label(s)
+    progress.advance("Area selection")
+    area_labels = label_config.get("area", ["Frontend", "Backend", "Infra", "Docs"])
+    area_menu = NumberedMenu(
+        title="Select primary area:",
+        options=[(a, "") for a in area_labels],
+        default=2,  # Default to Backend
+    )
+    area_choice = area_menu.show()
+    selected_area = area_labels[area_choice - 1]
+
+    # Step 5: Description
+    progress.advance("Description")
+    click.echo("\nEnter description (press Enter twice to finish, or leave blank to skip):")
+    description_lines = []
+    empty_count = 0
+    while True:
+        line = click.prompt("", default="", show_default=False)
+        if line == "":
+            empty_count += 1
+            if empty_count >= 1:  # Single empty line ends input
+                break
+        else:
+            empty_count = 0
+            description_lines.append(line)
+    description = "\n".join(description_lines)
+
+    labels = [selected_type, selected_risk, selected_area]
+
+    # Summary
+    click.echo("\n" + "-" * 50)
+    click.echo("Summary:")
+    click.echo(f"  Title: {title}")
+    click.echo(f"  Type: {selected_type}")
+    click.echo(f"  Risk: {selected_risk}")
+    click.echo(f"  Area: {selected_area}")
+    if description:
+        click.echo(
+            f"  Description: {description[:50]}..."
+            if len(description) > 50
+            else f"  Description: {description}"
+        )
+    click.echo("-" * 50)
+
+    if not click.confirm("\nCreate this ticket?", default=True):
+        click.echo("Cancelled.")
+        sys.exit(0)
+
+    return title, description, labels
 
 
 HUMAN_FOLLOWUP_LABELS = ["Chore", "Infra", "HUMAN"]
@@ -232,37 +366,75 @@ def create_human_followup(
     multiple=True,
     help="Set labels (replaces existing for trackers that support it)",
 )
+@click.option("--blocked-by", multiple=True, help="Add tickets that block this ticket")
+@click.option("--blocks", multiple=True, help="Add tickets that this ticket blocks")
 def update(
     ticket_id: str,
     status: str | None,
     title: str | None,
     description: str | None,
     label: tuple,
+    blocked_by: tuple,
+    blocks: tuple,
 ) -> None:
-    """Update a ticket (status, title, description, labels)."""
+    """Update a ticket (status, title, description, labels, relations).
+
+    Use --blocked-by and --blocks to set up blocking relationships:
+
+        bin/ticket update PROJ-456 --blocked-by PROJ-123
+        bin/ticket update PROJ-456 --blocks PROJ-789
+    """
     tracker = ensure_tracker_configured()
 
-    if not any([status, title, description, label]):
-        click.echo("Specify at least one of: --status, --title, --description, --label", err=True)
+    has_field_update = any([status, title, description, label])
+    has_relation_update = any([blocked_by, blocks])
+
+    if not has_field_update and not has_relation_update:
+        click.echo(
+            "Specify at least one of: --status, --title, --description, --label, "
+            "--blocked-by, --blocks",
+            err=True,
+        )
         sys.exit(1)
 
-    try:
-        ticket = tracker.update_ticket(
-            ticket_id,
-            title=title,
-            description=description,
-            status=status,
-            labels=list(label) if label else None,
-        )
-        click.echo(f"Updated: {ticket.id}")
-        click.echo(f"Status: {ticket.status}")
-        click.echo(f"URL: {ticket.url}")
-    except NotImplementedError as e:
-        click.echo(str(e), err=True)
-        sys.exit(1)
-    except RuntimeError as e:
-        click.echo(str(e), err=True)
-        sys.exit(1)
+    # Update ticket fields if any specified
+    if has_field_update:
+        try:
+            ticket = tracker.update_ticket(
+                ticket_id,
+                title=title,
+                description=description,
+                status=status,
+                labels=list(label) if label else None,
+            )
+            click.echo(f"Updated: {ticket.id}")
+            click.echo(f"Status: {ticket.status}")
+            click.echo(f"URL: {ticket.url}")
+        except NotImplementedError as e:
+            click.echo(str(e), err=True)
+            sys.exit(1)
+        except RuntimeError as e:
+            click.echo(str(e), err=True)
+            sys.exit(1)
+
+    # Set up blocking relationships if specified
+    if has_relation_update and hasattr(tracker, "create_relation"):
+        click.echo()
+        # blocked_by: other tickets block this one
+        for blocker_id in blocked_by:
+            try:
+                tracker.create_relation(blocker_id, ticket_id, "blocks")
+                click.echo(f"  ✓ {blocker_id} blocks {ticket_id}")
+            except RuntimeError as e:
+                click.echo(f"  ✗ Failed to create relation: {e}", err=True)
+
+        # blocks: this ticket blocks other tickets
+        for blocked_id in blocks:
+            try:
+                tracker.create_relation(ticket_id, blocked_id, "blocks")
+                click.echo(f"  ✓ {ticket_id} blocks {blocked_id}")
+            except RuntimeError as e:
+                click.echo(f"  ✗ Failed to create relation: {e}", err=True)
 
 
 @main.command()
@@ -283,6 +455,57 @@ def close(ticket_id: str, cancel: bool) -> None:
     except RuntimeError as e:
         click.echo(str(e), err=True)
         sys.exit(1)
+
+
+@main.command()
+@click.argument("ticket_id")
+@click.option("--blocks", multiple=True, help="Ticket IDs that this ticket blocks")
+@click.option("--blocked-by", multiple=True, help="Ticket IDs that block this ticket")
+def relate(ticket_id: str, blocks: tuple, blocked_by: tuple) -> None:
+    """Set up blocking relationships for a ticket.
+
+    Use this command to quickly set up multiple blocking relationships:
+
+        bin/ticket relate PROJ-123 --blocks PROJ-456 PROJ-457 PROJ-458
+        bin/ticket relate PROJ-123 --blocked-by PROJ-100
+    """
+    tracker = ensure_tracker_configured()
+
+    if not blocks and not blocked_by:
+        click.echo("Specify at least one of: --blocks, --blocked-by", err=True)
+        sys.exit(1)
+
+    if not hasattr(tracker, "create_relation"):
+        click.echo("This tracker does not support blocking relationships", err=True)
+        sys.exit(1)
+
+    success_count = 0
+    fail_count = 0
+
+    # This ticket blocks others
+    for blocked_id in blocks:
+        try:
+            tracker.create_relation(ticket_id, blocked_id, "blocks")
+            click.echo(f"  ✓ {ticket_id} blocks {blocked_id}")
+            success_count += 1
+        except RuntimeError as e:
+            click.echo(f"  ✗ {ticket_id} -> {blocked_id}: {e}", err=True)
+            fail_count += 1
+
+    # Other tickets block this one
+    for blocker_id in blocked_by:
+        try:
+            tracker.create_relation(blocker_id, ticket_id, "blocks")
+            click.echo(f"  ✓ {blocker_id} blocks {ticket_id}")
+            success_count += 1
+        except RuntimeError as e:
+            click.echo(f"  ✗ {blocker_id} -> {ticket_id}: {e}", err=True)
+            fail_count += 1
+
+    click.echo()
+    click.echo(
+        f"Created {success_count} relation(s)" + (f", {fail_count} failed" if fail_count else "")
+    )
 
 
 @main.command()
