@@ -7,6 +7,7 @@ from pathlib import Path
 import click
 
 from lib.vibe.config import load_config, save_config
+from lib.vibe.ui.components import NumberedMenu, ProgressIndicator
 from lib.vibe.deployment_followup import (
     build_human_followup_body,
     detect_deployment_platforms,
@@ -79,14 +80,19 @@ def main() -> None:
 
 @main.command()
 @click.argument("ticket_id")
-def get(ticket_id: str) -> None:
+@click.option("--children", "-c", is_flag=True, help="Include sub-tasks (children)")
+def get(ticket_id: str, children: bool) -> None:
     """Get details for a specific ticket."""
     tracker = ensure_tracker_configured()
 
     try:
-        ticket = tracker.get_ticket(ticket_id)
+        # Use include_children if supported
+        if hasattr(tracker, "get_ticket") and children:
+            ticket = tracker.get_ticket(ticket_id, include_children=True)
+        else:
+            ticket = tracker.get_ticket(ticket_id)
         if ticket:
-            print_ticket(ticket)
+            print_ticket(ticket, show_children=children)
         else:
             click.echo(f"Ticket not found: {ticket_id}")
             sys.exit(1)
@@ -99,16 +105,63 @@ def get(ticket_id: str) -> None:
 @click.option("--status", "-s", help="Filter by status")
 @click.option("--label", "-l", multiple=True, help="Filter by label")
 @click.option("--limit", "-n", default=10, help="Maximum tickets to show")
-def list_tickets(status: str | None, label: tuple, limit: int) -> None:
-    """List tickets from the tracker."""
+@click.option("--project", "-p", help="Filter by project name")
+@click.option("--parent", help="Filter by parent ticket (show sub-tasks)")
+@click.option(
+    "--priority",
+    type=click.Choice(["urgent", "high", "medium", "low", "none"], case_sensitive=False),
+    help="Filter by priority",
+)
+@click.option("--assignee", "-a", help="Filter by assignee name (or 'me')")
+@click.option("--unassigned", is_flag=True, help="Show only unassigned tickets")
+def list_tickets(
+    status: str | None,
+    label: tuple,
+    limit: int,
+    project: str | None,
+    parent: str | None,
+    priority: str | None,
+    assignee: str | None,
+    unassigned: bool,
+) -> None:
+    """List tickets from the tracker.
+
+    Examples:
+
+        bin/ticket list --status "In Progress"
+        bin/ticket list --project "Q1 Roadmap"
+        bin/ticket list --parent PROJ-100  # Show sub-tasks
+        bin/ticket list --priority urgent
+        bin/ticket list --assignee me
+        bin/ticket list --unassigned
+    """
     tracker = ensure_tracker_configured()
 
     try:
-        tickets = tracker.list_tickets(
-            status=status,
-            labels=list(label) if label else None,
-            limit=limit,
-        )
+        # Build kwargs for trackers that support extended filters
+        kwargs: dict = {
+            "status": status,
+            "labels": list(label) if label else None,
+            "limit": limit,
+        }
+        # Add extended filters if supported
+        if hasattr(tracker, "list_tickets"):
+            import inspect
+
+            sig = inspect.signature(tracker.list_tickets)
+            params = sig.parameters
+            if "project" in params and project:
+                kwargs["project"] = project
+            if "parent" in params and parent:
+                kwargs["parent"] = parent
+            if "priority" in params and priority:
+                kwargs["priority"] = priority
+            if "assignee" in params and assignee:
+                kwargs["assignee"] = assignee
+            if "unassigned" in params and unassigned:
+                kwargs["unassigned"] = unassigned
+
+        tickets = tracker.list_tickets(**kwargs)
 
         if not tickets:
             click.echo("No tickets found.")
@@ -122,24 +175,192 @@ def list_tickets(status: str | None, label: tuple, limit: int) -> None:
 
 
 @main.command()
-@click.argument("title")
+@click.argument("title", required=False)
 @click.option("--description", "-d", default="", help="Ticket description")
 @click.option("--label", "-l", multiple=True, help="Labels to add")
-def create(title: str, description: str, label: tuple) -> None:
-    """Create a new ticket."""
+@click.option("--blocked-by", multiple=True, help="Ticket IDs that block this ticket")
+@click.option("--interactive", "-i", is_flag=True, help="Interactive mode with guided prompts")
+@click.option("--project", "-p", help="Add to project (by name)")
+@click.option("--parent", help="Parent ticket ID (creates as sub-task)")
+@click.option(
+    "--priority",
+    type=click.Choice(["urgent", "high", "medium", "low", "none"], case_sensitive=False),
+    help="Set priority level",
+)
+@click.option("--assignee", "-a", help="Assign to user (name or 'me')")
+def create(
+    title: str | None,
+    description: str,
+    label: tuple,
+    blocked_by: tuple,
+    interactive: bool,
+    project: str | None,
+    parent: str | None,
+    priority: str | None,
+    assignee: str | None,
+) -> None:
+    """Create a new ticket.
+
+    Use --interactive for guided ticket creation with prompts for
+    type, risk, and area labels.
+
+    Examples:
+
+        bin/ticket create "New feature" --blocked-by PROJ-123
+        bin/ticket create "Sub-task" --parent PROJ-100
+        bin/ticket create "Urgent fix" --priority urgent --assignee me
+        bin/ticket create "Q1 work" --project "Q1 Roadmap"
+    """
     tracker = ensure_tracker_configured()
 
+    # Interactive mode
+    if interactive:
+        title, description, labels = _interactive_create()
+    else:
+        if not title:
+            click.echo("Error: Title is required. Use --interactive for guided mode.", err=True)
+            sys.exit(1)
+        labels = list(label) if label else None
+
     try:
-        ticket = tracker.create_ticket(
-            title=title,
-            description=description,
-            labels=list(label) if label else None,
-        )
+        # Build kwargs for extended create options
+        kwargs: dict = {
+            "title": title,
+            "description": description,
+            "labels": labels,
+        }
+        # Add extended options if supported
+        import inspect
+
+        sig = inspect.signature(tracker.create_ticket)
+        params = sig.parameters
+        if "project" in params and project:
+            kwargs["project"] = project
+        if "parent" in params and parent:
+            kwargs["parent"] = parent
+        if "priority" in params and priority:
+            kwargs["priority"] = priority
+        if "assignee" in params and assignee:
+            kwargs["assignee"] = assignee
+
+        ticket = tracker.create_ticket(**kwargs)
         click.echo(f"Created ticket: {ticket.id}")
+        if parent and ticket.parent_id:
+            click.echo(f"  (sub-task of {ticket.parent_id})")
+        if project and ticket.project:
+            click.echo(f"  (in project: {ticket.project})")
         click.echo(f"URL: {ticket.url}")
+
+        # Set up blocking relationships if specified
+        if blocked_by and hasattr(tracker, "create_relation"):
+            click.echo()
+            for blocker_id in blocked_by:
+                try:
+                    tracker.create_relation(blocker_id, ticket.id, "blocks")
+                    click.echo(f"  ✓ {blocker_id} blocks {ticket.id}")
+                except RuntimeError as e:
+                    click.echo(f"  ✗ Failed to create relation: {e}", err=True)
+
     except NotImplementedError as e:
         click.echo(str(e), err=True)
         sys.exit(1)
+
+
+def _interactive_create() -> tuple[str, str, list[str]]:
+    """Interactive ticket creation with guided prompts.
+
+    Returns:
+        Tuple of (title, description, labels)
+    """
+    config = load_config()
+    label_config = config.get("labels", {})
+
+    click.echo("\n" + "=" * 50)
+    click.echo("  Interactive Ticket Creation")
+    click.echo("=" * 50)
+    click.echo()
+
+    progress = ProgressIndicator(total_steps=5)
+
+    # Step 1: Title
+    progress.advance("Ticket title")
+    title = click.prompt("Enter ticket title")
+
+    # Step 2: Type label
+    progress.advance("Type selection")
+    type_labels = label_config.get("type", ["Bug", "Feature", "Chore", "Refactor"])
+    type_menu = NumberedMenu(
+        title="Select ticket type:",
+        options=[(t, "") for t in type_labels],
+        default=2,  # Default to Feature
+    )
+    type_choice = type_menu.show()
+    selected_type = type_labels[type_choice - 1]
+
+    # Step 3: Risk label
+    progress.advance("Risk assessment")
+    risk_labels = label_config.get("risk", ["Low Risk", "Medium Risk", "High Risk"])
+    risk_menu = NumberedMenu(
+        title="Select risk level:",
+        options=[
+            ("Low Risk", "Docs, tests, typos, minor UI tweaks"),
+            ("Medium Risk", "New features, bug fixes, refactoring"),
+            ("High Risk", "Auth, payments, database, infrastructure"),
+        ],
+        default=1,
+    )
+    risk_choice = risk_menu.show()
+    selected_risk = risk_labels[risk_choice - 1]
+
+    # Step 4: Area label(s)
+    progress.advance("Area selection")
+    area_labels = label_config.get("area", ["Frontend", "Backend", "Infra", "Docs"])
+    area_menu = NumberedMenu(
+        title="Select primary area:",
+        options=[(a, "") for a in area_labels],
+        default=2,  # Default to Backend
+    )
+    area_choice = area_menu.show()
+    selected_area = area_labels[area_choice - 1]
+
+    # Step 5: Description
+    progress.advance("Description")
+    click.echo("\nEnter description (press Enter twice to finish, or leave blank to skip):")
+    description_lines = []
+    empty_count = 0
+    while True:
+        line = click.prompt("", default="", show_default=False)
+        if line == "":
+            empty_count += 1
+            if empty_count >= 1:  # Single empty line ends input
+                break
+        else:
+            empty_count = 0
+            description_lines.append(line)
+    description = "\n".join(description_lines)
+
+    labels = [selected_type, selected_risk, selected_area]
+
+    # Summary
+    click.echo("\n" + "-" * 50)
+    click.echo("Summary:")
+    click.echo(f"  Title: {title}")
+    click.echo(f"  Type: {selected_type}")
+    click.echo(f"  Risk: {selected_risk}")
+    click.echo(f"  Area: {selected_area}")
+    if description:
+        click.echo(
+            f"  Description: {description[:50]}..."
+            if len(description) > 50
+            else f"  Description: {description}"
+        )
+    click.echo("-" * 50)
+
+    if not click.confirm("\nCreate this ticket?", default=True):
+        click.echo("Cancelled.")
+        sys.exit(0)
+
+    return title, description, labels
 
 
 HUMAN_FOLLOWUP_LABELS = ["Chore", "Infra", "HUMAN"]
@@ -232,37 +453,130 @@ def create_human_followup(
     multiple=True,
     help="Set labels (replaces existing for trackers that support it)",
 )
+@click.option("--blocked-by", multiple=True, help="Add tickets that block this ticket")
+@click.option("--blocks", multiple=True, help="Add tickets that this ticket blocks")
+@click.option("--project", "-p", help="Add to project (by name)")
+@click.option("--remove-project", is_flag=True, help="Remove from current project")
+@click.option("--parent", help="Set parent ticket (make sub-task)")
+@click.option("--no-parent", is_flag=True, help="Remove parent (make standalone)")
+@click.option(
+    "--priority",
+    type=click.Choice(["urgent", "high", "medium", "low", "none"], case_sensitive=False),
+    help="Set priority level",
+)
+@click.option("--assignee", "-a", help="Assign to user (name or 'me')")
+@click.option("--unassign", is_flag=True, help="Remove assignee")
 def update(
     ticket_id: str,
     status: str | None,
     title: str | None,
     description: str | None,
     label: tuple,
+    blocked_by: tuple,
+    blocks: tuple,
+    project: str | None,
+    remove_project: bool,
+    parent: str | None,
+    no_parent: bool,
+    priority: str | None,
+    assignee: str | None,
+    unassign: bool,
 ) -> None:
-    """Update a ticket (status, title, description, labels)."""
+    """Update a ticket (status, title, description, labels, relations, project, parent).
+
+    Examples:
+
+        bin/ticket update PROJ-456 --blocked-by PROJ-123
+        bin/ticket update PROJ-456 --blocks PROJ-789
+        bin/ticket update PROJ-456 --project "Q1 Roadmap"
+        bin/ticket update PROJ-456 --parent PROJ-100  # Make sub-task
+        bin/ticket update PROJ-456 --no-parent  # Make standalone
+        bin/ticket update PROJ-456 --priority urgent --assignee me
+    """
     tracker = ensure_tracker_configured()
 
-    if not any([status, title, description, label]):
-        click.echo("Specify at least one of: --status, --title, --description, --label", err=True)
+    has_field_update = any([
+        status, title, description, label, project, remove_project,
+        parent, no_parent, priority, assignee, unassign
+    ])
+    has_relation_update = any([blocked_by, blocks])
+
+    if not has_field_update and not has_relation_update:
+        click.echo(
+            "Specify at least one of: --status, --title, --description, --label, "
+            "--blocked-by, --blocks, --project, --parent, --priority, --assignee",
+            err=True,
+        )
         sys.exit(1)
 
-    try:
-        ticket = tracker.update_ticket(
-            ticket_id,
-            title=title,
-            description=description,
-            status=status,
-            labels=list(label) if label else None,
-        )
-        click.echo(f"Updated: {ticket.id}")
-        click.echo(f"Status: {ticket.status}")
-        click.echo(f"URL: {ticket.url}")
-    except NotImplementedError as e:
-        click.echo(str(e), err=True)
-        sys.exit(1)
-    except RuntimeError as e:
-        click.echo(str(e), err=True)
-        sys.exit(1)
+    # Update ticket fields if any specified
+    if has_field_update:
+        try:
+            # Build kwargs for extended update options
+            import inspect
+
+            kwargs: dict = {
+                "title": title,
+                "description": description,
+                "status": status,
+                "labels": list(label) if label else None,
+            }
+            sig = inspect.signature(tracker.update_ticket)
+            params = sig.parameters
+            if "project" in params and project:
+                kwargs["project"] = project
+            if "remove_project" in params and remove_project:
+                kwargs["remove_project"] = remove_project
+            if "parent" in params and parent:
+                kwargs["parent"] = parent
+            if "remove_parent" in params and no_parent:
+                kwargs["remove_parent"] = no_parent
+            if "priority" in params and priority:
+                kwargs["priority"] = priority
+            if "assignee" in params and assignee:
+                kwargs["assignee"] = assignee
+            if "unassign" in params and unassign:
+                kwargs["unassign"] = unassign
+
+            ticket = tracker.update_ticket(ticket_id, **kwargs)
+            click.echo(f"Updated: {ticket.id}")
+            click.echo(f"Status: {ticket.status}")
+            if ticket.project:
+                click.echo(f"Project: {ticket.project}")
+            if ticket.parent_id:
+                click.echo(f"Parent: {ticket.parent_id}")
+            if ticket.assignee:
+                click.echo(f"Assignee: {ticket.assignee}")
+            if ticket.priority is not None:
+                from lib.vibe.trackers.linear import PRIORITY_NAMES
+                priority_name = PRIORITY_NAMES.get(ticket.priority, "unknown")
+                click.echo(f"Priority: {priority_name}")
+            click.echo(f"URL: {ticket.url}")
+        except NotImplementedError as e:
+            click.echo(str(e), err=True)
+            sys.exit(1)
+        except RuntimeError as e:
+            click.echo(str(e), err=True)
+            sys.exit(1)
+
+    # Set up blocking relationships if specified
+    if has_relation_update and hasattr(tracker, "create_relation"):
+        click.echo()
+        # blocked_by: other tickets block this one
+        for blocker_id in blocked_by:
+            try:
+                tracker.create_relation(blocker_id, ticket_id, "blocks")
+                click.echo(f"  ✓ {blocker_id} blocks {ticket_id}")
+            except RuntimeError as e:
+                click.echo(f"  ✗ Failed to create relation: {e}", err=True)
+
+        # blocks: this ticket blocks other tickets
+        for blocked_id in blocks:
+            try:
+                tracker.create_relation(ticket_id, blocked_id, "blocks")
+                click.echo(f"  ✓ {ticket_id} blocks {blocked_id}")
+            except RuntimeError as e:
+                click.echo(f"  ✗ Failed to create relation: {e}", err=True)
 
 
 @main.command()
@@ -283,6 +597,57 @@ def close(ticket_id: str, cancel: bool) -> None:
     except RuntimeError as e:
         click.echo(str(e), err=True)
         sys.exit(1)
+
+
+@main.command()
+@click.argument("ticket_id")
+@click.option("--blocks", multiple=True, help="Ticket IDs that this ticket blocks")
+@click.option("--blocked-by", multiple=True, help="Ticket IDs that block this ticket")
+def relate(ticket_id: str, blocks: tuple, blocked_by: tuple) -> None:
+    """Set up blocking relationships for a ticket.
+
+    Use this command to quickly set up multiple blocking relationships:
+
+        bin/ticket relate PROJ-123 --blocks PROJ-456 PROJ-457 PROJ-458
+        bin/ticket relate PROJ-123 --blocked-by PROJ-100
+    """
+    tracker = ensure_tracker_configured()
+
+    if not blocks and not blocked_by:
+        click.echo("Specify at least one of: --blocks, --blocked-by", err=True)
+        sys.exit(1)
+
+    if not hasattr(tracker, "create_relation"):
+        click.echo("This tracker does not support blocking relationships", err=True)
+        sys.exit(1)
+
+    success_count = 0
+    fail_count = 0
+
+    # This ticket blocks others
+    for blocked_id in blocks:
+        try:
+            tracker.create_relation(ticket_id, blocked_id, "blocks")
+            click.echo(f"  ✓ {ticket_id} blocks {blocked_id}")
+            success_count += 1
+        except RuntimeError as e:
+            click.echo(f"  ✗ {ticket_id} -> {blocked_id}: {e}", err=True)
+            fail_count += 1
+
+    # Other tickets block this one
+    for blocker_id in blocked_by:
+        try:
+            tracker.create_relation(blocker_id, ticket_id, "blocks")
+            click.echo(f"  ✓ {blocker_id} blocks {ticket_id}")
+            success_count += 1
+        except RuntimeError as e:
+            click.echo(f"  ✗ {blocker_id} -> {ticket_id}: {e}", err=True)
+            fail_count += 1
+
+    click.echo()
+    click.echo(
+        f"Created {success_count} relation(s)" + (f", {fail_count} failed" if fail_count else "")
+    )
 
 
 @main.command()
@@ -343,22 +708,205 @@ def labels(as_json: bool) -> None:
         sys.exit(1)
 
 
-def print_ticket(ticket: Ticket) -> None:
+@main.command("projects")
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON")
+@click.option(
+    "--state",
+    type=click.Choice(["planned", "started", "completed", "canceled"], case_sensitive=False),
+    help="Filter by project state",
+)
+def list_projects(as_json: bool, state: str | None) -> None:
+    """List all projects.
+
+    Examples:
+
+        bin/ticket projects
+        bin/ticket projects --state started
+        bin/ticket projects --json
+    """
+    tracker = ensure_tracker_configured()
+
+    if not hasattr(tracker, "list_projects"):
+        click.echo("Project listing not supported for this tracker", err=True)
+        sys.exit(1)
+
+    try:
+        projects = tracker.list_projects(state=state)
+        if not projects:
+            click.echo("No projects found.")
+            return
+
+        if as_json:
+            import json
+
+            click.echo(
+                json.dumps(
+                    [{"id": p.id, "name": p.name, "state": p.state, "url": p.url} for p in projects],
+                    indent=2,
+                )
+            )
+        else:
+            click.echo("\nProjects:")
+            click.echo("-" * 60)
+            for project in projects:
+                state_str = f" ({project.state})" if project.state else ""
+                click.echo(f"  {project.name}{state_str}")
+                if project.description:
+                    click.echo(f"    {project.description[:50]}...")
+            click.echo()
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
+@main.command("project")
+@click.argument("action", type=click.Choice(["create", "get"]))
+@click.argument("name")
+@click.option("--description", "-d", default="", help="Project description")
+@click.option(
+    "--state",
+    type=click.Choice(["planned", "started", "completed", "canceled"], case_sensitive=False),
+    default="planned",
+    help="Initial project state",
+)
+def project_command(action: str, name: str, description: str, state: str) -> None:
+    """Manage projects.
+
+    Examples:
+
+        bin/ticket project create "Q1 Roadmap" --description "Q1 goals"
+        bin/ticket project get "Q1 Roadmap"
+    """
+    tracker = ensure_tracker_configured()
+
+    if action == "create":
+        if not hasattr(tracker, "create_project"):
+            click.echo("Project creation not supported for this tracker", err=True)
+            sys.exit(1)
+        try:
+            project = tracker.create_project(name=name, description=description, state=state)
+            click.echo(f"Created project: {project.name}")
+            click.echo(f"ID: {project.id}")
+            click.echo(f"URL: {project.url}")
+        except Exception as e:
+            click.echo(f"Error: {e}", err=True)
+            sys.exit(1)
+
+    elif action == "get":
+        if not hasattr(tracker, "get_project"):
+            click.echo("Project retrieval not supported for this tracker", err=True)
+            sys.exit(1)
+        try:
+            project = tracker.get_project(name)
+            if project:
+                click.echo(f"\n{project.name}")
+                click.echo("-" * 40)
+                click.echo(f"ID: {project.id}")
+                click.echo(f"State: {project.state}")
+                if project.description:
+                    click.echo(f"Description: {project.description}")
+                click.echo(f"URL: {project.url}")
+            else:
+                click.echo(f"Project not found: {name}")
+                sys.exit(1)
+        except Exception as e:
+            click.echo(f"Error: {e}", err=True)
+            sys.exit(1)
+
+
+@main.command("users")
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON")
+def list_users(as_json: bool) -> None:
+    """List all users in the organization.
+
+    Useful for finding assignee names.
+    """
+    tracker = ensure_tracker_configured()
+
+    if not hasattr(tracker, "list_users"):
+        click.echo("User listing not supported for this tracker", err=True)
+        sys.exit(1)
+
+    try:
+        users = tracker.list_users()
+        if not users:
+            click.echo("No users found.")
+            return
+
+        if as_json:
+            import json
+
+            click.echo(json.dumps(users, indent=2))
+        else:
+            click.echo("\nUsers:")
+            click.echo("-" * 60)
+            for user in users:
+                name = user.get("name", "")
+                email = user.get("email", "")
+                active = "active" if user.get("active", True) else "inactive"
+                click.echo(f"  {name} <{email}> ({active})")
+            click.echo()
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
+def print_ticket(ticket: Ticket, show_children: bool = False) -> None:
     """Print full ticket details."""
     click.echo(f"\n{ticket.id}: {ticket.title}")
     click.echo("-" * 60)
     click.echo(f"Status: {ticket.status}")
     click.echo(f"Labels: {', '.join(ticket.labels) if ticket.labels else 'none'}")
+
+    # Extended fields
+    if ticket.priority is not None:
+        from lib.vibe.trackers.linear import PRIORITY_NAMES
+
+        priority_name = PRIORITY_NAMES.get(ticket.priority, "unknown")
+        click.echo(f"Priority: {priority_name}")
+    if ticket.assignee:
+        click.echo(f"Assignee: {ticket.assignee}")
+    if ticket.project:
+        click.echo(f"Project: {ticket.project}")
+    if ticket.parent_id:
+        parent_str = ticket.parent_id
+        if ticket.parent_title:
+            parent_str += f" ({ticket.parent_title})"
+        click.echo(f"Parent: {parent_str}")
+
     click.echo(f"URL: {ticket.url}")
+
     if ticket.description:
         click.echo(f"\nDescription:\n{ticket.description}")
+
+    # Show children (sub-tasks) if requested and present
+    if show_children and ticket.children:
+        click.echo("\nSub-tasks:")
+        for child in ticket.children:
+            click.echo(f"  - {child.id}: {child.title} ({child.status})")
+
     click.echo()
 
 
 def print_ticket_summary(ticket: Ticket) -> None:
     """Print ticket summary line."""
     labels = f" [{', '.join(ticket.labels)}]" if ticket.labels else ""
-    click.echo(f"  {ticket.id}: {ticket.title} ({ticket.status}){labels}")
+
+    # Build extra info
+    extras = []
+    if ticket.priority is not None and ticket.priority > 0:
+        from lib.vibe.trackers.linear import PRIORITY_NAMES
+
+        priority_name = PRIORITY_NAMES.get(ticket.priority, "")
+        if priority_name:
+            extras.append(priority_name.upper())
+    if ticket.assignee:
+        extras.append(f"@{ticket.assignee.split()[0]}")  # First name only
+    if ticket.parent_id:
+        extras.append(f"↳{ticket.parent_id}")
+
+    extra_str = f" {' '.join(extras)}" if extras else ""
+    click.echo(f"  {ticket.id}: {ticket.title} ({ticket.status}){labels}{extra_str}")
 
 
 if __name__ == "__main__":
