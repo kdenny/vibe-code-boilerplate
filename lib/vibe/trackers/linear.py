@@ -333,6 +333,62 @@ class LinearTracker(TrackerBase):
         except Exception:
             return None
 
+    def create_relation(
+        self,
+        blocker_id: str,
+        blocked_id: str,
+        relation_type: str = "blocks",
+    ) -> bool:
+        """Create a blocking relationship between two issues.
+
+        Args:
+            blocker_id: The issue that blocks (prerequisite)
+            blocked_id: The issue that is blocked (dependent)
+            relation_type: Type of relation ("blocks" or "related")
+
+        Returns:
+            True if relation was created successfully
+        """
+        # First resolve identifiers to UUIDs if needed
+        blocker = self.get_ticket(blocker_id)
+        blocked = self.get_ticket(blocked_id)
+
+        if not blocker:
+            raise RuntimeError(f"Ticket not found: {blocker_id}")
+        if not blocked:
+            raise RuntimeError(f"Ticket not found: {blocked_id}")
+
+        blocker_uuid = blocker.raw.get("id")
+        blocked_uuid = blocked.raw.get("id")
+
+        if not blocker_uuid or not blocked_uuid:
+            raise RuntimeError("Cannot create relation: missing issue UUIDs")
+
+        mutation = """
+        mutation CreateIssueRelation($input: IssueRelationCreateInput!) {
+            issueRelationCreate(input: $input) {
+                success
+                issueRelation {
+                    id
+                    type
+                }
+            }
+        }
+        """
+
+        input_obj = {
+            "issueId": blocker_uuid,
+            "relatedIssueId": blocked_uuid,
+            "type": relation_type,
+        }
+
+        try:
+            result = self._execute_query(mutation, {"input": input_obj})
+            success = result.get("data", {}).get("issueRelationCreate", {}).get("success", False)
+            return success
+        except Exception as e:
+            raise RuntimeError(f"Failed to create relation: {e}") from e
+
     def _parse_issue(self, issue: dict) -> Ticket:
         """Parse a Linear issue into a Ticket."""
         state = issue.get("state") or {}
