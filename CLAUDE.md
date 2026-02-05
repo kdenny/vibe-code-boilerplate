@@ -645,87 +645,14 @@ Worktrees are tracked in `.vibe/local_state.json` (gitignored). Stale entries ca
 
 ## Multi-Agent Coordination
 
-When multiple AI agents work on the same codebase simultaneously, follow these rules to prevent conflicts.
+When multiple AI agents work on the same codebase, follow these rules:
 
-### Worktree Isolation (Mandatory)
+1. **Use worktree isolation** - Each agent MUST use its own worktree (`bin/vibe do PROJ-123`)
+2. **Check what's in flight** - Run `git fetch --all && git branch -r` before starting
+3. **Avoid high-risk files** - `CLAUDE.md`, `package.json`, migrations are conflict-prone
+4. **Coordinate via tracker** - Keep tickets "In Progress" so others see claimed work
 
-**Each agent MUST use its own worktree.** Never share a working directory with another agent.
-
-```bash
-# Create a dedicated worktree for your work
-bin/vibe do PROJ-123  # Creates ../repo-worktrees/PROJ-123
-```
-
-This prevents:
-- Merge conflicts from concurrent edits
-- Uncommitted changes being overwritten
-- Branch switching interfering with other agents
-
-### Situational Awareness
-
-Before starting significant work, understand what's in flight:
-
-```bash
-# See all active feature branches
-git fetch --all
-git branch -r | grep -v 'main\|HEAD'
-
-# See recent commits across ALL branches
-git log --all --oneline --graph -20
-
-# Check what files are being modified on other branches
-git diff main...<other-branch> --name-only
-```
-
-### High-Risk Overlap Areas
-
-These files are commonly edited and prone to conflicts:
-- `CLAUDE.md` - Documentation updates
-- `package.json` / `package-lock.json` - Dependencies
-- `migrations/` - Database migrations (use timestamps)
-- Shared components / utilities
-
-**When touching these areas:**
-1. Pull the latest `main` first
-2. Make changes quickly and push
-3. Consider coordinating with user if multiple agents need the same file
-
-### File Conflict Prevention
-
-1. **Check file history before editing:**
-   ```bash
-   git log --all --oneline -5 -- path/to/file.ts
-   ```
-
-2. **Avoid editing files with active changes on other branches**
-
-3. **Keep your branch up to date:**
-   ```bash
-   git fetch origin main && git rebase origin/main
-   ```
-
-### Communication Signals
-
-Since agents cannot directly communicate:
-
-| Signal | How |
-|--------|-----|
-| **Claim work area** | Branch name describes scope: `PROJ-123-auth-refactor` |
-| **Signal file changes** | Commit messages list affected files |
-| **Warn of conflicts** | PR description notes overlap with known branches |
-| **Coordinate via tracker** | Keep tickets "In Progress" so others see claimed work |
-
-### Pre-Work Checklist
-
-Before starting any task:
-- [ ] `git fetch --all` - Get latest remote state
-- [ ] `git branch -r` - Check what branches exist
-- [ ] Check tracker for "In Progress" tickets
-- [ ] Verify your branch is up to date with `main`
-- [ ] Identify which files you'll modify
-- [ ] Check those files aren't being actively modified elsewhere
-
-See `recipes/workflows/multi-agent-coordination.md` for the full guide.
+See `recipes/workflows/multi-agent-coordination.md` for full details on situational awareness, conflict prevention, and communication signals.
 
 ---
 
