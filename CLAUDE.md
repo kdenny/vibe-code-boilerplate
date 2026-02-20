@@ -791,65 +791,7 @@ When a workflow fails, check:
 
 ## Recipes Reference
 
-When implementing specific features, consult these recipes:
-
-### Workflow
-- `recipes/workflows/git-worktrees.md` - Parallel development
-- `recipes/workflows/branching-and-rebasing.md` - Git workflow
-- `recipes/workflows/multi-agent-coordination.md` - Preventing conflicts with multiple agents
-- `recipes/workflows/multi-agent-terminals.md` - Terminal setup for multiple agents (iTerm2, tmux)
-- `recipes/workflows/linear-hooks.md` - Local hooks for automatic Linear updates
-- `recipes/workflows/pr-opened-linear.md` - PR opened → Linear status (In Review)
-- `recipes/workflows/pr-merge-linear.md` - PR merge → Linear status (Deployed)
-- `recipes/workflows/uat-testing.md` - Optional UAT workflow (To Test → Done)
-- `recipes/workflows/pr-risk-assessment.md` - Risk classification
-- `recipes/workflows/testing-instructions-writing.md` - Testing docs
-
-### Agents
-- `recipes/agents/sub-agent-patterns.md` - Breaking complex tasks into specialized sub-agents
-- `recipes/agents/asking-clarifying-questions.md` - When to ask vs. proceed
-- `recipes/agents/human-required-work.md` - When to create HUMAN tickets
-- `recipes/agents/readme-maintenance.md` - Keeping README up to date
-
-### Security
-- `recipes/security/secret-management.md` - Handling secrets
-- `recipes/security/permissions-hardening.md` - GitHub Actions security
-
-### Architecture
-- `recipes/architecture/adr-guide.md` - Decision records
-- `recipes/architecture/alternatives-analysis.md` - Documenting options
-
-### Tickets
-- `recipes/tickets/creating-tickets.md` - Creating tickets (blocking, labels, milestones)
-- `recipes/tickets/human-followup-deployment.md` - HUMAN follow-up tickets for deployment setup
-- `recipes/tickets/linear-setup.md` - Linear configuration
-- `recipes/tickets/linear-github-integration.md` - Native Linear GitHub integration (recommended)
-- `recipes/tickets/shortcut.md` - Shortcut configuration
-
-### Testing
-- `recipes/testing/playwright.md` - E2E testing with Playwright (setup, retrofit, CI/CD)
-- `recipes/testing/vitest.md` - Unit testing with Vitest
-
-### Debugging
-- `recipes/debugging/cors-errors.md` - CORS diagnosis and framework-specific fixes
-
-### Integrations
-- `recipes/integrations/promptvault.md` - PromptVault for LLM prompt management
-- `recipes/integrations/sentry.md` - Sentry error monitoring and performance tracking
-- `recipes/integrations/neon.md` - Neon serverless Postgres with database branching
-
-### Deployment
-- `recipes/deployment/fly-io.md` - Fly.io container deployment (global distribution, volumes, managed services)
-- `recipes/deployment/vercel.md` - Vercel deployment (Next.js, serverless, edge functions)
-
-### Databases
-- `recipes/databases/supabase.md` - Supabase (Postgres, auth, real-time, storage)
-- `recipes/databases/neon.md` - Neon serverless Postgres with database branching
-- `recipes/databases/byo-postgres.md` - Bring your own Postgres configuration
-
-### Design
-- `recipes/design/figma-ai-prompts.md` - Optimizing Figma AI prompts with codebase context
-- `recipes/design/figma-to-code.md` - Design-to-implementation workflow guide
+The `recipes/` directory contains detailed guides organized by topic: `workflows/`, `agents/`, `security/`, `architecture/`, `tickets/`, `testing/`, `debugging/`, `integrations/`, `deployment/`, `databases/`, `design/`, and more. Browse the directory or search by keyword when implementing specific features. Key recipes are linked inline throughout this document where relevant.
 
 ---
 
