@@ -7,7 +7,6 @@ from pathlib import Path
 import click
 
 from lib.vibe.config import load_config, save_config
-from lib.vibe.ui.components import NumberedMenu, ProgressIndicator
 from lib.vibe.deployment_followup import (
     build_human_followup_body,
     detect_deployment_platforms,
@@ -16,6 +15,7 @@ from lib.vibe.deployment_followup import (
 from lib.vibe.trackers.base import Ticket
 from lib.vibe.trackers.linear import LinearTracker
 from lib.vibe.trackers.shortcut import ShortcutTracker
+from lib.vibe.ui.components import NumberedMenu, ProgressIndicator
 from lib.vibe.wizards.tracker import run_tracker_wizard
 
 
