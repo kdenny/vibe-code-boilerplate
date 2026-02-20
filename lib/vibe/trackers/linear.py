@@ -82,7 +82,8 @@ class LinearTracker(TrackerBase):
             include_children: If True, fetch sub-tasks (children)
         """
         # Build children fragment conditionally
-        children_fragment = """
+        children_fragment = (
+            """
                 children {
                     nodes {
                         id
@@ -91,7 +92,10 @@ class LinearTracker(TrackerBase):
                         state { name }
                     }
                 }
-        """ if include_children else ""
+        """
+            if include_children
+            else ""
+        )
 
         query = f"""
         query GetIssue($id: String!) {{

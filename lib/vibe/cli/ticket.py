@@ -188,7 +188,9 @@ def list_tickets(
     help="Set priority level",
 )
 @click.option("--assignee", "-a", help="Assign to user (name or 'me')")
-@click.option("--allow-empty-description", is_flag=True, hidden=True, help="Skip description requirement")
+@click.option(
+    "--allow-empty-description", is_flag=True, hidden=True, help="Skip description requirement"
+)
 def create(
     title: str | None,
     description: str,
@@ -226,8 +228,13 @@ def create(
             click.echo("Error: Title is required. Use --interactive for guided mode.", err=True)
             sys.exit(1)
         if not description.strip() and not allow_empty_description:
-            click.echo("Error: --description is required. Tickets without descriptions are useless.", err=True)
-            click.echo('Usage: bin/ticket create "Title" --description "Detailed description"', err=True)
+            click.echo(
+                "Error: --description is required. Tickets without descriptions are useless.",
+                err=True,
+            )
+            click.echo(
+                'Usage: bin/ticket create "Title" --description "Detailed description"', err=True
+            )
             sys.exit(1)
         labels = list(label) if label else None
 
@@ -504,10 +511,21 @@ def update(
     """
     tracker = ensure_tracker_configured()
 
-    has_field_update = any([
-        status, title, description, label, project, remove_project,
-        parent, no_parent, priority, assignee, unassign
-    ])
+    has_field_update = any(
+        [
+            status,
+            title,
+            description,
+            label,
+            project,
+            remove_project,
+            parent,
+            no_parent,
+            priority,
+            assignee,
+            unassign,
+        ]
+    )
     has_relation_update = any([blocked_by, blocks])
 
     if not has_field_update and not has_relation_update:
@@ -558,6 +576,7 @@ def update(
                 click.echo(f"Assignee: {ticket.assignee}")
             if ticket.priority is not None:
                 from lib.vibe.trackers.linear import PRIORITY_NAMES
+
                 priority_name = PRIORITY_NAMES.get(ticket.priority, "unknown")
                 click.echo(f"Priority: {priority_name}")
             click.echo(f"URL: {ticket.url}")
@@ -750,7 +769,10 @@ def list_projects(as_json: bool, state: str | None) -> None:
 
             click.echo(
                 json.dumps(
-                    [{"id": p.id, "name": p.name, "state": p.state, "url": p.url} for p in projects],
+                    [
+                        {"id": p.id, "name": p.name, "state": p.state, "url": p.url}
+                        for p in projects
+                    ],
                     indent=2,
                 )
             )
