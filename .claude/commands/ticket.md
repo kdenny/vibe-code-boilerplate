@@ -12,7 +12,7 @@ Manage tickets in Linear or Shortcut.
 /ticket list
 /ticket list --status "In Progress"
 /ticket get PROJ-123
-/ticket create "Add user authentication"
+/ticket create "Add user authentication" --description "Add OAuth2 login flow"
 /ticket update PROJ-123 --status "Done"
 ```
 
@@ -37,10 +37,12 @@ Get details for a specific ticket.
 Shows: title, description, status, labels, assignee, blocking relationships.
 
 ### create
-Create a new ticket.
+Create a new ticket. **A description is REQUIRED** — never create a ticket without one.
+
+**IMPORTANT:** The description must include: what the problem/feature is, root cause (for bugs), affected code, and acceptance criteria.
 
 ```
-/ticket create "Title" --description "Details" --labels "Feature,Backend"
+/ticket create "Title" --description "Detailed description of the issue" --label Feature --label Backend
 ```
 
 ### update
@@ -77,8 +79,8 @@ bin/ticket list
 # Get ticket details
 bin/ticket get PROJ-123
 
-# Create ticket
-bin/ticket create "Add login button" --labels "Feature,Frontend"
+# Create ticket (description is required, use --label for each label)
+bin/ticket create "Add login button" --description "Add login button to header nav" --label Feature --label Frontend
 
 # Update status
 bin/ticket update PROJ-123 --status "Done"
