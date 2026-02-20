@@ -7,7 +7,6 @@ from pathlib import Path
 import click
 
 from lib.vibe.config import load_config, save_config
-from lib.vibe.ui.components import NumberedMenu, ProgressIndicator
 from lib.vibe.deployment_followup import (
     build_human_followup_body,
     detect_deployment_platforms,
@@ -16,6 +15,7 @@ from lib.vibe.deployment_followup import (
 from lib.vibe.trackers.base import Ticket
 from lib.vibe.trackers.linear import LinearTracker
 from lib.vibe.trackers.shortcut import ShortcutTracker
+from lib.vibe.ui.components import NumberedMenu, ProgressIndicator
 from lib.vibe.wizards.tracker import run_tracker_wizard
 
 
@@ -495,10 +495,21 @@ def update(
     """
     tracker = ensure_tracker_configured()
 
-    has_field_update = any([
-        status, title, description, label, project, remove_project,
-        parent, no_parent, priority, assignee, unassign
-    ])
+    has_field_update = any(
+        [
+            status,
+            title,
+            description,
+            label,
+            project,
+            remove_project,
+            parent,
+            no_parent,
+            priority,
+            assignee,
+            unassign,
+        ]
+    )
     has_relation_update = any([blocked_by, blocks])
 
     if not has_field_update and not has_relation_update:
@@ -549,6 +560,7 @@ def update(
                 click.echo(f"Assignee: {ticket.assignee}")
             if ticket.priority is not None:
                 from lib.vibe.trackers.linear import PRIORITY_NAMES
+
                 priority_name = PRIORITY_NAMES.get(ticket.priority, "unknown")
                 click.echo(f"Priority: {priority_name}")
             click.echo(f"URL: {ticket.url}")
@@ -741,7 +753,10 @@ def list_projects(as_json: bool, state: str | None) -> None:
 
             click.echo(
                 json.dumps(
-                    [{"id": p.id, "name": p.name, "state": p.state, "url": p.url} for p in projects],
+                    [
+                        {"id": p.id, "name": p.name, "state": p.state, "url": p.url}
+                        for p in projects
+                    ],
                     indent=2,
                 )
             )
