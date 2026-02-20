@@ -267,7 +267,7 @@ class LinearTracker(TrackerBase):
         if self._team_id:
             input_obj["teamId"] = self._team_id
         if labels:
-            label_ids = self._get_label_ids(self._team_id, labels)
+            label_ids = self._get_or_create_label_ids(self._team_id, labels)
             if label_ids:
                 input_obj["labelIds"] = label_ids
 
@@ -352,11 +352,16 @@ class LinearTracker(TrackerBase):
             input_obj["title"] = title
         if description:
             input_obj["description"] = description
-        if status:
-            # Resolve status name to workflow state ID
+
+        # We may need the issue for status or label resolution
+        issue = None
+        if status or labels:
             issue = self.get_ticket(ticket_id)
             if not issue:
                 raise RuntimeError(f"Ticket not found: {ticket_id}")
+
+        if status:
+            # Resolve status name to workflow state ID
             team_id = (issue.raw.get("team") or {}).get("id") or self._team_id
             if not team_id:
                 raise RuntimeError("Cannot resolve status: issue has no team")
@@ -367,6 +372,13 @@ class LinearTracker(TrackerBase):
                     "Check state name in Linear (e.g. Done, Canceled, In Progress)."
                 )
             input_obj["stateId"] = state_id
+
+        if labels:
+            team_id = (issue.raw.get("team") or {}).get("id") or self._team_id
+            if team_id:
+                label_ids = self._get_or_create_label_ids(team_id, labels)
+                if label_ids:
+                    input_obj["labelIds"] = label_ids
 
         # Project support
         if remove_project:
@@ -479,7 +491,7 @@ class LinearTracker(TrackerBase):
         query = """
         query TeamLabels($teamId: String!) {
             team(id: $teamId) {
-                labels { nodes { id name } }
+                labels(first: 250) { nodes { id name } }
             }
         }
         """
@@ -490,6 +502,57 @@ class LinearTracker(TrackerBase):
             return [name_to_id[n] for n in label_names if n in name_to_id]
         except Exception:
             return []
+
+    def _get_or_create_label_ids(self, team_id: str | None, label_names: list[str]) -> list[str]:
+        """Resolve label names to IDs, creating any that don't exist."""
+        if not team_id or not label_names:
+            return []
+        # First try to resolve all labels
+        existing_ids = self._get_label_ids(team_id, label_names)
+        if len(existing_ids) == len(label_names):
+            return existing_ids
+
+        # Some labels are missing — figure out which ones and create them
+        query = """
+        query TeamLabels($teamId: String!) {
+            team(id: $teamId) {
+                labels(first: 250) { nodes { id name } }
+            }
+        }
+        """
+        try:
+            result = self._execute_query(query, {"teamId": team_id})
+            nodes = result.get("data", {}).get("team", {}).get("labels", {}).get("nodes", [])
+            name_to_id = {n.get("name", ""): n["id"] for n in nodes if n.get("id")}
+
+            label_ids = []
+            for name in label_names:
+                if name in name_to_id:
+                    label_ids.append(name_to_id[name])
+                else:
+                    new_id = self._create_label(team_id, name)
+                    if new_id:
+                        label_ids.append(new_id)
+            return label_ids
+        except Exception:
+            return existing_ids
+
+    def _create_label(self, team_id: str, name: str) -> str | None:
+        """Create a label in Linear and return its ID."""
+        mutation = """
+        mutation CreateLabel($input: IssueLabelCreateInput!) {
+            issueLabelCreate(input: $input) {
+                success
+                issueLabel { id name }
+            }
+        }
+        """
+        try:
+            result = self._execute_query(mutation, {"input": {"name": name, "teamId": team_id}})
+            label = result.get("data", {}).get("issueLabelCreate", {}).get("issueLabel")
+            return label.get("id") if label else None
+        except Exception:
+            return None
 
     def list_labels(self) -> list[dict[str, str]]:
         """List all labels with their IDs for the configured team."""
