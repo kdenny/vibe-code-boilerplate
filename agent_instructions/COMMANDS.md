@@ -42,11 +42,11 @@ Get details for a specific ticket.
 - `bin/ticket get PROJ-123`
 
 ### ticket create
-Create a new ticket.
-**Usage**: `bin/ticket create "<title>"`
+Create a new ticket. **A description is REQUIRED** — never create a ticket without one.
+**Usage**: `bin/ticket create "<title>" --description "<description>"`
 **Examples:**
-- `bin/ticket create "Add user authentication"`
-- `bin/ticket create "Fix login bug" --label Bug --label "High Risk"`
+- `bin/ticket create "Add user authentication" --description "Add OAuth2 login flow with Google and GitHub providers."`
+- `bin/ticket create "Fix login bug" --description "Login form returns 500 when password contains special chars." --label Bug --label "High Risk"`
 
 ## Pull Requests
 

@@ -7,7 +7,6 @@ from pathlib import Path
 import click
 
 from lib.vibe.config import load_config, save_config
-from lib.vibe.ui.components import NumberedMenu, ProgressIndicator
 from lib.vibe.deployment_followup import (
     build_human_followup_body,
     detect_deployment_platforms,
@@ -16,6 +15,7 @@ from lib.vibe.deployment_followup import (
 from lib.vibe.trackers.base import Ticket
 from lib.vibe.trackers.linear import LinearTracker
 from lib.vibe.trackers.shortcut import ShortcutTracker
+from lib.vibe.ui.components import NumberedMenu, ProgressIndicator
 from lib.vibe.wizards.tracker import run_tracker_wizard
 
 
@@ -176,7 +176,7 @@ def list_tickets(
 
 @main.command()
 @click.argument("title", required=False)
-@click.option("--description", "-d", default="", help="Ticket description")
+@click.option("--description", "-d", default="", help="Ticket description (required)")
 @click.option("--label", "-l", multiple=True, help="Labels to add")
 @click.option("--blocked-by", multiple=True, help="Ticket IDs that block this ticket")
 @click.option("--interactive", "-i", is_flag=True, help="Interactive mode with guided prompts")
@@ -188,6 +188,9 @@ def list_tickets(
     help="Set priority level",
 )
 @click.option("--assignee", "-a", help="Assign to user (name or 'me')")
+@click.option(
+    "--allow-empty-description", is_flag=True, hidden=True, help="Skip description requirement"
+)
 def create(
     title: str | None,
     description: str,
@@ -198,18 +201,22 @@ def create(
     parent: str | None,
     priority: str | None,
     assignee: str | None,
+    allow_empty_description: bool = False,
 ) -> None:
     """Create a new ticket.
+
+    A description is required. Use --description/-d to provide context about
+    the issue, root cause, affected code, and acceptance criteria.
 
     Use --interactive for guided ticket creation with prompts for
     type, risk, and area labels.
 
     Examples:
 
-        bin/ticket create "New feature" --blocked-by PROJ-123
-        bin/ticket create "Sub-task" --parent PROJ-100
-        bin/ticket create "Urgent fix" --priority urgent --assignee me
-        bin/ticket create "Q1 work" --project "Q1 Roadmap"
+        bin/ticket create "New feature" -d "Add OAuth2 login" --blocked-by PROJ-123
+        bin/ticket create "Sub-task" -d "Implement refresh tokens" --parent PROJ-100
+        bin/ticket create "Urgent fix" -d "Login 500 on special chars" --priority urgent --assignee me
+        bin/ticket create "Q1 work" -d "Sprint planning items" --project "Q1 Roadmap"
     """
     tracker = ensure_tracker_configured()
 
@@ -219,6 +226,15 @@ def create(
     else:
         if not title:
             click.echo("Error: Title is required. Use --interactive for guided mode.", err=True)
+            sys.exit(1)
+        if not description.strip() and not allow_empty_description:
+            click.echo(
+                "Error: --description is required. Tickets without descriptions are useless.",
+                err=True,
+            )
+            click.echo(
+                'Usage: bin/ticket create "Title" --description "Detailed description"', err=True
+            )
             sys.exit(1)
         labels = list(label) if label else None
 
@@ -495,10 +511,21 @@ def update(
     """
     tracker = ensure_tracker_configured()
 
-    has_field_update = any([
-        status, title, description, label, project, remove_project,
-        parent, no_parent, priority, assignee, unassign
-    ])
+    has_field_update = any(
+        [
+            status,
+            title,
+            description,
+            label,
+            project,
+            remove_project,
+            parent,
+            no_parent,
+            priority,
+            assignee,
+            unassign,
+        ]
+    )
     has_relation_update = any([blocked_by, blocks])
 
     if not has_field_update and not has_relation_update:
@@ -549,6 +576,7 @@ def update(
                 click.echo(f"Assignee: {ticket.assignee}")
             if ticket.priority is not None:
                 from lib.vibe.trackers.linear import PRIORITY_NAMES
+
                 priority_name = PRIORITY_NAMES.get(ticket.priority, "unknown")
                 click.echo(f"Priority: {priority_name}")
             click.echo(f"URL: {ticket.url}")
@@ -741,7 +769,10 @@ def list_projects(as_json: bool, state: str | None) -> None:
 
             click.echo(
                 json.dumps(
-                    [{"id": p.id, "name": p.name, "state": p.state, "url": p.url} for p in projects],
+                    [
+                        {"id": p.id, "name": p.name, "state": p.state, "url": p.url}
+                        for p in projects
+                    ],
                     indent=2,
                 )
             )
