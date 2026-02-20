@@ -515,6 +515,14 @@ Update ticket status as work progresses:
 
 When asked to "find unblocked tickets" or "look for work to do", follow this systematic triage process:
 
+#### Step 0: Check open GitHub PRs
+
+```bash
+gh pr list --repo <owner>/<repo>
+```
+
+Any ticket with an open PR is already **In Progress / In Review** — exclude it from candidates even if the tracker still shows "Todo" or "Backlog". Tracker status is often stale; open PRs are the source of truth for work that's actively in flight.
+
 #### Step 1: Filter for candidates
 
 ```bash
@@ -525,6 +533,7 @@ Exclude tickets that are:
 - Already **Done**, **Deployed**, **Canceled**, or **In Progress**
 - Labeled **HUMAN** (requires human action)
 - Blocked by other tickets (check `blockedBy` relationships)
+- **Associated with an open PR** (found in Step 0)
 
 #### Step 2: Validate each candidate
 
@@ -558,6 +567,9 @@ Priority order:
 
 ```
 ## Ticket Triage Report
+
+### Open PRs (excluded from candidates)
+- PROJ-103: PR #42 open (in review)
 
 ### Actionable (3)
 1. PROJ-101 - Add user authentication (Medium Risk, Backend)
