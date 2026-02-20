@@ -488,6 +488,7 @@ class LinearTracker(TrackerBase):
         """Resolve label names to Linear label IDs for the team."""
         if not team_id or not label_names:
             return []
+        label_names = self._normalize_labels(label_names)
         query = """
         query TeamLabels($teamId: String!) {
             team(id: $teamId) {
@@ -558,7 +559,7 @@ class LinearTracker(TrackerBase):
         """List all labels with their IDs for the configured team."""
         query = """
         query ListLabels($teamId: String) {
-            issueLabels(filter: { team: { id: { eq: $teamId } } }, first: 100) {
+            issueLabels(filter: { team: { id: { eq: $teamId } } }, first: 250) {
                 nodes {
                     id
                     name

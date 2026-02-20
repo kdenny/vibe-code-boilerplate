@@ -24,7 +24,7 @@ List tickets from the configured tracker.
 ```
 /ticket list                    # All open tickets
 /ticket list --status "Todo"    # Filter by status
-/ticket list --labels "Bug"     # Filter by label
+/ticket list --label "Bug"      # Filter by label
 ```
 
 ### get

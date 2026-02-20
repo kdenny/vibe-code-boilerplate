@@ -216,6 +216,7 @@ class ShortcutTracker(TrackerBase):
         """Resolve label names to Shortcut label IDs."""
         if not label_names:
             return []
+        label_names = self._normalize_labels(label_names)
         try:
             response = requests.get(
                 f"{SHORTCUT_API_URL}/labels",
