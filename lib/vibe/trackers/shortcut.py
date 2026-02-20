@@ -124,9 +124,9 @@ class ShortcutTracker(TrackerBase):
             "story_type": "feature",
         }
 
-        # If labels provided, try to find matching label IDs
+        # If labels provided, resolve or create matching label IDs
         if labels:
-            label_ids = self._get_label_ids(labels)
+            label_ids = self._get_or_create_label_ids(labels)
             if label_ids:
                 payload["labels"] = [{"id": lid} for lid in label_ids]
 
@@ -168,6 +168,10 @@ class ShortcutTracker(TrackerBase):
                     "Check state name in Shortcut (e.g., Done, In Progress)."
                 )
             payload["workflow_state_id"] = state_id
+        if labels:
+            label_ids = self._get_or_create_label_ids(labels)
+            if label_ids:
+                payload["labels"] = [{"id": lid} for lid in label_ids]
 
         try:
             response = requests.put(
@@ -224,6 +228,47 @@ class ShortcutTracker(TrackerBase):
             return [name_to_id[name.lower()] for name in label_names if name.lower() in name_to_id]
         except Exception:
             return []
+
+    def _get_or_create_label_ids(self, label_names: list[str]) -> list[int]:
+        """Resolve label names to IDs, creating any that don't exist."""
+        if not label_names:
+            return []
+        try:
+            response = requests.get(
+                f"{SHORTCUT_API_URL}/labels",
+                headers=self._headers,
+                timeout=30,
+            )
+            response.raise_for_status()
+            all_labels = response.json()
+            name_to_id = {label["name"].lower(): label["id"] for label in all_labels}
+
+            label_ids = []
+            for name in label_names:
+                if name.lower() in name_to_id:
+                    label_ids.append(name_to_id[name.lower()])
+                else:
+                    new_id = self._create_label(name)
+                    if new_id:
+                        label_ids.append(new_id)
+            return label_ids
+        except Exception:
+            return self._get_label_ids(label_names)
+
+    def _create_label(self, name: str) -> int | None:
+        """Create a label in Shortcut and return its ID."""
+        try:
+            response = requests.post(
+                f"{SHORTCUT_API_URL}/labels",
+                headers=self._headers,
+                json={"name": name},
+                timeout=30,
+            )
+            response.raise_for_status()
+            label = response.json()
+            return label.get("id")
+        except Exception:
+            return None
 
     def list_labels(self) -> list[dict[str, Any]]:
         """List all labels with their IDs."""
