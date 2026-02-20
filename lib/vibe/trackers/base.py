@@ -89,6 +89,19 @@ class TrackerBase(ABC):
         """Update an existing ticket."""
         pass
 
+    @staticmethod
+    def _normalize_labels(label_names: list[str]) -> list[str]:
+        """Split comma-separated label strings into individual labels.
+
+        Handles the case where callers pass ["Bug,Frontend,Low Risk"] as a
+        single string instead of separate strings.
+        """
+        normalized: list[str] = []
+        for name in label_names:
+            parts = [part.strip() for part in name.split(",")]
+            normalized.extend(part for part in parts if part)
+        return normalized
+
     def comment_ticket(self, ticket_id: str, body: str) -> None:
         """Add a comment to a ticket. Override in trackers that support comments."""
         raise NotImplementedError(f"Commenting is not supported by the {self.name} tracker.")
