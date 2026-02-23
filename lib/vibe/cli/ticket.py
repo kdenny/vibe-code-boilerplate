@@ -191,9 +191,7 @@ def list_tickets(
 @click.option(
     "--allow-empty-description", is_flag=True, hidden=True, help="Skip description requirement"
 )
-@click.option(
-    "--no-labels", is_flag=True, help="Explicitly skip label requirement"
-)
+@click.option("--no-labels", is_flag=True, help="Explicitly skip label requirement")
 def create(
     title: str | None,
     description: str,
@@ -358,11 +356,7 @@ def _prompt_for_labels(label_config: dict) -> list[str]:
     risk_labels = label_config.get("risk", ["Low Risk", "Medium Risk", "High Risk"])
     risk_menu = NumberedMenu(
         title="Select risk level:",
-        options=[
-            ("Low Risk", "Docs, tests, typos, minor UI tweaks"),
-            ("Medium Risk", "New features, bug fixes, refactoring"),
-            ("High Risk", "Auth, payments, database, infrastructure"),
-        ],
+        options=[(r, "") for r in risk_labels],
         default=1,
     )
     risk_choice = risk_menu.show()
