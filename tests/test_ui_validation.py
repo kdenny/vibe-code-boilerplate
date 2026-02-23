@@ -3,8 +3,6 @@
 import os
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from lib.vibe.ui.validation import SetupValidator, ValidationResult, print_validation_results
 
 
