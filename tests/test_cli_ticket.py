@@ -1,5 +1,6 @@
 """Tests for ticket CLI commands."""
 
+import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -216,7 +217,7 @@ class TestTicketCLI:
         assert result.exit_code == 0
         assert "No tickets found" in result.output
 
-    def test_create_command_success(self) -> None:
+    def test_create_command_success_with_no_labels_flag(self) -> None:
         runner = CliRunner()
         mock_tracker = MagicMock()
         mock_ticket = Ticket(
@@ -231,7 +232,9 @@ class TestTicketCLI:
         mock_tracker.create_ticket.return_value = mock_ticket
 
         with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
-            result = runner.invoke(main, ["create", "New Ticket", "-d", "Description"])
+            result = runner.invoke(
+                main, ["create", "New Ticket", "-d", "Description", "--no-labels"]
+            )
 
         assert result.exit_code == 0
         assert "Created ticket: TEST-100" in result.output
@@ -245,7 +248,7 @@ class TestTicketCLI:
         mock_ticket = Ticket(
             id="TEST-101",
             title="Labeled",
-            description="",
+            description="A bug description",
             status="Backlog",
             labels=["Bug", "High Risk"],
             url="",
@@ -254,12 +257,106 @@ class TestTicketCLI:
         mock_tracker.create_ticket.return_value = mock_ticket
 
         with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
-            result = runner.invoke(main, ["create", "Labeled", "-l", "Bug", "-l", "High Risk"])
+            result = runner.invoke(
+                main,
+                ["create", "Labeled", "-d", "A bug description", "-l", "Bug", "-l", "High Risk"],
+            )
 
         assert result.exit_code == 0
         mock_tracker.create_ticket.assert_called_once_with(
-            title="Labeled", description="", labels=["Bug", "High Risk"]
+            title="Labeled", description="A bug description", labels=["Bug", "High Risk"]
         )
+
+    def test_create_command_fails_without_labels_non_interactive(self) -> None:
+        """Non-interactive mode should fail when no labels are provided."""
+        runner = CliRunner()
+        mock_tracker = MagicMock()
+
+        config = {
+            "labels": {
+                "type": ["Bug", "Feature", "Chore", "Refactor"],
+                "risk": ["Low Risk", "Medium Risk", "High Risk"],
+                "area": ["Frontend", "Backend", "Infra", "Docs"],
+            }
+        }
+
+        with (
+            patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker),
+            patch("lib.vibe.cli.ticket.load_config", return_value=config),
+            patch("lib.vibe.cli.ticket.sys") as mock_sys,
+        ):
+            mock_sys.stdin.isatty.return_value = False
+            mock_sys.exit.side_effect = SystemExit(1)
+
+            result = runner.invoke(main, ["create", "No Labels", "-d", "Description"])
+
+        assert result.exit_code == 1
+        assert "Labels are required" in result.output
+
+    def test_create_command_no_labels_flag_bypasses_requirement(self) -> None:
+        """The --no-labels flag should bypass the label requirement."""
+        runner = CliRunner()
+        mock_tracker = MagicMock()
+        mock_ticket = Ticket(
+            id="TEST-102",
+            title="No Labels OK",
+            description="Description",
+            status="Backlog",
+            labels=[],
+            url="https://example.com/TEST-102",
+            raw={},
+        )
+        mock_tracker.create_ticket.return_value = mock_ticket
+
+        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+            result = runner.invoke(
+                main, ["create", "No Labels OK", "-d", "Description", "--no-labels"]
+            )
+
+        assert result.exit_code == 0
+        assert "Created ticket: TEST-102" in result.output
+        mock_tracker.create_ticket.assert_called_once_with(
+            title="No Labels OK", description="Description", labels=None
+        )
+
+    def test_create_command_prompts_labels_in_tty_mode(self) -> None:
+        """Interactive TTY mode should prompt for labels when none provided."""
+        runner = CliRunner()
+        mock_tracker = MagicMock()
+        mock_ticket = Ticket(
+            id="TEST-103",
+            title="TTY Labels",
+            description="Description",
+            status="Backlog",
+            labels=["Feature", "Low Risk", "Backend"],
+            url="https://example.com/TEST-103",
+            raw={},
+        )
+        mock_tracker.create_ticket.return_value = mock_ticket
+
+        config = {
+            "labels": {
+                "type": ["Bug", "Feature", "Chore", "Refactor"],
+                "risk": ["Low Risk", "Medium Risk", "High Risk"],
+                "area": ["Frontend", "Backend", "Infra", "Docs"],
+            }
+        }
+
+        with (
+            patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker),
+            patch("lib.vibe.cli.ticket.load_config", return_value=config),
+            patch("lib.vibe.cli.ticket.sys") as mock_sys,
+            patch("lib.vibe.cli.ticket._prompt_for_labels") as mock_prompt,
+        ):
+            mock_sys.stdin.isatty.return_value = True
+            mock_sys.exit = sys.exit  # Use real sys.exit
+            mock_prompt.return_value = ["Feature", "Low Risk", "Backend"]
+
+            result = runner.invoke(main, ["create", "TTY Labels", "-d", "Description"])
+
+        assert result.exit_code == 0
+        assert "Created ticket: TEST-103" in result.output
+        mock_prompt.assert_called_once()
 
     def test_update_command_success(self) -> None:
         runner = CliRunner()

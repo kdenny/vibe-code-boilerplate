@@ -191,6 +191,7 @@ def list_tickets(
 @click.option(
     "--allow-empty-description", is_flag=True, hidden=True, help="Skip description requirement"
 )
+@click.option("--no-labels", is_flag=True, help="Explicitly skip label requirement")
 def create(
     title: str | None,
     description: str,
@@ -202,21 +203,27 @@ def create(
     priority: str | None,
     assignee: str | None,
     allow_empty_description: bool = False,
+    no_labels: bool = False,
 ) -> None:
     """Create a new ticket.
 
     A description is required. Use --description/-d to provide context about
     the issue, root cause, affected code, and acceptance criteria.
 
+    Labels are required by default. Use --label/-l to specify them, or
+    --no-labels to explicitly skip. In interactive mode (TTY), you'll be
+    prompted to select labels if none are provided.
+
     Use --interactive for guided ticket creation with prompts for
     type, risk, and area labels.
 
     Examples:
 
-        bin/ticket create "New feature" -d "Add OAuth2 login" --blocked-by PROJ-123
-        bin/ticket create "Sub-task" -d "Implement refresh tokens" --parent PROJ-100
-        bin/ticket create "Urgent fix" -d "Login 500 on special chars" --priority urgent --assignee me
-        bin/ticket create "Q1 work" -d "Sprint planning items" --project "Q1 Roadmap"
+        bin/ticket create "New feature" -d "Add OAuth2 login" -l Feature -l Backend --blocked-by PROJ-123
+        bin/ticket create "Sub-task" -d "Implement refresh tokens" -l Feature -l Backend --parent PROJ-100
+        bin/ticket create "Urgent fix" -d "Login 500 on special chars" -l Bug -l Backend --priority urgent --assignee me
+        bin/ticket create "Q1 work" -d "Sprint planning items" -l Chore -l Backend --project "Q1 Roadmap"
+        bin/ticket create "Quick note" -d "Description" --no-labels
     """
     tracker = ensure_tracker_configured()
 
@@ -237,6 +244,18 @@ def create(
             )
             sys.exit(1)
         labels = list(label) if label else None
+
+        # Require labels unless --no-labels is set
+        if not labels and not no_labels:
+            config = load_config()
+            label_config = config.get("labels", {})
+
+            if sys.stdin.isatty():
+                # Interactive: prompt for labels
+                labels = _prompt_for_labels(label_config)
+            else:
+                # Non-interactive: fail with helpful error
+                _fail_missing_labels(label_config)
 
     try:
         # Build kwargs for extended create options
@@ -280,6 +299,83 @@ def create(
     except NotImplementedError as e:
         click.echo(str(e), err=True)
         sys.exit(1)
+
+
+def _fail_missing_labels(label_config: dict) -> None:
+    """Print an error with available label categories and exit.
+
+    Called in non-interactive (non-TTY) mode when no labels are provided.
+    """
+    type_labels = label_config.get("type", ["Bug", "Feature", "Chore", "Refactor"])
+    risk_labels = label_config.get("risk", ["Low Risk", "Medium Risk", "High Risk"])
+    area_labels = label_config.get("area", ["Frontend", "Backend", "Infra", "Docs"])
+
+    click.echo("Error: Labels are required when creating tickets.", err=True)
+    click.echo("", err=True)
+    click.echo("Available label categories:", err=True)
+    click.echo(f"  Type (pick one):  {', '.join(type_labels)}", err=True)
+    click.echo(f"  Risk (pick one):  {', '.join(risk_labels)}", err=True)
+    click.echo(f"  Area (pick one+): {', '.join(area_labels)}", err=True)
+    click.echo("", err=True)
+    click.echo("Example:", err=True)
+    click.echo(
+        '  bin/ticket create "Fix login bug" -d "Description" -l Bug -l "High Risk" -l Backend',
+        err=True,
+    )
+    click.echo("", err=True)
+    click.echo("To skip labels, use --no-labels.", err=True)
+    sys.exit(1)
+
+
+def _prompt_for_labels(label_config: dict) -> list[str]:
+    """Interactively prompt for label selection when in TTY mode.
+
+    Args:
+        label_config: The labels section from .vibe/config.json
+
+    Returns:
+        List of selected label strings
+    """
+    labels: list[str] = []
+
+    click.echo()
+    click.echo("No labels provided. Select labels for this ticket:")
+    click.echo()
+
+    # Type label
+    type_labels = label_config.get("type", ["Bug", "Feature", "Chore", "Refactor"])
+    type_menu = NumberedMenu(
+        title="Select ticket type:",
+        options=[(t, "") for t in type_labels],
+        default=2,  # Default to Feature
+    )
+    type_choice = type_menu.show()
+    labels.append(type_labels[type_choice - 1])
+
+    # Risk label
+    risk_labels = label_config.get("risk", ["Low Risk", "Medium Risk", "High Risk"])
+    risk_menu = NumberedMenu(
+        title="Select risk level:",
+        options=[(r, "") for r in risk_labels],
+        default=1,
+    )
+    risk_choice = risk_menu.show()
+    labels.append(risk_labels[risk_choice - 1])
+
+    # Area label
+    area_labels = label_config.get("area", ["Frontend", "Backend", "Infra", "Docs"])
+    area_menu = NumberedMenu(
+        title="Select primary area:",
+        options=[(a, "") for a in area_labels],
+        default=2,  # Default to Backend
+    )
+    area_choice = area_menu.show()
+    labels.append(area_labels[area_choice - 1])
+
+    click.echo()
+    click.echo(f"Selected labels: {', '.join(labels)}")
+
+    return labels
 
 
 def _interactive_create() -> tuple[str, str, list[str]]:
