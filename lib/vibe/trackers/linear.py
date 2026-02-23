@@ -1,5 +1,6 @@
 """Linear.app ticket tracker integration."""
 
+import logging
 import os
 from typing import Any
 
@@ -8,6 +9,8 @@ import requests
 from lib.vibe.trackers.base import Project, Ticket, TrackerBase
 from lib.vibe.utils.cache import get_cache
 from lib.vibe.utils.retry import with_retry
+
+logger = logging.getLogger(__name__)
 
 LINEAR_API_URL = "https://api.linear.app/graphql"
 
@@ -528,8 +531,8 @@ class LinearTracker(TrackerBase):
         cached_labels = cache.get(cache_key)
 
         if cached_labels is not None:
-            name_to_id = {n["name"]: n["id"] for n in cached_labels}
-            return [name_to_id[n] for n in label_names if n in name_to_id]
+            name_to_id = {n["name"].lower(): n["id"] for n in cached_labels}
+            return [name_to_id[n.lower()] for n in label_names if n.lower() in name_to_id]
 
         query = """
         query TeamLabels($teamId: String!) {
@@ -548,8 +551,8 @@ class LinearTracker(TrackerBase):
                 [{"name": n.get("name", ""), "id": n["id"]} for n in nodes if n.get("id")],
             )
 
-            name_to_id = {n.get("name", ""): n["id"] for n in nodes if n.get("id")}
-            return [name_to_id[n] for n in label_names if n in name_to_id]
+            name_to_id = {n.get("name", "").lower(): n["id"] for n in nodes if n.get("id")}
+            return [name_to_id[n.lower()] for n in label_names if n.lower() in name_to_id]
         except requests.RequestException:
             return []
 
@@ -579,25 +582,33 @@ class LinearTracker(TrackerBase):
         try:
             result = self._execute_query(query, {"teamId": team_id})
             nodes = result.get("data", {}).get("team", {}).get("labels", {}).get("nodes", [])
-            name_to_id = {n.get("name", ""): n["id"] for n in nodes if n.get("id")}
+            name_to_id = {n.get("name", "").lower(): n["id"] for n in nodes if n.get("id")}
 
             label_ids = []
             created_any = False
             for name in label_names:
-                if name in name_to_id:
-                    label_ids.append(name_to_id[name])
+                if name.lower() in name_to_id:
+                    label_ids.append(name_to_id[name.lower()])
                 else:
                     new_id = self._create_label(team_id, name)
                     if new_id:
                         label_ids.append(new_id)
                         created_any = True
+                    else:
+                        logger.warning("Failed to create label '%s' for team %s", name, team_id)
 
             # Re-cache the updated label set if we created new labels
             if created_any:
                 cache.invalidate(cache_key)
 
+            if len(label_ids) < len(label_names):
+                applied = len(label_ids)
+                requested = len(label_names)
+                logger.warning("Only %d of %d requested labels were applied", applied, requested)
+
             return label_ids
         except requests.RequestException:
+            logger.warning("Failed to resolve labels due to API error")
             return existing_ids
 
     def _create_label(self, team_id: str, name: str) -> str | None:
