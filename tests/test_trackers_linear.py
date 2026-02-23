@@ -3,6 +3,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+import requests
 
 from lib.vibe.trackers.linear import LINEAR_API_URL, LinearTracker
 
@@ -65,7 +66,9 @@ class TestLinearTrackerAuthenticate:
     def test_authenticate_failure_exception(self) -> None:
         tracker = LinearTracker()
 
-        with patch.object(tracker, "_execute_query", side_effect=Exception("API error")):
+        with patch.object(
+            tracker, "_execute_query", side_effect=requests.RequestException("API error")
+        ):
             result = tracker.authenticate(api_key="test-error-key")  # noqa: S106
 
         assert result is False
@@ -156,7 +159,9 @@ class TestLinearTrackerGetTicket:
     def test_get_ticket_exception(self) -> None:
         tracker = LinearTracker(api_key="test-fake-key")
 
-        with patch.object(tracker, "_execute_query", side_effect=Exception("API error")):
+        with patch.object(
+            tracker, "_execute_query", side_effect=requests.RequestException("API error")
+        ):
             ticket = tracker.get_ticket("TEST-1")
 
         assert ticket is None
@@ -380,7 +385,7 @@ class TestLinearTrackerListTickets:
         with patch.object(
             tracker,
             "_execute_query",
-            side_effect=[page1_response, Exception("API error")],
+            side_effect=[page1_response, requests.RequestException("API error")],
         ):
             tickets = tracker.list_tickets(limit=100)
 
@@ -391,7 +396,9 @@ class TestLinearTrackerListTickets:
     def test_list_tickets_exception_returns_empty(self) -> None:
         tracker = LinearTracker(api_key="test-fake-key")
 
-        with patch.object(tracker, "_execute_query", side_effect=Exception("API error")):
+        with patch.object(
+            tracker, "_execute_query", side_effect=requests.RequestException("API error")
+        ):
             tickets = tracker.list_tickets()
 
         assert tickets == []
@@ -702,7 +709,9 @@ class TestLinearTrackerGetLabelIds:
 
         get_cache().invalidate("linear_labels_team_abc")
 
-        with patch.object(tracker, "_execute_query", side_effect=Exception("API error")):
+        with patch.object(
+            tracker, "_execute_query", side_effect=requests.RequestException("API error")
+        ):
             label_ids = tracker._get_label_ids("team_abc", ["Bug"])
 
         assert label_ids == []
@@ -740,7 +749,9 @@ class TestLinearTrackerListLabels:
     def test_list_labels_exception(self) -> None:
         tracker = LinearTracker(api_key="test-fake-key")
 
-        with patch.object(tracker, "_execute_query", side_effect=Exception("API error")):
+        with patch.object(
+            tracker, "_execute_query", side_effect=requests.RequestException("API error")
+        ):
             labels = tracker.list_labels()
 
         assert labels == []
@@ -798,7 +809,9 @@ class TestLinearTrackerGetWorkflowStateId:
 
         get_cache().invalidate("linear_states_team_abc")
 
-        with patch.object(tracker, "_execute_query", side_effect=Exception("API error")):
+        with patch.object(
+            tracker, "_execute_query", side_effect=requests.RequestException("API error")
+        ):
             state_id = tracker._get_workflow_state_id("team_abc", "Done")
 
         assert state_id is None
