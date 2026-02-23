@@ -106,6 +106,27 @@ class TrackerBase(ABC):
         """Add a comment to a ticket. Override in trackers that support comments."""
         raise NotImplementedError(f"Commenting is not supported by the {self.name} tracker.")
 
+    def set_parent(self, ticket_id: str, parent_id: str) -> None:
+        """Set a parent relationship (make ticket_id a sub-task of parent_id).
+
+        Override in trackers that support hierarchical relationships.
+        """
+        raise NotImplementedError(
+            f"Parent relationships are not supported by the {self.name} tracker."
+        )
+
+    def add_relation(self, ticket_id: str, related_id: str, relation_type: str = "related") -> None:
+        """Create a non-hierarchical relationship between two tickets.
+
+        Args:
+            ticket_id: First ticket identifier
+            related_id: Second ticket identifier
+            relation_type: Type of relation (e.g. "related", "blocks")
+
+        Override in trackers that support issue relations.
+        """
+        raise NotImplementedError(f"Issue relations are not supported by the {self.name} tracker.")
+
     @abstractmethod
     def validate_config(self) -> tuple[bool, list[str]]:
         """Validate tracker configuration. Returns (is_valid, list of issues)."""

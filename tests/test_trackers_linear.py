@@ -903,3 +903,99 @@ class TestLinearTrackerParseIssue:
         ticket = tracker._parse_issue(issue)
 
         assert ticket.labels == []
+
+
+class TestLinearTrackerSetParent:
+    """Tests for set_parent method."""
+
+    def test_set_parent_success(self) -> None:
+        tracker = LinearTracker(api_key="test-fake-key", team_id="team_abc")
+        mock_child = {
+            "id": "uuid-child",
+            "identifier": "TEST-101",
+            "title": "Child",
+            "description": "",
+            "state": {"name": "Todo"},
+            "labels": {"nodes": []},
+            "url": "https://linear.app/test/issue/TEST-101",
+        }
+        mock_parent = {
+            "id": "uuid-parent",
+            "identifier": "TEST-100",
+            "title": "Parent",
+            "description": "",
+            "state": {"name": "Todo"},
+            "labels": {"nodes": []},
+            "url": "https://linear.app/test/issue/TEST-100",
+        }
+        mock_update_response = {"data": {"issueUpdate": {"success": True}}}
+
+        call_count = {"n": 0}
+
+        def mock_execute(query, variables=None):
+            call_count["n"] += 1
+            if call_count["n"] == 1:
+                # get_ticket for child
+                return {"data": {"issue": mock_child}}
+            elif call_count["n"] == 2:
+                # get_ticket for parent
+                return {"data": {"issue": mock_parent}}
+            else:
+                # issueUpdate
+                return mock_update_response
+
+        with patch.object(tracker, "_execute_query", side_effect=mock_execute):
+            tracker.set_parent("TEST-101", "TEST-100")
+        # Should complete without error
+
+    def test_set_parent_child_not_found(self) -> None:
+        tracker = LinearTracker(api_key="test-fake-key", team_id="team_abc")
+
+        with patch.object(tracker, "_execute_query", return_value={"data": {"issue": None}}):
+            with pytest.raises(RuntimeError, match="Ticket not found: TEST-999"):
+                tracker.set_parent("TEST-999", "TEST-100")
+
+    def test_set_parent_parent_not_found(self) -> None:
+        tracker = LinearTracker(api_key="test-fake-key", team_id="team_abc")
+        mock_child = {
+            "id": "uuid-child",
+            "identifier": "TEST-101",
+            "title": "Child",
+            "description": "",
+            "state": {"name": "Todo"},
+            "labels": {"nodes": []},
+            "url": "",
+        }
+
+        call_count = {"n": 0}
+
+        def mock_execute(query, variables=None):
+            call_count["n"] += 1
+            if call_count["n"] == 1:
+                return {"data": {"issue": mock_child}}
+            else:
+                return {"data": {"issue": None}}
+
+        with patch.object(tracker, "_execute_query", side_effect=mock_execute):
+            with pytest.raises(RuntimeError, match="Parent ticket not found: TEST-999"):
+                tracker.set_parent("TEST-101", "TEST-999")
+
+
+class TestLinearTrackerAddRelation:
+    """Tests for add_relation method."""
+
+    def test_add_relation_delegates_to_create_relation(self) -> None:
+        tracker = LinearTracker(api_key="test-fake-key", team_id="team_abc")
+
+        with patch.object(tracker, "create_relation") as mock_create_relation:
+            tracker.add_relation("TEST-1", "TEST-2", "related")
+
+        mock_create_relation.assert_called_once_with("TEST-1", "TEST-2", "related")
+
+    def test_add_relation_blocks(self) -> None:
+        tracker = LinearTracker(api_key="test-fake-key", team_id="team_abc")
+
+        with patch.object(tracker, "create_relation") as mock_create_relation:
+            tracker.add_relation("TEST-1", "TEST-2", "blocks")
+
+        mock_create_relation.assert_called_once_with("TEST-1", "TEST-2", "blocks")

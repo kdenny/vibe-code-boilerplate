@@ -804,3 +804,88 @@ class TestShortcutTrackerParseStory:
         ticket = tracker._parse_story(story)
 
         assert ticket.labels == []
+
+
+class TestShortcutTrackerSetParent:
+    """Tests for set_parent method."""
+
+    def test_set_parent_as_epic(self) -> None:
+        tracker = ShortcutTracker(api_token="sc_token")
+        mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+
+        with patch(
+            "lib.vibe.trackers.shortcut.requests.request", return_value=mock_response
+        ) as mock_req:
+            tracker.set_parent("SC-101", "SC-100")
+
+        mock_req.assert_called_once()
+        call_args = mock_req.call_args
+        assert call_args[0][0] == "PUT"
+        assert "/stories/101" in call_args[0][1]
+        assert call_args[1]["json"] == {"epic_id": 100}
+
+    def test_set_parent_fallback_to_story_link(self) -> None:
+        tracker = ShortcutTracker(api_token="sc_token")
+
+        call_count = {"n": 0}
+
+        def mock_request(method, url, **kwargs):
+            call_count["n"] += 1
+            mock_resp = MagicMock()
+            if call_count["n"] == 1:
+                # First call (PUT epic_id) fails
+                mock_resp.raise_for_status.side_effect = requests.HTTPError("400")
+                return mock_resp
+            else:
+                # Second call (POST story-links) succeeds
+                mock_resp.raise_for_status = MagicMock()
+                return mock_resp
+
+        with patch("lib.vibe.trackers.shortcut.requests.request", side_effect=mock_request):
+            tracker.set_parent("SC-101", "SC-100")
+
+        assert call_count["n"] == 2
+
+
+class TestShortcutTrackerAddRelation:
+    """Tests for add_relation method."""
+
+    def test_add_relation_related(self) -> None:
+        tracker = ShortcutTracker(api_token="sc_token")
+        mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+
+        with patch(
+            "lib.vibe.trackers.shortcut.requests.request", return_value=mock_response
+        ) as mock_req:
+            tracker.add_relation("SC-101", "SC-102", "related")
+
+        mock_req.assert_called_once()
+        call_args = mock_req.call_args
+        assert call_args[0][0] == "POST"
+        assert "/stories/101/story-links" in call_args[0][1]
+        assert call_args[1]["json"]["verb"] == "relates to"
+        assert call_args[1]["json"]["object_id"] == 102
+
+    def test_add_relation_blocks(self) -> None:
+        tracker = ShortcutTracker(api_token="sc_token")
+        mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+
+        with patch(
+            "lib.vibe.trackers.shortcut.requests.request", return_value=mock_response
+        ) as mock_req:
+            tracker.add_relation("SC-101", "SC-102", "blocks")
+
+        call_args = mock_req.call_args
+        assert call_args[1]["json"]["verb"] == "blocks"
+
+    def test_add_relation_failure(self) -> None:
+        tracker = ShortcutTracker(api_token="sc_token")
+        mock_response = MagicMock()
+        mock_response.raise_for_status.side_effect = requests.HTTPError("500")
+
+        with patch("lib.vibe.trackers.shortcut.requests.request", return_value=mock_response):
+            with pytest.raises(RuntimeError, match="Failed to create relation"):
+                tracker.add_relation("SC-101", "SC-102", "related")

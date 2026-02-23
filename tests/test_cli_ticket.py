@@ -625,3 +625,132 @@ class TestPrintFunctions:
 
         assert "TEST-4: No Labels (Backlog)" in captured.out
         assert "[" not in captured.out
+
+
+class TestCreateCommandRelatesTo:
+    """Tests for --relates-to option on create command."""
+
+    def test_create_with_relates_to(self) -> None:
+        runner = CliRunner()
+        mock_tracker = MagicMock()
+        mock_ticket = Ticket(
+            id="TEST-200",
+            title="Related Ticket",
+            description="Description",
+            status="Backlog",
+            labels=[],
+            url="https://example.com/TEST-200",
+            raw={},
+        )
+        mock_tracker.create_ticket.return_value = mock_ticket
+
+        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+            result = runner.invoke(
+                main,
+                [
+                    "create",
+                    "Related Ticket",
+                    "-d",
+                    "Description",
+                    "--no-labels",
+                    "--relates-to",
+                    "TEST-50",
+                ],
+            )
+
+        assert result.exit_code == 0
+        assert "Created ticket: TEST-200" in result.output
+        mock_tracker.add_relation.assert_called_once_with("TEST-200", "TEST-50", "related")
+
+    def test_create_with_multiple_relates_to(self) -> None:
+        runner = CliRunner()
+        mock_tracker = MagicMock()
+        mock_ticket = Ticket(
+            id="TEST-201",
+            title="Multi Related",
+            description="Description",
+            status="Backlog",
+            labels=[],
+            url="https://example.com/TEST-201",
+            raw={},
+        )
+        mock_tracker.create_ticket.return_value = mock_ticket
+
+        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+            result = runner.invoke(
+                main,
+                [
+                    "create",
+                    "Multi Related",
+                    "-d",
+                    "Description",
+                    "--no-labels",
+                    "--relates-to",
+                    "TEST-50",
+                    "--relates-to",
+                    "TEST-51",
+                ],
+            )
+
+        assert result.exit_code == 0
+        assert mock_tracker.add_relation.call_count == 2
+        mock_tracker.add_relation.assert_any_call("TEST-201", "TEST-50", "related")
+        mock_tracker.add_relation.assert_any_call("TEST-201", "TEST-51", "related")
+
+    def test_create_relates_to_failure_does_not_fail_create(self) -> None:
+        runner = CliRunner()
+        mock_tracker = MagicMock()
+        mock_ticket = Ticket(
+            id="TEST-202",
+            title="Relates Fail",
+            description="Description",
+            status="Backlog",
+            labels=[],
+            url="https://example.com/TEST-202",
+            raw={},
+        )
+        mock_tracker.create_ticket.return_value = mock_ticket
+        mock_tracker.add_relation.side_effect = RuntimeError("API error")
+
+        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+            result = runner.invoke(
+                main,
+                [
+                    "create",
+                    "Relates Fail",
+                    "-d",
+                    "Description",
+                    "--no-labels",
+                    "--relates-to",
+                    "TEST-50",
+                ],
+            )
+
+        # Ticket should still be created
+        assert result.exit_code == 0
+        assert "Created ticket: TEST-202" in result.output
+        assert "Failed to create relation" in result.output
+
+    def test_create_dry_run_shows_relates_to(self) -> None:
+        runner = CliRunner()
+        mock_tracker = MagicMock()
+
+        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+            result = runner.invoke(
+                main,
+                [
+                    "create",
+                    "Dry Run",
+                    "-d",
+                    "Description",
+                    "--no-labels",
+                    "--relates-to",
+                    "TEST-50",
+                    "--dry-run",
+                ],
+            )
+
+        assert result.exit_code == 0
+        assert "Relates to:  TEST-50" in result.output
+        assert "DRY RUN" in result.output
+        mock_tracker.create_ticket.assert_not_called()

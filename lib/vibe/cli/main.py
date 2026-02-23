@@ -422,11 +422,12 @@ def pr(title: str | None, body: str | None, web: bool) -> None:
         )
         sys.exit(1)
 
+    config = load_config()
+
     args = ["gh", "pr", "create"]
     if title:
         args.extend(["--title", title])
     else:
-        config = load_config()
         derived_title = _derive_pr_title(branch, config)
         args.extend(["--title", derived_title])
     if body:
@@ -440,16 +441,69 @@ def pr(title: str | None, body: str | None, web: bool) -> None:
         args.append("--web")
 
     try:
-        subprocess.run(args, check=True)
+        result = subprocess.run(args, check=True, capture_output=True, text=True)
+        pr_url = result.stdout.strip()
         click.echo("PR created.")
+        if pr_url:
+            click.echo(pr_url)
+
+        # Best-effort: auto-link PR to the tracker ticket
+        _autolink_pr_to_ticket(branch, pr_url, config)
     except subprocess.CalledProcessError as e:
         click.echo(f"Failed to create PR: {e}", err=True)
+        if e.stderr:
+            click.echo(e.stderr, err=True)
         click.echo("Run: gh pr create")
         sys.exit(1)
     except FileNotFoundError:
         click.echo("gh CLI not found. Install it: https://cli.github.com/")
         click.echo("Then run: gh pr create")
         sys.exit(1)
+
+
+def _autolink_pr_to_ticket(branch: str, pr_url: str, config: dict) -> None:
+    """Best-effort: add a comment on the tracker ticket linking to the PR.
+
+    Extracts the ticket ID from the branch name, then posts a comment with
+    the PR URL if a tracker is configured. Failures are logged but never
+    prevent the PR from being created.
+    """
+    if not pr_url:
+        return
+
+    ticket_match = re.search(r"([A-Z]+-\d+)", branch)
+    if not ticket_match:
+        return
+
+    ticket_id = ticket_match.group(1)
+    tracker_type = config.get("tracker", {}).get("type")
+    if not tracker_type:
+        return
+
+    try:
+        from lib.vibe.trackers.base import TrackerBase
+
+        tracker: TrackerBase | None = None
+        if tracker_type == "linear":
+            from lib.vibe.trackers.linear import LinearTracker
+
+            tracker = LinearTracker(
+                team_id=config.get("tracker", {}).get("config", {}).get("team_id")
+            )
+        elif tracker_type == "shortcut":
+            from lib.vibe.trackers.shortcut import ShortcutTracker
+
+            tracker = ShortcutTracker()
+
+        if tracker is None:
+            return
+
+        comment_body = f"PR opened: {pr_url}"
+        tracker.comment_ticket(ticket_id, comment_body)
+        click.echo(f"Linked PR to ticket {ticket_id}.")
+    except Exception:  # noqa: BLE001
+        # Best-effort — never fail the PR creation because of a tracker issue
+        click.echo(f"Note: Could not auto-link PR to ticket {ticket_id}.", err=True)
 
 
 # NOTE: These URLs point to the vibe-code-boilerplate repository itself, NOT the user's
