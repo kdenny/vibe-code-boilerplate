@@ -34,6 +34,10 @@ dev = [
 fly = [
     "tomli>=2.0.0",
 ]
+# Optional: YAML support for batch ticket operations
+batch = [
+    "pyyaml>=6.0",
+]
 
 [project.scripts]
 vibe = "lib.vibe.cli.main:main"

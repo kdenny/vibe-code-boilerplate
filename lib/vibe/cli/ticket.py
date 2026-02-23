@@ -211,6 +211,7 @@ def list_tickets(
     "--allow-empty-description", is_flag=True, hidden=True, help="Skip description requirement"
 )
 @click.option("--no-labels", is_flag=True, help="Explicitly skip label requirement")
+@click.option("--dry-run", is_flag=True, help="Preview ticket without creating")
 def create(
     title: str | None,
     description: str,
@@ -223,6 +224,7 @@ def create(
     assignee: str | None,
     allow_empty_description: bool = False,
     no_labels: bool = False,
+    dry_run: bool = False,
 ) -> None:
     """Create a new ticket.
 
@@ -244,8 +246,6 @@ def create(
         bin/ticket create "Q1 work" -d "Sprint planning items" -l Chore -l Backend --project "Q1 Roadmap"
         bin/ticket create "Quick note" -d "Description" --no-labels
     """
-    tracker = ensure_tracker_configured()
-
     # Interactive mode
     if interactive:
         title, description, labels = _interactive_create()
@@ -275,6 +275,30 @@ def create(
             else:
                 # Non-interactive: fail with helpful error
                 _fail_missing_labels(label_config)
+
+    if dry_run:
+        click.echo("\nDRY RUN — Would create ticket:")
+        click.echo(f"  Title:       {title}")
+        if description:
+            click.echo(
+                f"  Description: {description[:80]}..."
+                if len(description) > 80
+                else f"  Description: {description}"
+            )
+        if labels:
+            click.echo(f"  Labels:      {', '.join(labels)}")
+        if priority:
+            click.echo(f"  Priority:    {priority}")
+        if parent:
+            click.echo(f"  Parent:      {parent}")
+        if project:
+            click.echo(f"  Project:     {project}")
+        if assignee:
+            click.echo(f"  Assignee:    {assignee}")
+        click.echo("\nNo ticket was created. Remove --dry-run to create.")
+        return
+
+    tracker = ensure_tracker_configured()
 
     try:
         # Build kwargs for extended create options
@@ -1013,6 +1037,95 @@ def list_users(as_json: bool) -> None:
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
+
+
+@main.group()
+def batch() -> None:
+    """Batch ticket operations."""
+    pass
+
+
+@batch.command("create")
+@click.option(
+    "--from",
+    "from_file",
+    required=True,
+    type=click.Path(exists=True),
+    help="YAML file with ticket definitions",
+)
+@click.option("--dry-run", is_flag=True, help="Preview without creating")
+def batch_create(from_file: str, dry_run: bool) -> None:
+    """Create multiple tickets from a YAML file.
+
+    Example YAML format:
+
+    \b
+        tickets:
+          - title: "Set up auth"
+            description: "Add JWT auth middleware"
+            labels: [Feature, Backend, Medium Risk]
+            priority: high
+          - title: "Add login page"
+            description: "Create login UI"
+            labels: [Feature, Frontend, Medium Risk]
+    """
+    try:
+        import yaml
+    except ImportError:
+        click.echo(
+            "PyYAML is required for batch operations. Install with: pip install pyyaml", err=True
+        )
+        sys.exit(1)
+
+    with open(from_file) as f:
+        data = yaml.safe_load(f)
+
+    tickets_data = data.get("tickets", [])
+    if not tickets_data:
+        click.echo("No tickets found in YAML file.")
+        return
+
+    if dry_run:
+        click.echo(f"DRY RUN — Would create {len(tickets_data)} tickets:\n")
+        for i, t in enumerate(tickets_data, 1):
+            labels_str = ", ".join(t.get("labels", []))
+            click.echo(f'  {i}. "{t["title"]}" ({labels_str})')
+            if t.get("description"):
+                desc = t["description"][:60]
+                click.echo(f"     {desc}...")
+        click.echo("\nNo tickets were created. Remove --dry-run to create.")
+        return
+
+    tracker = ensure_tracker_configured()
+    created = []
+
+    for i, t in enumerate(tickets_data, 1):
+        try:
+            import inspect
+
+            kwargs: dict = {
+                "title": t["title"],
+                "description": t.get("description", ""),
+                "labels": t.get("labels"),
+            }
+            sig = inspect.signature(tracker.create_ticket)
+            params = sig.parameters
+            if "priority" in params and t.get("priority"):
+                kwargs["priority"] = t["priority"]
+            if "parent" in params and t.get("parent"):
+                kwargs["parent"] = t["parent"]
+            if "assignee" in params and t.get("assignee"):
+                kwargs["assignee"] = t["assignee"]
+            if "project" in params and t.get("project"):
+                kwargs["project"] = t["project"]
+
+            ticket = tracker.create_ticket(**kwargs)
+            created.append(ticket)
+            click.echo(f"  Created {ticket.id}: {t['title']}")
+        except Exception as e:
+            click.echo(f'  Failed to create "{t["title"]}": {e}', err=True)
+
+    click.echo(f"\nCreated {len(created)}/{len(tickets_data)} tickets.")
 
 
 def print_ticket(ticket: Ticket, show_children: bool = False) -> None:
