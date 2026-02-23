@@ -31,7 +31,7 @@ Verify the implementation works.
 Run tests and verify the changes work as expected.
 
 ### Commit Changes
-Commit with a descriptive message.
+Commit with a descriptive message that includes the ticket ID.
 
 ```bash
 git add <files>
@@ -39,11 +39,37 @@ git commit -m "PROJ-123: Brief description of changes"
 ```
 
 ### Create Pull Request
-Open a PR when work is complete.
+Open a PR when work is complete. The PR title must include the ticket reference.
 
 ```bash
 git push -u origin PROJ-123
-bin/vibe pr
+bin/vibe pr --title "PROJ-123: Add feature description"
+```
+
+## Creating Related Tickets
+
+When breaking work into multiple tickets:
+
+### Create Parent Ticket
+Create the parent ticket with labels.
+
+```bash
+bin/ticket create "Epic: User auth system" --description "Full authentication system with OAuth2." --label Feature --label Backend
+```
+
+### Create Child Tickets
+Create child tickets with --parent and labels.
+
+```bash
+bin/ticket create "Add login endpoint" --description "POST /auth/login with JWT." --label Feature --label Backend --parent PROJ-100
+bin/ticket create "Add signup form" --description "React signup form component." --label Feature --label Frontend --parent PROJ-100
+```
+
+### Set Blocking Relationships
+Link tickets that have dependencies.
+
+```bash
+bin/ticket link PROJ-101 --blocks PROJ-102
 ```
 
 ## Creating a Pull Request
@@ -66,7 +92,7 @@ git push -u origin BRANCH-NAME
 ```
 
 ### Create PR
-Open the pull request.
+Open the pull request with the ticket ID in the title.
 
 ```bash
 bin/vibe pr

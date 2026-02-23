@@ -89,17 +89,30 @@ class InstructionSpec:
     # Anti-patterns to avoid
     anti_patterns: list[str] = field(default_factory=list)
 
+    # Label categories from .vibe/config.json
+    labels: dict[str, list[str]] = field(default_factory=dict)
+
     # Custom sections (format-specific additions)
     custom_sections: dict[str, str] = field(default_factory=dict)
 
     @classmethod
-    def from_files(cls, instructions_dir: Path) -> InstructionSpec:
+    def from_files(
+        cls,
+        instructions_dir: Path,
+        config_labels: dict[str, list[str]] | None = None,
+    ) -> InstructionSpec:
         """Load instruction spec from markdown files in a directory.
 
         Expected files:
         - CORE.md - Core rules and context
         - COMMANDS.md - Available commands
         - WORKFLOW.md - Workflow definitions
+
+        Args:
+            instructions_dir: Path to the agent_instructions/ directory.
+            config_labels: Label categories from .vibe/config.json (labels.type,
+                labels.risk, labels.area, labels.special). When provided, the
+                generated output will include an "Available Labels" section.
         """
         spec = cls()
 
@@ -117,6 +130,10 @@ class InstructionSpec:
         workflow_path = instructions_dir / "WORKFLOW.md"
         if workflow_path.exists():
             spec._parse_workflow(workflow_path.read_text())
+
+        # Set labels from config
+        if config_labels:
+            spec.labels = config_labels
 
         return spec
 
@@ -324,4 +341,5 @@ class InstructionSpec:
             },
             "important_files": self.important_files,
             "anti_patterns": self.anti_patterns,
+            "labels": self.labels,
         }
