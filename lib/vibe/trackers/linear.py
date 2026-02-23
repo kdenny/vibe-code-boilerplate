@@ -760,6 +760,58 @@ class LinearTracker(TrackerBase):
         except requests.RequestException as e:
             raise RuntimeError(f"Failed to create relation: {e}") from e
 
+    def set_parent(self, ticket_id: str, parent_id: str) -> None:
+        """Set a parent relationship (make ticket_id a sub-task of parent_id).
+
+        Uses the Linear issueUpdate mutation to set the parentId field.
+
+        Args:
+            ticket_id: The child ticket identifier (e.g. "PROJ-101")
+            parent_id: The parent ticket identifier (e.g. "PROJ-100")
+        """
+        child = self.get_ticket(ticket_id)
+        if not child:
+            raise RuntimeError(f"Ticket not found: {ticket_id}")
+
+        parent = self.get_ticket(parent_id)
+        if not parent:
+            raise RuntimeError(f"Parent ticket not found: {parent_id}")
+
+        child_uuid = child.raw.get("id")
+        parent_uuid = parent.raw.get("id")
+        if not child_uuid or not parent_uuid:
+            raise RuntimeError("Cannot set parent: missing issue UUIDs")
+
+        mutation = """
+        mutation UpdateIssue($id: String!, $input: IssueUpdateInput!) {
+            issueUpdate(id: $id, input: $input) {
+                success
+            }
+        }
+        """
+        try:
+            result = self._execute_query(
+                mutation,
+                {"id": child_uuid, "input": {"parentId": parent_uuid}},
+            )
+            success = result.get("data", {}).get("issueUpdate", {}).get("success", False)
+            if not success:
+                raise RuntimeError(f"Failed to set parent for {ticket_id}")
+        except requests.RequestException as e:
+            raise RuntimeError(f"Failed to set parent: {e}") from e
+
+    def add_relation(self, ticket_id: str, related_id: str, relation_type: str = "related") -> None:
+        """Create a non-hierarchical relationship between two Linear issues.
+
+        Delegates to create_relation with the appropriate relation_type.
+
+        Args:
+            ticket_id: First ticket identifier
+            related_id: Second ticket identifier
+            relation_type: Type of relation ("related" or "blocks")
+        """
+        self.create_relation(ticket_id, related_id, relation_type)
+
     def _parse_issue(self, issue: dict, include_children: bool = False) -> Ticket:
         """Parse a Linear issue into a Ticket."""
         state = issue.get("state") or {}

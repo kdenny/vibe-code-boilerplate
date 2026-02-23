@@ -201,6 +201,69 @@ class ShortcutTracker(TrackerBase):
         except requests.HTTPError as e:
             raise RuntimeError(f"Failed to add comment: {e}") from e
 
+    def set_parent(self, ticket_id: str, parent_id: str) -> None:
+        """Set a parent (epic) relationship for a Shortcut story.
+
+        In Shortcut, the parent concept maps to epics. This method sets
+        the epic_id on the story to create a parent-child relationship.
+
+        Args:
+            ticket_id: The child story identifier (e.g. "SC-101")
+            parent_id: The parent epic/story identifier (e.g. "SC-100")
+        """
+        story_id = ticket_id.lstrip("SC-").lstrip("#")
+        parent_story_id = parent_id.lstrip("SC-").lstrip("#")
+
+        try:
+            # Try to set as epic relationship first
+            self._request(
+                "PUT",
+                f"/stories/{story_id}",
+                json={"epic_id": int(parent_story_id)},
+            )
+        except (requests.HTTPError, ValueError):
+            # If epic_id doesn't work (parent is a story, not an epic),
+            # fall back to creating a story link
+            try:
+                self._request(
+                    "POST",
+                    f"/stories/{story_id}/story-links",
+                    json={
+                        "object_id": int(parent_story_id),
+                        "verb": "blocks",
+                    },
+                )
+            except requests.HTTPError as link_err:
+                raise RuntimeError(f"Failed to set parent relationship: {link_err}") from link_err
+
+    def add_relation(self, ticket_id: str, related_id: str, relation_type: str = "related") -> None:
+        """Create a non-hierarchical relationship between two Shortcut stories.
+
+        Uses story links to create the relationship.
+
+        Args:
+            ticket_id: First story identifier
+            related_id: Second story identifier
+            relation_type: Type of relation ("related" or "blocks")
+        """
+        story_id = ticket_id.lstrip("SC-").lstrip("#")
+        related_story_id = related_id.lstrip("SC-").lstrip("#")
+
+        # Map relation types to Shortcut verbs
+        verb = "relates to" if relation_type == "related" else "blocks"
+
+        try:
+            self._request(
+                "POST",
+                f"/stories/{story_id}/story-links",
+                json={
+                    "object_id": int(related_story_id),
+                    "verb": verb,
+                },
+            )
+        except requests.HTTPError as e:
+            raise RuntimeError(f"Failed to create relation: {e}") from e
+
     def validate_config(self) -> tuple[bool, list[str]]:
         """Validate Shortcut configuration."""
         issues = []

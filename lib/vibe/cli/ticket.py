@@ -199,6 +199,7 @@ def list_tickets(
 @click.option("--description", "-d", default="", help="Ticket description (required)")
 @click.option("--label", "-l", multiple=True, help="Labels to add")
 @click.option("--blocked-by", multiple=True, help="Ticket IDs that block this ticket")
+@click.option("--relates-to", multiple=True, help="Related ticket IDs (non-hierarchical)")
 @click.option("--interactive", "-i", is_flag=True, help="Interactive mode with guided prompts")
 @click.option("--project", "-p", help="Add to project (by name)")
 @click.option("--parent", help="Parent ticket ID (creates as sub-task)")
@@ -218,6 +219,7 @@ def create(
     description: str,
     label: tuple,
     blocked_by: tuple,
+    relates_to: tuple,
     interactive: bool,
     project: str | None,
     parent: str | None,
@@ -245,6 +247,7 @@ def create(
         bin/ticket create "Sub-task" -d "Implement refresh tokens" -l Feature -l Backend --parent PROJ-100
         bin/ticket create "Urgent fix" -d "Login 500 on special chars" -l Bug -l Backend --priority urgent --assignee me
         bin/ticket create "Q1 work" -d "Sprint planning items" -l Chore -l Backend --project "Q1 Roadmap"
+        bin/ticket create "Related work" -d "Add caching layer" -l Feature -l Backend --relates-to PROJ-50
         bin/ticket create "Quick note" -d "Description" --no-labels
     """
     # Interactive mode
@@ -297,6 +300,8 @@ def create(
             click.echo(f"  Project:     {project}")
         if assignee:
             click.echo(f"  Assignee:    {assignee}")
+        if relates_to:
+            click.echo(f"  Relates to:  {', '.join(relates_to)}")
         click.echo("\nNo ticket was created. Remove --dry-run to create.")
         return
 
@@ -341,6 +346,16 @@ def create(
                     click.echo(f"  ✓ {blocker_id} blocks {ticket.id}")
                 except RuntimeError as e:
                     click.echo(f"  ✗ Failed to create relation: {e}", err=True)
+
+        # Set up non-hierarchical relations if specified
+        if relates_to:
+            click.echo()
+            for related_id in relates_to:
+                try:
+                    tracker.add_relation(ticket.id, related_id, "related")
+                    click.echo(f"  \u2713 {ticket.id} relates to {related_id}")
+                except (RuntimeError, NotImplementedError) as e:
+                    click.echo(f"  \u2717 Failed to create relation: {e}", err=True)
 
     except NotImplementedError as e:
         click.echo(str(e), err=True)
