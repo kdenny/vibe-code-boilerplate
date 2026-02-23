@@ -63,7 +63,7 @@ class LinearTracker(TrackerBase):
         try:
             response = self._execute_query(query)
             return "viewer" in response.get("data", {})
-        except Exception:
+        except requests.RequestException:
             return False
 
     @with_retry()
@@ -126,7 +126,7 @@ class LinearTracker(TrackerBase):
             if not issue:
                 return None
             return self._parse_issue(issue, include_children=include_children)
-        except Exception:
+        except (requests.RequestException, KeyError):
             return None
 
     def list_tickets(
@@ -242,7 +242,7 @@ class LinearTracker(TrackerBase):
                     break
 
             return all_tickets
-        except Exception:
+        except requests.RequestException:
             return all_tickets  # Return what we have so far
 
     def create_ticket(
@@ -550,7 +550,7 @@ class LinearTracker(TrackerBase):
 
             name_to_id = {n.get("name", ""): n["id"] for n in nodes if n.get("id")}
             return [name_to_id[n] for n in label_names if n in name_to_id]
-        except Exception:
+        except requests.RequestException:
             return []
 
     def _get_or_create_label_ids(self, team_id: str | None, label_names: list[str]) -> list[str]:
@@ -597,7 +597,7 @@ class LinearTracker(TrackerBase):
                 cache.invalidate(cache_key)
 
             return label_ids
-        except Exception:
+        except requests.RequestException:
             return existing_ids
 
     def _create_label(self, team_id: str, name: str) -> str | None:
@@ -614,7 +614,7 @@ class LinearTracker(TrackerBase):
             result = self._execute_query(mutation, {"input": {"name": name, "teamId": team_id}})
             label = result.get("data", {}).get("issueLabelCreate", {}).get("issueLabel")
             return label.get("id") if label else None
-        except Exception:
+        except requests.RequestException:
             return None
 
     def list_labels(self) -> list[dict[str, str]]:
@@ -645,7 +645,7 @@ class LinearTracker(TrackerBase):
                 }
                 for node in nodes
             ]
-        except Exception:
+        except requests.RequestException:
             return []
 
     def _get_workflow_state_id(self, team_id: str, state_name: str) -> str | None:
@@ -688,7 +688,7 @@ class LinearTracker(TrackerBase):
                     node_id: str | None = node.get("id")
                     return node_id
             return None
-        except Exception:
+        except requests.RequestException:
             return None
 
     def create_relation(
@@ -746,7 +746,7 @@ class LinearTracker(TrackerBase):
                 result.get("data", {}).get("issueRelationCreate", {}).get("success", False)
             )
             return success
-        except Exception as e:
+        except requests.RequestException as e:
             raise RuntimeError(f"Failed to create relation: {e}") from e
 
     def _parse_issue(self, issue: dict, include_children: bool = False) -> Ticket:
@@ -823,7 +823,7 @@ class LinearTracker(TrackerBase):
             result = self._execute_query(query, variables)
             nodes = result.get("data", {}).get("projects", {}).get("nodes", [])
             return [self._parse_project(p) for p in nodes]
-        except Exception:
+        except requests.RequestException:
             return []
 
     def get_project(self, project_id: str) -> Project | None:
@@ -851,7 +851,7 @@ class LinearTracker(TrackerBase):
             project = result.get("data", {}).get("project")
             if project:
                 return self._parse_project(project)
-        except Exception:
+        except requests.RequestException:
             pass
 
         # Try by name
@@ -948,7 +948,7 @@ class LinearTracker(TrackerBase):
             if viewer_id:
                 cache.set(cache_key, viewer_id, ttl=1800)  # 30 min TTL
             return viewer_id
-        except Exception:
+        except requests.RequestException:
             return None
 
     def _get_user_id_by_name(self, name: str) -> str | None:
@@ -978,7 +978,7 @@ class LinearTracker(TrackerBase):
                     user_id: str | None = user.get("id")
                     return user_id
             return None
-        except Exception:
+        except requests.RequestException:
             return None
 
     def list_users(self) -> list[dict[str, str]]:
@@ -1019,5 +1019,5 @@ class LinearTracker(TrackerBase):
             ]
             cache.set(cache_key, user_list, ttl=1800)  # 30 min TTL
             return user_list
-        except Exception:
+        except requests.RequestException:
             return []

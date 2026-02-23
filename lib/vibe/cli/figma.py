@@ -52,7 +52,7 @@ def analyze_cmd(project_path: str, output_json: bool, figma_context: bool) -> No
 
     try:
         analysis = analyzer.analyze()
-    except Exception as e:
+    except (OSError, ValueError) as e:
         click.secho(f"Error analyzing project: {e}", fg="red", err=True)
         sys.exit(1)
 
@@ -535,5 +535,5 @@ def _create_tickets(tickets: list[dict[str, Any]]) -> None:
                 created_ids[i] = str(i)
             else:
                 click.secho(f"✗ Failed to create ticket {i}: {result.stderr}", fg="red")
-        except Exception as e:
+        except (subprocess.CalledProcessError, OSError) as e:
             click.secho(f"✗ Error creating ticket {i}: {e}", fg="red")

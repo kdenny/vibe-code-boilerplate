@@ -111,7 +111,7 @@ class RetrofitApplier:
 
         try:
             return applier(action)
-        except Exception as e:
+        except (OSError, RuntimeError, ValueError) as e:
             return ApplyResult(False, action.name, f"Error: {e}")
 
     def _apply_vibe_config(self, action: RetrofitAction) -> ApplyResult:

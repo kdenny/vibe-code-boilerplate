@@ -453,7 +453,7 @@ def get_default_branch() -> str:
         if result.returncode == 0:
             # Output is like "refs/remotes/origin/main"
             return result.stdout.strip().split("/")[-1]
-    except Exception:
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError):
         pass
 
     # Try to check if main exists
@@ -466,7 +466,7 @@ def get_default_branch() -> str:
         )
         if result.returncode == 0:
             return "main"
-    except Exception:
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError):
         pass
 
     # Check for master
@@ -479,7 +479,7 @@ def get_default_branch() -> str:
         )
         if result.returncode == 0:
             return "master"
-    except Exception:
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError):
         pass
 
     # Default to main

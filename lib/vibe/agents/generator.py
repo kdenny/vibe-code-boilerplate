@@ -32,7 +32,7 @@ def _has_project_content(file_path: Path) -> bool:
         if not content.strip():
             return False
         return not _is_generated_file(content)
-    except Exception:
+    except OSError:
         return False
 
 

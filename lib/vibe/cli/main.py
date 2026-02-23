@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 import click
+import requests
 
 from lib.vibe.cli.figma import figma
 from lib.vibe.cli.secrets import main as secrets_group
@@ -107,7 +108,7 @@ def do(ticket_id: str) -> None:
         worktree = create_worktree(branch_name, base_branch=origin_main)
         click.echo(f"Worktree created at: {worktree.path}")
         click.echo(f"\nTo start working:\n  cd {worktree.path}")
-    except Exception as e:
+    except (subprocess.CalledProcessError, OSError, RuntimeError) as e:
         click.echo(f"Failed to create worktree: {e}", err=True)
         sys.exit(1)
 
@@ -374,7 +375,7 @@ def _derive_pr_title(branch: str, config: dict) -> str:
                     ticket = shortcut_tracker.get_ticket(ticket_id)
                     if ticket and ticket.title:
                         return f"{ticket_id}: {ticket.title}"
-            except Exception:
+            except (requests.RequestException, RuntimeError):
                 # Tracker API failed; fall through to commit-based title
                 pass
 
@@ -473,7 +474,7 @@ def boilerplate_issue(title: str | None, body: str | None, print_only: bool) -> 
         config = load_config()
         base = (config.get("boilerplate") or {}).get("issues_url") or BOILERPLATE_ISSUES_URL
         new_issue = base.rstrip("/").replace("/issues", "") + "/issues/new"
-    except Exception:
+    except (OSError, KeyError, RuntimeError):
         new_issue = BOILERPLATE_NEW_ISSUE_URL
 
     params = []
@@ -500,7 +501,7 @@ def boilerplate_issue(title: str | None, body: str | None, print_only: bool) -> 
         webbrowser.open(new_issue)
         click.echo("Opened boilerplate repo new-issue page in your browser.")
         click.echo("If it did not open, use: " + new_issue)
-    except Exception:
+    except OSError:
         click.echo("Could not open browser. File an issue manually at:")
         click.echo(new_issue)
 
