@@ -455,7 +455,17 @@ class TestLinearTrackerUpdateTicket:
 
     def test_update_ticket_title(self) -> None:
         tracker = LinearTracker(api_key="test-fake-key")
-        mock_issue = {
+        mock_current_issue = {
+            "id": "uuid-1",
+            "identifier": "TEST-1",
+            "title": "Old Title",
+            "description": "Desc",
+            "state": {"name": "Todo"},
+            "team": {"id": "team_abc"},
+            "labels": {"nodes": []},
+            "url": "https://linear.app/test/issue/TEST-1",
+        }
+        mock_updated_issue = {
             "id": "uuid-1",
             "identifier": "TEST-1",
             "title": "Updated Title",
@@ -464,10 +474,12 @@ class TestLinearTrackerUpdateTicket:
             "labels": {"nodes": []},
             "url": "https://linear.app/test/issue/TEST-1",
         }
-        mock_response = {"data": {"issueUpdate": {"success": True, "issue": mock_issue}}}
+        mock_response = {"data": {"issueUpdate": {"success": True, "issue": mock_updated_issue}}}
 
-        with patch.object(tracker, "_execute_query", return_value=mock_response):
-            ticket = tracker.update_ticket("TEST-1", title="Updated Title")
+        with patch.object(tracker, "get_ticket") as mock_get:
+            mock_get.return_value = tracker._parse_issue(mock_current_issue)
+            with patch.object(tracker, "_execute_query", return_value=mock_response):
+                ticket = tracker.update_ticket("TEST-1", title="Updated Title")
 
         assert ticket.title == "Updated Title"
 
@@ -554,11 +566,89 @@ class TestLinearTrackerUpdateTicket:
 
     def test_update_ticket_failure(self) -> None:
         tracker = LinearTracker(api_key="test-fake-key")
+        mock_current_issue = {
+            "id": "uuid-1",
+            "identifier": "TEST-1",
+            "title": "Title",
+            "description": "Desc",
+            "state": {"name": "Todo"},
+            "team": {"id": "team_abc"},
+            "labels": {"nodes": []},
+            "url": "https://linear.app/test/issue/TEST-1",
+        }
         mock_response = {"data": {"issueUpdate": {"success": False, "issue": None}}}
 
-        with patch.object(tracker, "_execute_query", return_value=mock_response):
-            with pytest.raises(RuntimeError, match="Failed to update ticket"):
+        with patch.object(tracker, "get_ticket") as mock_get:
+            mock_get.return_value = tracker._parse_issue(mock_current_issue)
+            with patch.object(tracker, "_execute_query", return_value=mock_response):
+                with pytest.raises(RuntimeError, match="Failed to update ticket"):
+                    tracker.update_ticket("TEST-1", title="New Title")
+
+    def test_update_ticket_labels(self) -> None:
+        """update_ticket with labels resolves identifier to UUID."""
+        tracker = LinearTracker(api_key="test-fake-key")
+        mock_current_issue = {
+            "id": "uuid-1",
+            "identifier": "TEST-1",
+            "title": "Title",
+            "description": "Desc",
+            "state": {"name": "Todo"},
+            "team": {"id": "team_abc"},
+            "labels": {"nodes": []},
+            "url": "https://linear.app/test/issue/TEST-1",
+        }
+        mock_updated_issue = {
+            "id": "uuid-1",
+            "identifier": "TEST-1",
+            "title": "Title",
+            "description": "Desc",
+            "state": {"name": "Todo"},
+            "labels": {"nodes": [{"name": "Backend"}]},
+            "url": "https://linear.app/test/issue/TEST-1",
+        }
+        mock_response = {"data": {"issueUpdate": {"success": True, "issue": mock_updated_issue}}}
+
+        with patch.object(tracker, "get_ticket") as mock_get:
+            mock_get.return_value = tracker._parse_issue(mock_current_issue)
+            with patch.object(tracker, "_get_or_create_label_ids", return_value=["label-id-1"]):
+                with patch.object(tracker, "_execute_query", return_value=mock_response):
+                    ticket = tracker.update_ticket("TEST-1", labels=["Backend"])
+
+        assert "Backend" in ticket.labels
+
+    def test_update_ticket_uses_uuid_not_identifier(self) -> None:
+        """The issueUpdate mutation must receive the UUID, not the identifier."""
+        tracker = LinearTracker(api_key="test-fake-key")
+        mock_current_issue = {
+            "id": "uuid-1",
+            "identifier": "TEST-1",
+            "title": "Title",
+            "description": "Desc",
+            "state": {"name": "Todo"},
+            "team": {"id": "team_abc"},
+            "labels": {"nodes": []},
+            "url": "https://linear.app/test/issue/TEST-1",
+        }
+        mock_updated_issue = {
+            "id": "uuid-1",
+            "identifier": "TEST-1",
+            "title": "New Title",
+            "description": "Desc",
+            "state": {"name": "Todo"},
+            "labels": {"nodes": []},
+            "url": "https://linear.app/test/issue/TEST-1",
+        }
+        mock_response = {"data": {"issueUpdate": {"success": True, "issue": mock_updated_issue}}}
+
+        with patch.object(tracker, "get_ticket") as mock_get:
+            mock_get.return_value = tracker._parse_issue(mock_current_issue)
+            with patch.object(tracker, "_execute_query", return_value=mock_response) as mock_exec:
                 tracker.update_ticket("TEST-1", title="New Title")
+
+        # The mutation should use the UUID ("uuid-1"), not the identifier ("TEST-1")
+        call_args = mock_exec.call_args
+        variables = call_args[0][1]  # second positional arg is variables
+        assert variables["id"] == "uuid-1"
 
 
 class TestLinearTrackerCommentTicket:

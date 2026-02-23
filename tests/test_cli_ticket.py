@@ -433,6 +433,26 @@ class TestTicketCLI:
         assert result.exit_code == 1
         assert "Specify at least one of" in result.output
 
+    def test_update_command_with_label(self) -> None:
+        runner = CliRunner()
+        mock_tracker = MagicMock()
+        mock_ticket = Ticket(
+            id="TEST-1",
+            title="Title",
+            description="",
+            status="Todo",
+            labels=["Backend"],
+            url="https://example.com/TEST-1",
+            raw={},
+        )
+        mock_tracker.update_ticket.return_value = mock_ticket
+
+        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+            result = runner.invoke(main, ["update", "TEST-1", "--label", "Backend"])
+
+        assert result.exit_code == 0
+        assert "Updated: TEST-1" in result.output
+
     def test_close_command_done(self) -> None:
         runner = CliRunner()
         mock_tracker = MagicMock()
