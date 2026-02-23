@@ -386,15 +386,19 @@ class LinearTracker(TrackerBase):
         if description:
             input_obj["description"] = description
 
-        # We may need the issue for status or label resolution
-        issue = None
-        if status or labels:
-            issue = self.get_ticket(ticket_id)
-            if not issue:
-                raise RuntimeError(f"Ticket not found: {ticket_id}")
+        # Always resolve identifier to UUID – the issueUpdate mutation
+        # requires the internal UUID, not the human-readable identifier
+        # (e.g. "PROJ-123").  The issue() *query* accepts either form,
+        # but mutations do not, so we must resolve up front.  This also
+        # gives us team_id for status/label resolution.
+        issue = self.get_ticket(ticket_id)
+        if not issue:
+            raise RuntimeError(f"Ticket not found: {ticket_id}")
+        issue_uuid = issue.raw.get("id")
+        if not issue_uuid:
+            raise RuntimeError(f"Ticket {ticket_id} has no internal UUID; cannot update")
 
         if status:
-            assert issue is not None  # guaranteed by the check above
             # Resolve status name to workflow state ID
             team_id = (issue.raw.get("team") or {}).get("id") or self._team_id
             if not team_id:
@@ -408,7 +412,6 @@ class LinearTracker(TrackerBase):
             input_obj["stateId"] = state_id
 
         if labels:
-            assert issue is not None  # guaranteed by the check above
             team_id = (issue.raw.get("team") or {}).get("id") or self._team_id
             if team_id:
                 label_ids = self._get_or_create_label_ids(team_id, labels)
@@ -476,7 +479,7 @@ class LinearTracker(TrackerBase):
             }
         }
         """
-        result = self._execute_query(mutation, {"id": ticket_id, "input": input_obj})
+        result = self._execute_query(mutation, {"id": issue_uuid, "input": input_obj})
         issue = result.get("data", {}).get("issueUpdate", {}).get("issue")
         if not issue:
             raise RuntimeError("Failed to update ticket")
