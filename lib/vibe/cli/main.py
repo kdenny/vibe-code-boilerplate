@@ -339,9 +339,7 @@ def secrets_sync(env_file: str, provider: str, environment: str) -> None:
 @click.option("--dry-run", is_flag=True, help="Preview changes without applying")
 @click.option("--all", "include_all", is_flag=True, help="Include all available workflows")
 @click.option("--interactive", "-i", is_flag=True, help="Interactive mode for workflow selection")
-def init_actions(
-    linear: bool, dry_run: bool, include_all: bool, interactive: bool
-) -> None:
+def init_actions(linear: bool, dry_run: bool, include_all: bool, interactive: bool) -> None:
     """Initialize GitHub Actions workflows, secrets, and labels.
 
     Sets up:
