@@ -2,22 +2,18 @@
 
 import json
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
-from lib.vibe.secrets.providers.base import Secret, SecretProvider
-from lib.vibe.secrets.providers.vercel import VercelSecretsProvider
-from lib.vibe.secrets.providers.fly import FlySecretsProvider
-from lib.vibe.secrets.providers.github import GitHubSecretsProvider
 from lib.vibe.secrets.allowlist import (
     AllowlistEntry,
-    add_to_allowlist,
-    is_allowed_secret,
-    load_allowlist,
-    save_allowlist,
     validate_allowlist,
 )
+from lib.vibe.secrets.providers.base import Secret
+from lib.vibe.secrets.providers.fly import FlySecretsProvider
+from lib.vibe.secrets.providers.github import GitHubSecretsProvider
+from lib.vibe.secrets.providers.vercel import VercelSecretsProvider
 
 
 class TestVercelParseEnvFile:
@@ -38,7 +34,7 @@ class TestVercelParseEnvFile:
     def test_parse_quoted_values(self, tmp_path: Path) -> None:
         """Strips double and single quotes from values."""
         env_file = tmp_path / ".env"
-        env_file.write_text('KEY1="quoted value"\nKEY2=\'single quoted\'\n')
+        env_file.write_text("KEY1=\"quoted value\"\nKEY2='single quoted'\n")
 
         provider = VercelSecretsProvider()
         secrets = provider._parse_env_file(str(env_file))
@@ -228,23 +224,28 @@ class TestSecretDataclass:
 class TestAllowlistValidation:
     """Tests for allowlist validation."""
 
-    def test_validate_no_allowlist_file(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    def test_validate_no_allowlist_file(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
         """No allowlist file is considered valid."""
         monkeypatch.chdir(tmp_path)
         # Patch load_config so get_allowlist_path returns a path in tmp_path
-        with patch("lib.vibe.secrets.allowlist.load_config", return_value={"secrets": {"allowlist_path": str(tmp_path / ".vibe" / "secrets.allowlist.json")}}):
+        with patch(
+            "lib.vibe.secrets.allowlist.load_config",
+            return_value={
+                "secrets": {"allowlist_path": str(tmp_path / ".vibe" / "secrets.allowlist.json")}
+            },
+        ):
             valid, issues = validate_allowlist()
         assert valid is True
         assert issues == []
 
-    def test_validate_valid_allowlist(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    def test_validate_valid_allowlist(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
         """Valid allowlist passes validation."""
         allowlist_file = tmp_path / "allowlist.json"
-        data = {
-            "entries": [
-                {"pattern": "test-key", "reason": "Test key", "added_by": "test"}
-            ]
-        }
+        data = {"entries": [{"pattern": "test-key", "reason": "Test key", "added_by": "test"}]}
         allowlist_file.write_text(json.dumps(data))
 
         with patch("lib.vibe.secrets.allowlist.get_allowlist_path", return_value=allowlist_file):
@@ -255,11 +256,7 @@ class TestAllowlistValidation:
     def test_validate_missing_reason(self, tmp_path: Path) -> None:
         """Entry missing reason fails validation."""
         allowlist_file = tmp_path / "allowlist.json"
-        data = {
-            "entries": [
-                {"pattern": "test-key", "added_by": "test"}
-            ]
-        }
+        data = {"entries": [{"pattern": "test-key", "added_by": "test"}]}
         allowlist_file.write_text(json.dumps(data))
 
         with patch("lib.vibe.secrets.allowlist.get_allowlist_path", return_value=allowlist_file):

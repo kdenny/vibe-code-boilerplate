@@ -655,7 +655,8 @@ class LinearTracker(TrackerBase):
         if cached_states is not None:
             for s in cached_states:
                 if s.get("name", "").lower() == state_name.lower():
-                    return s.get("id")
+                    state_id: str | None = s.get("id")
+                    return state_id
             return None
 
         query = """
@@ -929,7 +930,8 @@ class LinearTracker(TrackerBase):
         cached_viewer = cache.get(cache_key)
 
         if cached_viewer is not None:
-            return cached_viewer
+            result_viewer: str = cached_viewer
+            return result_viewer
 
         query = """
         query {
@@ -984,7 +986,8 @@ class LinearTracker(TrackerBase):
         cached_users = cache.get(cache_key)
 
         if cached_users is not None:
-            return cached_users
+            users_result: list[dict[str, str]] = cached_users
+            return users_result
 
         query = """
         query {

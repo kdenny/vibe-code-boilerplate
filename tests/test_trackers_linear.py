@@ -697,6 +697,11 @@ class TestLinearTrackerGetLabelIds:
     def test_get_label_ids_exception(self) -> None:
         tracker = LinearTracker(api_key="test-fake-key")
 
+        # Clear cache to avoid stale data from prior tests
+        from lib.vibe.utils.cache import get_cache
+
+        get_cache().invalidate("linear_labels_team_abc")
+
         with patch.object(tracker, "_execute_query", side_effect=Exception("API error")):
             label_ids = tracker._get_label_ids("team_abc", ["Bug"])
 
@@ -761,6 +766,12 @@ class TestLinearTrackerGetWorkflowStateId:
 
     def test_get_workflow_state_id_case_insensitive(self) -> None:
         tracker = LinearTracker(api_key="test-fake-key")
+
+        # Clear cache to avoid stale data from prior tests
+        from lib.vibe.utils.cache import get_cache
+
+        get_cache().invalidate("linear_states_team_abc")
+
         mock_states = [{"id": "state-1", "name": "In Progress"}]
         mock_response = {"data": {"team": {"states": {"nodes": mock_states}}}}
 
@@ -781,6 +792,11 @@ class TestLinearTrackerGetWorkflowStateId:
 
     def test_get_workflow_state_id_exception(self) -> None:
         tracker = LinearTracker(api_key="test-fake-key")
+
+        # Clear cache to avoid stale data from prior tests
+        from lib.vibe.utils.cache import get_cache
+
+        get_cache().invalidate("linear_states_team_abc")
 
         with patch.object(tracker, "_execute_query", side_effect=Exception("API error")):
             state_id = tracker._get_workflow_state_id("team_abc", "Done")

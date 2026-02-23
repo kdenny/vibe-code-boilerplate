@@ -1,19 +1,16 @@
 """Tests for config loading and management."""
 
 import json
-
-import pytest
 from pathlib import Path
 
 from lib.vibe.config import (
-    DEFAULT_CONFIG,
+    _deep_update,
     config_exists,
     get_config_path,
     get_value,
     load_config,
     save_config,
     update_config,
-    _deep_update,
 )
 
 
@@ -166,8 +163,8 @@ class TestGetValue:
 
     def test_get_value_top_level_key(self, tmp_path: Path) -> None:
         """get_value works for top-level keys."""
-        save_config({"version": "1.0.0"}, base_path=tmp_path)
-        assert get_value("version", base_path=tmp_path) == "1.0.0"
+        save_config({"version": 2}, base_path=tmp_path)
+        assert get_value("version", base_path=tmp_path) == 2
 
     def test_get_value_deeply_nested(self, tmp_path: Path) -> None:
         """get_value works for deeply nested paths."""
