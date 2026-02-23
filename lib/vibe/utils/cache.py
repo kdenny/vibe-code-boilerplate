@@ -43,11 +43,15 @@ class Cache:
         cache_file = self._cache_dir / f"{key}.json"
 
         try:
-            cache_file.write_text(json.dumps({
-                "value": value,
-                "expires_at": time.time() + ttl,
-                "cached_at": time.time(),
-            }))
+            cache_file.write_text(
+                json.dumps(
+                    {
+                        "value": value,
+                        "expires_at": time.time() + ttl,
+                        "cached_at": time.time(),
+                    }
+                )
+            )
         except OSError:
             pass  # Silently fail if we can't write cache
 
@@ -82,12 +86,14 @@ class Cache:
                 expires_at = data.get("expires_at", 0)
                 age_seconds = int(now - cached_at)
                 remaining = int(expires_at - now)
-                entries.append({
-                    "key": f.stem,
-                    "age_seconds": age_seconds,
-                    "remaining_seconds": max(0, remaining),
-                    "expired": now > expires_at,
-                })
+                entries.append(
+                    {
+                        "key": f.stem,
+                        "age_seconds": age_seconds,
+                        "remaining_seconds": max(0, remaining),
+                        "expired": now > expires_at,
+                    }
+                )
             except (json.JSONDecodeError, OSError):
                 entries.append({"key": f.stem, "error": "invalid"})
         return entries
