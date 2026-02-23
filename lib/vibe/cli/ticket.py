@@ -454,7 +454,10 @@ def create_human_followup(
                 click.echo("Skipping duplicate creation.")
                 return
     except Exception:
-        click.echo("Warning: could not check for existing tickets, proceeding with creation.", err=True)
+        click.echo(
+            "Warning: could not check for existing tickets, proceeding with creation.",
+            err=True,
+        )
 
     try:
         ticket = tracker.create_ticket(
