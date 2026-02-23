@@ -57,7 +57,7 @@ class ShortcutTracker(TrackerBase):
         try:
             response = self._request("GET", "/member")
             return bool(response.status_code == 200)
-        except Exception:
+        except requests.RequestException:
             return False
 
     def get_ticket(self, ticket_id: str) -> Ticket | None:
@@ -72,7 +72,7 @@ class ShortcutTracker(TrackerBase):
             if e.response is not None and e.response.status_code == 404:
                 return None
             return None
-        except Exception:
+        except requests.RequestException:
             return None
 
     def list_tickets(
@@ -127,7 +127,7 @@ class ShortcutTracker(TrackerBase):
                     break
 
             return all_tickets
-        except Exception:
+        except requests.RequestException:
             return all_tickets  # Return what we have so far
 
     def create_ticket(
@@ -223,7 +223,7 @@ class ShortcutTracker(TrackerBase):
             all_labels = response.json()
             name_to_id = {label["name"].lower(): label["id"] for label in all_labels}
             return [name_to_id[name.lower()] for name in label_names if name.lower() in name_to_id]
-        except Exception:
+        except requests.RequestException:
             return []
 
     def _get_or_create_label_ids(self, label_names: list[str]) -> list[int]:
@@ -244,7 +244,7 @@ class ShortcutTracker(TrackerBase):
                     if new_id:
                         label_ids.append(new_id)
             return label_ids
-        except Exception:
+        except requests.RequestException:
             return self._get_label_ids(label_names)
 
     def _create_label(self, name: str) -> int | None:
@@ -254,7 +254,7 @@ class ShortcutTracker(TrackerBase):
             label = response.json()
             label_id = label.get("id")
             return int(label_id) if label_id is not None else None
-        except Exception:
+        except requests.RequestException:
             return None
 
     def list_labels(self) -> list[dict[str, Any]]:
@@ -270,7 +270,7 @@ class ShortcutTracker(TrackerBase):
                 }
                 for label in labels
             ]
-        except Exception:
+        except requests.RequestException:
             return []
 
     def _get_workflow_state_id(self, state_name: str) -> int | None:
@@ -285,7 +285,7 @@ class ShortcutTracker(TrackerBase):
                         state_id = state.get("id")
                         return int(state_id) if state_id is not None else None
             return None
-        except Exception:
+        except requests.RequestException:
             return None
 
     def _parse_story(self, story: dict) -> Ticket:

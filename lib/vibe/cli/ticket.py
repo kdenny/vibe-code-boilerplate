@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 import click
+import requests
 
 # Auto-load .env files at startup (unless disabled)
 if os.environ.get("VIBE_NO_DOTENV") != "1":
@@ -594,7 +595,7 @@ def create_human_followup(
                 click.echo(f"URL: {existing.url}")
                 click.echo("Skipping duplicate creation.")
                 return
-    except Exception:
+    except (requests.RequestException, RuntimeError):
         click.echo(
             "Warning: could not check for existing tickets, proceeding with creation.",
             err=True,
@@ -943,7 +944,7 @@ def list_projects(as_json: bool, state: str | None) -> None:
                 if project.description:
                     click.echo(f"    {project.description[:50]}...")
             click.echo()
-    except Exception as e:
+    except (requests.RequestException, RuntimeError) as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
 
@@ -977,7 +978,7 @@ def project_command(action: str, name: str, description: str, state: str) -> Non
             click.echo(f"Created project: {project.name}")
             click.echo(f"ID: {project.id}")
             click.echo(f"URL: {project.url}")
-        except Exception as e:
+        except (requests.RequestException, RuntimeError) as e:
             click.echo(f"Error: {e}", err=True)
             sys.exit(1)
 
@@ -998,7 +999,7 @@ def project_command(action: str, name: str, description: str, state: str) -> Non
             else:
                 click.echo(f"Project not found: {name}")
                 sys.exit(1)
-        except Exception as e:
+        except (requests.RequestException, RuntimeError) as e:
             click.echo(f"Error: {e}", err=True)
             sys.exit(1)
 
@@ -1035,7 +1036,7 @@ def list_users(as_json: bool) -> None:
                 active = "active" if user.get("active", True) else "inactive"
                 click.echo(f"  {name} <{email}> ({active})")
             click.echo()
-    except Exception as e:
+    except (requests.RequestException, RuntimeError) as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
 

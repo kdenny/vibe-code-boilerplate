@@ -84,7 +84,7 @@ def get_app_name() -> str | None:
             data = tomli.loads(content)
             app_name: str | None = data.get("app")
             return app_name
-        except Exception:
+        except (OSError, ValueError):
             pass
 
     # Fallback: simple parsing
@@ -92,7 +92,7 @@ def get_app_name() -> str | None:
         for line in fly_toml.read_text().split("\n"):
             if line.startswith("app ="):
                 return line.split("=")[1].strip().strip("\"'")
-    except Exception:
+    except OSError:
         pass
     return None
 

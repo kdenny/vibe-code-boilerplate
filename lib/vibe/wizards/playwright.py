@@ -120,7 +120,7 @@ def analyze_existing_config(config_path: Path) -> dict[str, Any]:
         if "webkit" in content.lower():
             browsers.append("webkit")
 
-    except Exception:
+    except OSError:
         pass
 
     return analysis

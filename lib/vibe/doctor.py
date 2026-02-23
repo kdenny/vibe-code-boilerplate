@@ -450,7 +450,7 @@ def check_local_hooks() -> CheckResult:
             message="File exists but no hooks defined",
             category="integration",
         )
-    except (json.JSONDecodeError, Exception) as e:
+    except (json.JSONDecodeError, OSError) as e:
         return CheckResult(
             name="Local hooks",
             status=Status.WARN,
@@ -496,7 +496,7 @@ def check_stale_worktrees() -> CheckResult:
             message=f"{len(worktrees)} active worktree(s)",
         )
 
-    except Exception:
+    except (subprocess.CalledProcessError, OSError):
         return CheckResult(
             name="Worktrees",
             status=Status.SKIP,
@@ -556,7 +556,7 @@ def check_integrations(config: dict, verbose: bool = False) -> list[CheckResult]
                         category="integration",
                     )
                 )
-        except Exception:
+        except (subprocess.CalledProcessError, OSError):
             results.append(
                 CheckResult(
                     name="Fly.io",
@@ -602,7 +602,7 @@ def check_integrations(config: dict, verbose: bool = False) -> list[CheckResult]
                         category="integration",
                     )
                 )
-        except Exception:
+        except (subprocess.CalledProcessError, OSError):
             results.append(
                 CheckResult(
                     name="Vercel",
@@ -907,7 +907,7 @@ def check_integration_freshness() -> CheckResult:
             fix_hint="Fix .vibe/integration-freshness.json syntax",
             category="integration",
         )
-    except Exception as e:
+    except OSError as e:
         return CheckResult(
             name="Integration freshness",
             status=Status.WARN,
@@ -974,7 +974,7 @@ def check_github_actions_setup() -> list[CheckResult]:
                 )
             )
 
-    except Exception as e:
+    except (subprocess.CalledProcessError, OSError) as e:
         results.append(
             CheckResult(
                 name="GitHub Secrets",
@@ -1025,7 +1025,7 @@ def check_github_actions_setup() -> list[CheckResult]:
                 )
             )
 
-    except Exception:
+    except (subprocess.CalledProcessError, OSError, json.JSONDecodeError):
         results.append(
             CheckResult(
                 name="Recent workflows",

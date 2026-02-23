@@ -217,7 +217,7 @@ def _run_multi_assistant_generation() -> None:
         click.echo("  Generated files:")
         for format_name, file_path in results.items():
             click.echo(f"    - {file_path}")
-    except Exception as e:
+    except (OSError, ValueError) as e:
         click.echo(f"  Error generating instructions: {e}")
 
 

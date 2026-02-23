@@ -114,7 +114,7 @@ class SetupValidator:
                 success=False,
                 message="Authentication check timed out",
             )
-        except Exception as e:
+        except (subprocess.CalledProcessError, OSError) as e:
             return ValidationResult(
                 name="GitHub",
                 success=False,
@@ -200,7 +200,7 @@ class SetupValidator:
                         success=False,
                         message=f"API returned {response.status}",
                     )
-        except Exception as e:
+        except (urllib.error.URLError, OSError, ValueError) as e:
             return ValidationResult(
                 name="Linear",
                 success=False,
@@ -247,7 +247,7 @@ class SetupValidator:
                         success=False,
                         message=f"API returned {response.status}",
                     )
-        except Exception as e:
+        except (urllib.error.URLError, OSError, ValueError) as e:
             return ValidationResult(
                 name="Shortcut",
                 success=False,
@@ -295,7 +295,7 @@ class SetupValidator:
                 success=False,
                 message="Authentication check timed out",
             )
-        except Exception as e:
+        except (subprocess.CalledProcessError, OSError) as e:
             return ValidationResult(
                 name="Vercel",
                 success=False,
@@ -349,7 +349,7 @@ class SetupValidator:
                 success=False,
                 message="Authentication check timed out",
             )
-        except Exception as e:
+        except (subprocess.CalledProcessError, OSError) as e:
             return ValidationResult(
                 name="Fly.io",
                 success=False,
@@ -384,7 +384,7 @@ class SetupValidator:
                             success=True,
                             message="API key valid",
                         )
-            except Exception as e:
+            except (urllib.error.URLError, OSError, ValueError) as e:
                 return ValidationResult(
                     name="Neon",
                     success=False,
@@ -449,7 +449,7 @@ class SetupValidator:
                         success=True,
                         message="Connected successfully",
                     )
-        except Exception as e:
+        except (urllib.error.URLError, OSError, ValueError) as e:
             return ValidationResult(
                 name="Supabase",
                 success=False,

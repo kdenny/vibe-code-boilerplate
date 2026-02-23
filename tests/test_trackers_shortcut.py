@@ -69,7 +69,8 @@ class TestShortcutTrackerAuthenticate:
         tracker = ShortcutTracker()
 
         with patch(
-            "lib.vibe.trackers.shortcut.requests.request", side_effect=Exception("Network error")
+            "lib.vibe.trackers.shortcut.requests.request",
+            side_effect=requests.RequestException("Network error"),
         ):
             result = tracker.authenticate(api_token="sc_token")
 
@@ -168,7 +169,8 @@ class TestShortcutTrackerGetTicket:
         tracker = ShortcutTracker(api_token="sc_token")
 
         with patch(
-            "lib.vibe.trackers.shortcut.requests.request", side_effect=Exception("API error")
+            "lib.vibe.trackers.shortcut.requests.request",
+            side_effect=requests.RequestException("API error"),
         ):
             ticket = tracker.get_ticket("123")
 
@@ -364,7 +366,7 @@ class TestShortcutTrackerListTickets:
 
         with patch(
             "lib.vibe.trackers.shortcut.requests.request",
-            side_effect=[page1_response, Exception("API error")],
+            side_effect=[page1_response, requests.RequestException("API error")],
         ):
             tickets = tracker.list_tickets(limit=100)
 
@@ -376,7 +378,8 @@ class TestShortcutTrackerListTickets:
         tracker = ShortcutTracker(api_token="sc_token")
 
         with patch(
-            "lib.vibe.trackers.shortcut.requests.request", side_effect=Exception("API error")
+            "lib.vibe.trackers.shortcut.requests.request",
+            side_effect=requests.RequestException("API error"),
         ):
             tickets = tracker.list_tickets()
 
@@ -422,7 +425,7 @@ class TestShortcutTrackerCreateTicket:
 
         with (
             patch("lib.vibe.trackers.shortcut.requests.request", return_value=mock_response),
-            patch.object(tracker, "_get_label_ids", return_value=[1]) as mock_labels,
+            patch.object(tracker, "_get_or_create_label_ids", return_value=[1]) as mock_labels,
         ):
             ticket = tracker.create_ticket("Labeled Story", "Description", labels=["Bug"])
 
@@ -613,7 +616,8 @@ class TestShortcutTrackerGetLabelIds:
         tracker = ShortcutTracker(api_token="sc_token")
 
         with patch(
-            "lib.vibe.trackers.shortcut.requests.request", side_effect=Exception("API error")
+            "lib.vibe.trackers.shortcut.requests.request",
+            side_effect=requests.RequestException("API error"),
         ):
             label_ids = tracker._get_label_ids(["Bug"])
 
@@ -644,7 +648,8 @@ class TestShortcutTrackerListLabels:
         tracker = ShortcutTracker(api_token="sc_token")
 
         with patch(
-            "lib.vibe.trackers.shortcut.requests.request", side_effect=Exception("API error")
+            "lib.vibe.trackers.shortcut.requests.request",
+            side_effect=requests.RequestException("API error"),
         ):
             labels = tracker.list_labels()
 
@@ -724,7 +729,8 @@ class TestShortcutTrackerGetWorkflowStateId:
         tracker = ShortcutTracker(api_token="sc_token")
 
         with patch(
-            "lib.vibe.trackers.shortcut.requests.request", side_effect=Exception("API error")
+            "lib.vibe.trackers.shortcut.requests.request",
+            side_effect=requests.RequestException("API error"),
         ):
             state_id = tracker._get_workflow_state_id("Done")
 
