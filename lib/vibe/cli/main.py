@@ -336,12 +336,11 @@ def secrets_sync(env_file: str, provider: str, environment: str) -> None:
 
 @main.command("init-actions")
 @click.option("--linear", is_flag=True, help="Include Linear integration workflows")
-@click.option("--linear-api-key", envvar="LINEAR_API_KEY", help="LINEAR_API_KEY to set as secret")
 @click.option("--dry-run", is_flag=True, help="Preview changes without applying")
 @click.option("--all", "include_all", is_flag=True, help="Include all available workflows")
 @click.option("--interactive", "-i", is_flag=True, help="Interactive mode for workflow selection")
 def init_actions(
-    linear: bool, linear_api_key: str | None, dry_run: bool, include_all: bool, interactive: bool
+    linear: bool, dry_run: bool, include_all: bool, interactive: bool
 ) -> None:
     """Initialize GitHub Actions workflows, secrets, and labels.
 
@@ -349,6 +348,9 @@ def init_actions(
     - Core workflows (PR policy, security, lint, tests)
     - Required labels (risk levels, types)
     - Optionally: Linear integration workflows and secrets
+
+    LINEAR_API_KEY is read from the environment variable, not a CLI flag.
+    Set it before running: export LINEAR_API_KEY=lin_api_...
 
     Examples:
 
@@ -359,6 +361,8 @@ def init_actions(
     """
     from lib.vibe.github_actions import init_github_actions
     from lib.vibe.ui.components import MultiSelect
+
+    linear_api_key = os.environ.get("LINEAR_API_KEY")
 
     # Interactive mode
     if interactive:
@@ -387,6 +391,7 @@ def init_actions(
             if not linear_api_key:
                 click.echo()
                 click.echo("Linear integration requires LINEAR_API_KEY.")
+                click.echo("Set it as an environment variable: export LINEAR_API_KEY=lin_api_...")
                 if click.confirm("Enter LINEAR_API_KEY now?", default=True):
                     linear_api_key = click.prompt("LINEAR_API_KEY", hide_input=True)
 
