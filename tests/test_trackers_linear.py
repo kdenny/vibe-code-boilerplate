@@ -717,6 +717,131 @@ class TestLinearTrackerGetLabelIds:
         assert label_ids == []
 
 
+class TestLinearTrackerGetLabelIdsCaseInsensitive:
+    """Tests for case-insensitive label matching in _get_label_ids."""
+
+    def test_get_label_ids_case_insensitive_match(self) -> None:
+        """Label 'Backend' in input matches 'backend' in Linear."""
+        tracker = LinearTracker(api_key="test-fake-key")
+        mock_labels = [
+            {"id": "label-1", "name": "backend"},
+            {"id": "label-2", "name": "Frontend"},
+        ]
+        mock_response = {"data": {"team": {"labels": {"nodes": mock_labels}}}}
+
+        with patch.object(tracker, "_execute_query", return_value=mock_response):
+            label_ids = tracker._get_label_ids("team_abc", ["Backend"])
+
+        assert label_ids == ["label-1"]
+
+    def test_get_label_ids_uppercase_input(self) -> None:
+        """Label 'DATABASE' in input matches 'database' in Linear."""
+        tracker = LinearTracker(api_key="test-fake-key")
+        mock_labels = [{"id": "label-1", "name": "database"}]
+        mock_response = {"data": {"team": {"labels": {"nodes": mock_labels}}}}
+
+        with patch.object(tracker, "_execute_query", return_value=mock_response):
+            label_ids = tracker._get_label_ids("team_abc", ["DATABASE"])
+
+        assert label_ids == ["label-1"]
+
+    def test_get_label_ids_mixed_case_multiple(self) -> None:
+        """Multiple labels with different casings all resolve correctly."""
+        tracker = LinearTracker(api_key="test-fake-key")
+        mock_labels = [
+            {"id": "label-1", "name": "Bug"},
+            {"id": "label-2", "name": "high risk"},
+            {"id": "label-3", "name": "BACKEND"},
+        ]
+        mock_response = {"data": {"team": {"labels": {"nodes": mock_labels}}}}
+
+        with patch.object(tracker, "_execute_query", return_value=mock_response):
+            label_ids = tracker._get_label_ids("team_abc", ["bug", "High Risk", "backend"])
+
+        assert label_ids == ["label-1", "label-2", "label-3"]
+
+    def test_get_label_ids_case_insensitive_from_cache(self) -> None:
+        """Cached labels also use case-insensitive matching."""
+        tracker = LinearTracker(api_key="test-fake-key")
+        cached_data = [
+            {"name": "backend", "id": "label-1"},
+            {"name": "Frontend", "id": "label-2"},
+        ]
+
+        with patch("lib.vibe.trackers.linear.get_cache") as mock_get_cache:
+            mock_cache = MagicMock()
+            mock_cache.get.return_value = cached_data
+            mock_get_cache.return_value = mock_cache
+
+            label_ids = tracker._get_label_ids("team_cached", ["BACKEND", "frontend"])
+
+        assert label_ids == ["label-1", "label-2"]
+
+
+class TestLinearTrackerGetOrCreateLabelIdsCaseInsensitive:
+    """Tests for case-insensitive label matching in _get_or_create_label_ids."""
+
+    def test_get_or_create_skips_creation_for_case_mismatch(self) -> None:
+        """If 'backend' exists in Linear, passing 'Backend' should match it, not create a new one."""
+        tracker = LinearTracker(api_key="test-fake-key")
+        mock_labels = [
+            {"id": "label-1", "name": "backend"},
+            {"id": "label-2", "name": "Feature"},
+        ]
+        mock_response = {"data": {"team": {"labels": {"nodes": mock_labels}}}}
+
+        with patch.object(tracker, "_execute_query", return_value=mock_response):
+            with patch.object(tracker, "_create_label") as mock_create:
+                label_ids = tracker._get_or_create_label_ids("team_abc", ["Backend", "Feature"])
+
+        mock_create.assert_not_called()
+        assert label_ids == ["label-1", "label-2"]
+
+    def test_get_or_create_creates_genuinely_new_label(self) -> None:
+        """A label that truly doesn't exist (even case-insensitively) should be created."""
+        tracker = LinearTracker(api_key="test-fake-key")
+        mock_labels = [{"id": "label-1", "name": "Bug"}]
+        mock_response = {"data": {"team": {"labels": {"nodes": mock_labels}}}}
+
+        with patch.object(tracker, "_execute_query", return_value=mock_response):
+            with patch.object(tracker, "_create_label", return_value="new-label-id") as mock_create:
+                label_ids = tracker._get_or_create_label_ids("team_abc", ["Bug", "NewLabel"])
+
+        mock_create.assert_called_once_with("team_abc", "NewLabel")
+        assert label_ids == ["label-1", "new-label-id"]
+
+    def test_get_or_create_warns_on_failed_creation(self) -> None:
+        """A warning is logged when label creation fails."""
+        tracker = LinearTracker(api_key="test-fake-key")
+        mock_labels = [{"id": "label-1", "name": "Bug"}]
+        mock_response = {"data": {"team": {"labels": {"nodes": mock_labels}}}}
+        with patch.object(tracker, "_execute_query", return_value=mock_response):
+            with patch.object(tracker, "_create_label", return_value=None):
+                with patch("lib.vibe.trackers.linear.logger") as mock_logger:
+                    label_ids = tracker._get_or_create_label_ids("team_abc", ["Bug", "FailLabel"])
+
+        assert label_ids == ["label-1"]
+        # Should have warned about the failed creation and the count mismatch
+        assert mock_logger.warning.call_count >= 1
+
+    def test_get_or_create_warns_on_api_error(self) -> None:
+        """A warning is logged when the API call fails."""
+        tracker = LinearTracker(api_key="test-fake-key")
+
+        # Make _get_label_ids return empty (simulating cache miss + failure)
+        with patch.object(tracker, "_get_label_ids", return_value=[]):
+            with patch.object(
+                tracker,
+                "_execute_query",
+                side_effect=requests.RequestException("API error"),
+            ):
+                with patch("lib.vibe.trackers.linear.logger") as mock_logger:
+                    label_ids = tracker._get_or_create_label_ids("team_abc", ["Bug"])
+
+        assert label_ids == []
+        mock_logger.warning.assert_called_once_with("Failed to resolve labels due to API error")
+
+
 class TestLinearTrackerListLabels:
     """Tests for list_labels method."""
 
