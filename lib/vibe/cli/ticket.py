@@ -110,7 +110,8 @@ def get(ticket_id: str, children: bool) -> None:
 @main.command("list")
 @click.option("--status", "-s", help="Filter by status")
 @click.option("--label", "-l", multiple=True, help="Filter by label")
-@click.option("--limit", "-n", default=10, help="Maximum tickets to show")
+@click.option("--limit", "-n", default=50, help="Maximum tickets to show (default: 50)")
+@click.option("--all", "fetch_all", is_flag=True, help="Fetch all matching tickets")
 @click.option("--project", "-p", help="Filter by project name")
 @click.option("--parent", help="Filter by parent ticket (show sub-tasks)")
 @click.option(
@@ -124,6 +125,7 @@ def list_tickets(
     status: str | None,
     label: tuple,
     limit: int,
+    fetch_all: bool,
     project: str | None,
     parent: str | None,
     priority: str | None,
@@ -140,15 +142,18 @@ def list_tickets(
         bin/ticket list --priority urgent
         bin/ticket list --assignee me
         bin/ticket list --unassigned
+        bin/ticket list --all  # Fetch all matching tickets
     """
     tracker = ensure_tracker_configured()
+
+    effective_limit = 10000 if fetch_all else limit
 
     try:
         # Build kwargs for trackers that support extended filters
         kwargs: dict = {
             "status": status,
             "labels": list(label) if label else None,
-            "limit": limit,
+            "limit": effective_limit,
         }
         # Add extended filters if supported
         if hasattr(tracker, "list_tickets"):
@@ -175,6 +180,12 @@ def list_tickets(
 
         for ticket in tickets:
             print_ticket_summary(ticket)
+
+        count = len(tickets)
+        if count >= effective_limit and not fetch_all:
+            click.echo(f"\nShowing {count} tickets. Use --all to fetch all matching tickets.")
+        else:
+            click.echo(f"\n{count} ticket(s) found.")
     except NotImplementedError as e:
         click.echo(str(e), err=True)
         sys.exit(1)

@@ -187,7 +187,14 @@ class TestLinearTrackerListTickets:
                 "url": "https://linear.app/test/issue/TEST-2",
             },
         ]
-        mock_response = {"data": {"issues": {"nodes": mock_issues}}}
+        mock_response = {
+            "data": {
+                "issues": {
+                    "nodes": mock_issues,
+                    "pageInfo": {"hasNextPage": False, "endCursor": None},
+                }
+            }
+        }
 
         with patch.object(tracker, "_execute_query", return_value=mock_response):
             tickets = tracker.list_tickets()
@@ -199,7 +206,14 @@ class TestLinearTrackerListTickets:
 
     def test_list_tickets_with_status_filter(self) -> None:
         tracker = LinearTracker(api_key="test-fake-key")
-        mock_response = {"data": {"issues": {"nodes": []}}}
+        mock_response = {
+            "data": {
+                "issues": {
+                    "nodes": [],
+                    "pageInfo": {"hasNextPage": False, "endCursor": None},
+                }
+            }
+        }
 
         with patch.object(tracker, "_execute_query", return_value=mock_response) as mock_query:
             tracker.list_tickets(status="Todo")
@@ -210,7 +224,14 @@ class TestLinearTrackerListTickets:
 
     def test_list_tickets_with_label_filter(self) -> None:
         tracker = LinearTracker(api_key="test-fake-key")
-        mock_response = {"data": {"issues": {"nodes": []}}}
+        mock_response = {
+            "data": {
+                "issues": {
+                    "nodes": [],
+                    "pageInfo": {"hasNextPage": False, "endCursor": None},
+                }
+            }
+        }
 
         with patch.object(tracker, "_execute_query", return_value=mock_response) as mock_query:
             tracker.list_tickets(labels=["Bug", "Feature"])
@@ -221,7 +242,14 @@ class TestLinearTrackerListTickets:
 
     def test_list_tickets_with_team_filter(self) -> None:
         tracker = LinearTracker(api_key="test-fake-key", team_id="team_abc")
-        mock_response = {"data": {"issues": {"nodes": []}}}
+        mock_response = {
+            "data": {
+                "issues": {
+                    "nodes": [],
+                    "pageInfo": {"hasNextPage": False, "endCursor": None},
+                }
+            }
+        }
 
         with patch.object(tracker, "_execute_query", return_value=mock_response) as mock_query:
             tracker.list_tickets()
@@ -232,7 +260,14 @@ class TestLinearTrackerListTickets:
 
     def test_list_tickets_with_limit(self) -> None:
         tracker = LinearTracker(api_key="test-fake-key")
-        mock_response = {"data": {"issues": {"nodes": []}}}
+        mock_response = {
+            "data": {
+                "issues": {
+                    "nodes": [],
+                    "pageInfo": {"hasNextPage": False, "endCursor": None},
+                }
+            }
+        }
 
         with patch.object(tracker, "_execute_query", return_value=mock_response) as mock_query:
             tracker.list_tickets(limit=10)
@@ -240,6 +275,118 @@ class TestLinearTrackerListTickets:
         call_args = mock_query.call_args
         variables = call_args[0][1]
         assert variables["first"] == 10
+
+    def test_list_tickets_paginates_multiple_pages(self) -> None:
+        tracker = LinearTracker(api_key="test-fake-key")
+        page1_response = {
+            "data": {
+                "issues": {
+                    "nodes": [
+                        {
+                            "id": "uuid-1",
+                            "identifier": "TEST-1",
+                            "title": "Issue 1",
+                            "description": "",
+                            "state": {"name": "Todo"},
+                            "labels": {"nodes": []},
+                            "url": "",
+                        },
+                    ],
+                    "pageInfo": {"hasNextPage": True, "endCursor": "cursor-1"},
+                }
+            }
+        }
+        page2_response = {
+            "data": {
+                "issues": {
+                    "nodes": [
+                        {
+                            "id": "uuid-2",
+                            "identifier": "TEST-2",
+                            "title": "Issue 2",
+                            "description": "",
+                            "state": {"name": "Todo"},
+                            "labels": {"nodes": []},
+                            "url": "",
+                        },
+                    ],
+                    "pageInfo": {"hasNextPage": False, "endCursor": None},
+                }
+            }
+        }
+
+        with patch.object(
+            tracker, "_execute_query", side_effect=[page1_response, page2_response]
+        ) as mock_query:
+            tickets = tracker.list_tickets(limit=100)
+
+        assert len(tickets) == 2
+        assert tickets[0].id == "TEST-1"
+        assert tickets[1].id == "TEST-2"
+        # Verify second call includes cursor
+        second_call_vars = mock_query.call_args_list[1][0][1]
+        assert second_call_vars["after"] == "cursor-1"
+
+    def test_list_tickets_stops_at_limit(self) -> None:
+        tracker = LinearTracker(api_key="test-fake-key")
+        page1_response = {
+            "data": {
+                "issues": {
+                    "nodes": [
+                        {
+                            "id": f"uuid-{i}",
+                            "identifier": f"TEST-{i}",
+                            "title": f"Issue {i}",
+                            "description": "",
+                            "state": {"name": "Todo"},
+                            "labels": {"nodes": []},
+                            "url": "",
+                        }
+                        for i in range(3)
+                    ],
+                    "pageInfo": {"hasNextPage": True, "endCursor": "cursor-1"},
+                }
+            }
+        }
+
+        with patch.object(tracker, "_execute_query", return_value=page1_response) as mock_query:
+            tickets = tracker.list_tickets(limit=2)
+
+        assert len(tickets) == 2
+        # Should only make one API call since we got enough results
+        assert mock_query.call_count == 1
+
+    def test_list_tickets_exception_returns_partial(self) -> None:
+        tracker = LinearTracker(api_key="test-fake-key")
+        page1_response = {
+            "data": {
+                "issues": {
+                    "nodes": [
+                        {
+                            "id": "uuid-1",
+                            "identifier": "TEST-1",
+                            "title": "Issue 1",
+                            "description": "",
+                            "state": {"name": "Todo"},
+                            "labels": {"nodes": []},
+                            "url": "",
+                        },
+                    ],
+                    "pageInfo": {"hasNextPage": True, "endCursor": "cursor-1"},
+                }
+            }
+        }
+
+        with patch.object(
+            tracker,
+            "_execute_query",
+            side_effect=[page1_response, Exception("API error")],
+        ):
+            tickets = tracker.list_tickets(limit=100)
+
+        # Should return the tickets from page 1
+        assert len(tickets) == 1
+        assert tickets[0].id == "TEST-1"
 
     def test_list_tickets_exception_returns_empty(self) -> None:
         tracker = LinearTracker(api_key="test-fake-key")
