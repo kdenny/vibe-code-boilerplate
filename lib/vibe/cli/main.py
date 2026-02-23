@@ -70,6 +70,7 @@ def do(ticket_id: str) -> None:
     from lib.vibe.git.branches import format_branch_name, get_main_branch
     from lib.vibe.git.worktrees import create_worktree
     from lib.vibe.trackers.linear import LinearTracker
+    from lib.vibe.ui.components import Spinner
 
     config = load_config()
     tracker_type = config.get("tracker", {}).get("type")
@@ -78,7 +79,8 @@ def do(ticket_id: str) -> None:
     title = None
     if tracker_type == "linear":
         tracker = LinearTracker()
-        ticket = tracker.get_ticket(ticket_id)
+        with Spinner(f"Fetching ticket {ticket_id}"):
+            ticket = tracker.get_ticket(ticket_id)
         if ticket:
             title = ticket.title
             click.echo(f"Found ticket: {ticket.title}")

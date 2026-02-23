@@ -21,7 +21,7 @@ from lib.vibe.deployment_followup import (
 from lib.vibe.trackers.base import Ticket
 from lib.vibe.trackers.linear import LinearTracker
 from lib.vibe.trackers.shortcut import ShortcutTracker
-from lib.vibe.ui.components import NumberedMenu, ProgressIndicator
+from lib.vibe.ui.components import NumberedMenu, ProgressIndicator, Spinner
 from lib.vibe.wizards.tracker import run_tracker_wizard
 
 
@@ -93,10 +93,11 @@ def get(ticket_id: str, children: bool) -> None:
 
     try:
         # Use include_children if supported
-        if hasattr(tracker, "get_ticket") and children:
-            ticket = tracker.get_ticket(ticket_id, include_children=True)
-        else:
-            ticket = tracker.get_ticket(ticket_id)
+        with Spinner(f"Fetching ticket {ticket_id}"):
+            if hasattr(tracker, "get_ticket") and children:
+                ticket = tracker.get_ticket(ticket_id, include_children=True)
+            else:
+                ticket = tracker.get_ticket(ticket_id)
         if ticket:
             print_ticket(ticket, show_children=children)
         else:
@@ -172,7 +173,8 @@ def list_tickets(
             if "unassigned" in params and unassigned:
                 kwargs["unassigned"] = unassigned
 
-        tickets = tracker.list_tickets(**kwargs)
+        with Spinner("Fetching tickets"):
+            tickets = tracker.list_tickets(**kwargs)
 
         if not tickets:
             click.echo("No tickets found.")
@@ -295,7 +297,8 @@ def create(
         if "assignee" in params and assignee:
             kwargs["assignee"] = assignee
 
-        ticket = tracker.create_ticket(**kwargs)
+        with Spinner("Creating ticket"):
+            ticket = tracker.create_ticket(**kwargs)
         click.echo(f"Created ticket: {ticket.id}")
         if parent and ticket.parent_id:
             click.echo(f"  (sub-task of {ticket.parent_id})")
