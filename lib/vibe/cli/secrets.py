@@ -196,9 +196,7 @@ def sync(
         sys.exit(1)
 
     if not prov.authenticate():
-        click.echo(
-            f"Not authenticated with {provider}. Check your credentials.", err=True
-        )
+        click.echo(f"Not authenticated with {provider}. Check your credentials.", err=True)
         sys.exit(1)
 
     results = prov.sync_from_local(env_file, environment)
