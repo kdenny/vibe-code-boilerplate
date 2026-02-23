@@ -43,15 +43,15 @@ def get_primary_repo_root() -> Path:
 def get_worktree_base_path() -> Path:
     """Get the base path for worktrees from config."""
     config = load_config()
-    base_path = config.get("worktrees", {}).get("base_path", "../{repo}-worktrees")
+    base_path: str = config.get("worktrees", {}).get("base_path", "../{repo}-worktrees")
 
     # Use primary repo name so path is correct when running from a worktree
     repo_root = get_primary_repo_root()
     repo_name = repo_root.name
-    base_path = base_path.replace("{repo}", repo_name)
+    base_path_str: str = base_path.replace("{repo}", repo_name)
 
     # Resolve relative to primary repo root so path is consistent
-    return (repo_root / base_path).resolve()
+    return (repo_root / base_path_str).resolve()
 
 
 def create_worktree(branch_name: str, base_branch: str = "main") -> Worktree:

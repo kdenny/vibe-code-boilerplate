@@ -172,6 +172,9 @@ def sync(
         return
 
     # Instantiate the provider
+    from lib.vibe.secrets.providers.base import SecretProvider
+
+    prov: SecretProvider
     if provider == "github":
         from lib.vibe.secrets.providers.github import GitHubSecretsProvider
 

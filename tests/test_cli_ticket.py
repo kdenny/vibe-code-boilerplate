@@ -225,9 +225,7 @@ class TestTicketCLI:
             result = runner.invoke(main, ["list", "--all"])
 
         assert result.exit_code == 0
-        mock_tracker.list_tickets.assert_called_once_with(
-            status=None, labels=None, limit=10000
-        )
+        mock_tracker.list_tickets.assert_called_once_with(status=None, labels=None, limit=10000)
         assert "1 ticket(s) found." in result.output
 
     def test_list_command_shows_truncation_warning(self) -> None:

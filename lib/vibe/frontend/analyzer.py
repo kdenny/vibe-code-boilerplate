@@ -308,7 +308,8 @@ class FrontendAnalyzer:
         deps = self._package_json.get("dependencies", {})
         dev_deps = self._package_json.get("devDependencies", {})
 
-        return deps.get(dep_name) or dev_deps.get(dep_name)
+        version: str | None = deps.get(dep_name) or dev_deps.get(dep_name)
+        return version
 
     def _has_dependency(self, dep_prefix: str) -> tuple[bool, str | None]:
         """Check if any dependency starts with prefix, return version if found."""
@@ -334,6 +335,7 @@ class FrontendAnalyzer:
         """Detect frontend framework."""
         # Check in priority order (more specific first)
         for key, pattern in self.FRAMEWORK_PATTERNS.items():
+            name = str(pattern["name"])
             # Check files first
             for filename in pattern.get("files", []):
                 if self._has_file(filename):
@@ -342,19 +344,20 @@ class FrontendAnalyzer:
                         if pattern["deps"]
                         else None
                     )
-                    return pattern["name"], version
+                    return name, version
 
             # Check dependencies
             for dep in pattern.get("deps", []):
                 has_dep, version = self._has_dependency(dep)
                 if has_dep:
-                    return pattern["name"], version
+                    return name, version
 
         return None, None
 
     def _detect_ui_library(self) -> tuple[str | None, str | None]:
         """Detect UI component library."""
         for key, pattern in self.UI_LIBRARY_PATTERNS.items():
+            name = str(pattern["name"])
             # Check files
             for filename in pattern.get("files", []):
                 if self._has_file(filename):
@@ -365,7 +368,7 @@ class FrontendAnalyzer:
                                 (self.project_path / "components.json").read_text()
                             )
                             if "$schema" in comp_json or "style" in comp_json:
-                                return pattern["name"], None
+                                return name, None
                         except (json.JSONDecodeError, FileNotFoundError):
                             pass
 
@@ -373,13 +376,14 @@ class FrontendAnalyzer:
             for dep in pattern.get("deps", []):
                 has_dep, version = self._has_dependency(dep)
                 if has_dep:
-                    return pattern["name"], version
+                    return name, version
 
         return None, None
 
     def _detect_css_framework(self) -> tuple[str | None, str | None]:
         """Detect CSS framework."""
         for key, pattern in self.CSS_FRAMEWORK_PATTERNS.items():
+            name = str(pattern["name"])
             # Check files
             for filename in pattern.get("files", []):
                 if self._has_file(filename):
@@ -388,13 +392,13 @@ class FrontendAnalyzer:
                         if pattern["deps"]
                         else None
                     )
-                    return pattern["name"], version
+                    return name, version
 
             # Check dependencies
             for dep in pattern.get("deps", []):
                 has_dep, version = self._has_dependency(dep)
                 if has_dep:
-                    return pattern["name"], version
+                    return name, version
 
         return None, None
 

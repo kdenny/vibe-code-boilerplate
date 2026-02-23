@@ -1,8 +1,6 @@
 """Tests for doctor health checks."""
 
-import os
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
@@ -63,9 +61,7 @@ class TestCheckTrackerConfig:
         result = check_tracker_config(config)
         assert result.status == Status.PASS
 
-    def test_check_tracker_config_shortcut_no_token(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_check_tracker_config_shortcut_no_token(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Shortcut configured without API token returns WARN."""
         monkeypatch.delenv("SHORTCUT_API_TOKEN", raising=False)
         config = {"tracker": {"type": "shortcut"}}
@@ -136,7 +132,9 @@ class TestCheckGithubConfig:
 class TestCheckConfigExists:
     """Tests for check_config_exists."""
 
-    def test_check_config_exists_pass(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    def test_check_config_exists_pass(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
         """Returns PASS when config file exists."""
         vibe_dir = tmp_path / ".vibe"
         vibe_dir.mkdir()
@@ -146,7 +144,9 @@ class TestCheckConfigExists:
         result = check_config_exists()
         assert result.status == Status.PASS
 
-    def test_check_config_exists_fail(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    def test_check_config_exists_fail(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
         """Returns FAIL when config file is missing."""
         monkeypatch.chdir(tmp_path)
         result = check_config_exists()

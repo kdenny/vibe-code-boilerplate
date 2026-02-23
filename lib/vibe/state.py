@@ -35,7 +35,8 @@ def load_state(base_path: Path | None = None) -> dict[str, Any]:
         return DEFAULT_STATE.copy()
 
     with open(state_file) as f:
-        return json.load(f)
+        result: dict[str, Any] = json.load(f)
+        return result
 
 
 def save_state(state: dict[str, Any], base_path: Path | None = None) -> None:

@@ -71,7 +71,7 @@ def load_config(base_path: Path | None = None) -> dict[str, Any]:
         return DEFAULT_CONFIG.copy()
 
     with open(config_file) as f:
-        config = json.load(f)
+        config: dict[str, Any] = json.load(f)
 
     # Auto-migrate if needed
     version = get_config_version(config)

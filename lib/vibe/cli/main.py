@@ -196,9 +196,12 @@ def cleanup(dry_run: bool, force: bool) -> None:
             if pr_result.returncode == 0 and pr_result.stdout.strip() not in ("", "[]"):
                 prs = _json.loads(pr_result.stdout)
                 if prs:
-                    wt["pr_number"] = prs[0].get("number")
-                    wt["pr_title"] = prs[0].get("title", "")
-                    merged.append(wt)
+                    merged_wt: dict[str, object] = {
+                        **wt,
+                        "pr_number": prs[0].get("number"),
+                        "pr_title": prs[0].get("title", ""),
+                    }
+                    merged.append(merged_wt)
                     continue
         except (subprocess.TimeoutExpired, FileNotFoundError):
             pass
@@ -213,9 +216,12 @@ def cleanup(dry_run: bool, force: bool) -> None:
             )
             if remote_check.returncode == 0 and not remote_check.stdout.strip():
                 # Branch deleted on remote - likely merged
-                wt["pr_number"] = None
-                wt["pr_title"] = "(branch deleted on remote)"
-                merged.append(wt)
+                merged_wt = {
+                    **wt,
+                    "pr_number": None,
+                    "pr_title": "(branch deleted on remote)",
+                }
+                merged.append(merged_wt)
                 continue
         except (subprocess.TimeoutExpired, FileNotFoundError):
             pass
@@ -225,14 +231,14 @@ def cleanup(dry_run: bool, force: bool) -> None:
     # Report findings
     if merged:
         click.echo(f"\nMerged (safe to remove): {len(merged)}")
-        for wt in merged:
-            pr_info = f" (PR #{wt.get('pr_number')})" if wt.get("pr_number") else ""
-            click.echo(f"  {wt.get('branch', 'unknown')}{pr_info} — {wt['path']}")
+        for mwt in merged:
+            pr_info = f" (PR #{mwt.get('pr_number')})" if mwt.get("pr_number") else ""
+            click.echo(f"  {mwt.get('branch', 'unknown')}{pr_info} — {mwt['path']}")
 
     if active:
         click.echo(f"\nStill active: {len(active)}")
-        for wt in active:
-            click.echo(f"  {wt.get('branch', 'unknown')} — {wt['path']}")
+        for awt in active:
+            click.echo(f"  {awt.get('branch', 'unknown')} — {awt['path']}")
 
     if not merged:
         click.echo("\nNo merged worktrees found. Nothing to clean up.")
@@ -250,9 +256,9 @@ def cleanup(dry_run: bool, force: bool) -> None:
 
     # Remove merged worktrees
     removed = 0
-    for wt in merged:
-        branch = wt.get("branch", "")
-        path = wt.get("path", "")
+    for mwt in merged:
+        branch = str(mwt.get("branch", ""))
+        path = mwt.get("path", "")
 
         # Check for uncommitted changes
         try:
@@ -357,15 +363,15 @@ def _derive_pr_title(branch: str, config: dict) -> str:
                 if tracker_type == "linear":
                     from lib.vibe.trackers.linear import LinearTracker
 
-                    tracker = LinearTracker()
-                    ticket = tracker.get_ticket(ticket_id)
+                    linear_tracker = LinearTracker()
+                    ticket = linear_tracker.get_ticket(ticket_id)
                     if ticket and ticket.title:
                         return f"{ticket_id}: {ticket.title}"
                 elif tracker_type == "shortcut":
                     from lib.vibe.trackers.shortcut import ShortcutTracker
 
-                    tracker = ShortcutTracker()
-                    ticket = tracker.get_ticket(ticket_id)
+                    shortcut_tracker = ShortcutTracker()
+                    ticket = shortcut_tracker.get_ticket(ticket_id)
                     if ticket and ticket.title:
                         return f"{ticket_id}: {ticket.title}"
             except Exception:

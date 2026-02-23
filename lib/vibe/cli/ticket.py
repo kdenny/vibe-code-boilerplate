@@ -247,6 +247,7 @@ def create(
         bin/ticket create "Quick note" -d "Description" --no-labels
     """
     # Interactive mode
+    labels: list[str] | None = None
     if interactive:
         title, description, labels = _interactive_create()
     else:

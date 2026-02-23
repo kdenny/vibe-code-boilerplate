@@ -82,7 +82,8 @@ def get_app_name() -> str | None:
         try:
             content = fly_toml.read_text()
             data = tomli.loads(content)
-            return data.get("app")
+            app_name: str | None = data.get("app")
+            return app_name
         except Exception:
             pass
 
@@ -135,6 +136,7 @@ def run_fly_wizard(config: dict[str, Any]) -> bool:
 
     # Step 2: Check authentication
     click.echo("\nStep 2: Checking authentication...")
+    assert fly_cmd is not None  # Validated above
     if not check_fly_auth():
         click.echo("  Not authenticated with Fly.io.")
         if click.confirm("  Run 'fly auth login' now?", default=True):

@@ -83,7 +83,7 @@ class NumberedMenu:
         click.echo()
 
         while True:
-            choice = click.prompt(
+            choice: int = click.prompt(
                 "Select option",
                 type=int,
                 default=self.default,
@@ -300,7 +300,7 @@ class ConfirmWithHelp:
             click.echo()
             click.echo(f"  Info: {self.help_text}")
 
-        return click.confirm(self.message, default=self.default)
+        return bool(click.confirm(self.message, default=self.default))
 
 
 @dataclass

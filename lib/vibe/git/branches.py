@@ -18,7 +18,7 @@ def format_branch_name(ticket_id: str, title: str | None = None) -> str:
         Formatted branch name
     """
     config = load_config()
-    pattern = config.get("branching", {}).get("pattern", "{PROJ}-{num}")
+    pattern: str = config.get("branching", {}).get("pattern", "{PROJ}-{num}")
 
     # Extract project prefix and number from ticket_id
     match = re.match(r"([A-Z]+)-(\d+)", ticket_id)
@@ -47,13 +47,15 @@ def current_branch() -> str:
         text=True,
         check=True,
     )
-    return result.stdout.strip()
+    branch: str = result.stdout.strip()
+    return branch
 
 
 def get_main_branch() -> str:
     """Get the main branch name from config."""
     config = load_config()
-    return config.get("branching", {}).get("main_branch", "main")
+    main: str = config.get("branching", {}).get("main_branch", "main")
+    return main
 
 
 def create_branch(branch_name: str, base_branch: str | None = None) -> bool:
