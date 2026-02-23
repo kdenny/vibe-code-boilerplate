@@ -11,6 +11,8 @@
 .env.local
 .env.*.local
 !.env.example
+.envrc
+.direnv/
 
 # Python
 __pycache__/

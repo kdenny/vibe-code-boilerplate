@@ -82,6 +82,9 @@ def run_doctor(
         if live_checks:
             results.extend(run_live_validation_checks(config))
 
+    # direnv check
+    results.append(check_direnv())
+
     # Local hooks check
     results.append(check_local_hooks())
 
@@ -347,6 +350,51 @@ def check_secrets_allowlist() -> CheckResult:
         status=Status.WARN,
         message=f"Allowlist issues: {', '.join(issues)}",
         fix_hint="Fix issues in .vibe/secrets.allowlist.json",
+    )
+
+
+def check_direnv() -> CheckResult:
+    """Check direnv configuration for automatic env variable loading."""
+    from lib.vibe.env import check_direnv_status
+
+    status = check_direnv_status()
+
+    if not status["envrc_exists"]:
+        return CheckResult(
+            name="direnv",
+            status=Status.SKIP,
+            message=".envrc not configured (optional)",
+            fix_hint="Run 'bin/vibe setup' to create .envrc for automatic env loading",
+        )
+
+    if not status["direnv_installed"]:
+        return CheckResult(
+            name="direnv",
+            status=Status.WARN,
+            message=".envrc exists but direnv is not installed",
+            fix_hint="Install direnv: https://direnv.net/docs/installation.html",
+        )
+
+    if status["direnv_allowed"] is False:
+        return CheckResult(
+            name="direnv",
+            status=Status.WARN,
+            message=".envrc exists but not allowed",
+            fix_hint="Run 'direnv allow' in the project root",
+        )
+
+    if status["direnv_allowed"] is True:
+        return CheckResult(
+            name="direnv",
+            status=Status.PASS,
+            message="direnv configured and allowed",
+        )
+
+    # Could not determine allow status
+    return CheckResult(
+        name="direnv",
+        status=Status.PASS,
+        message="direnv installed, .envrc exists",
     )
 
 
