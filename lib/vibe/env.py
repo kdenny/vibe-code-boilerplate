@@ -1,5 +1,6 @@
 """Environment variable loading utilities."""
 
+import json
 import os
 import shutil
 import subprocess
@@ -130,8 +131,7 @@ def setup_direnv(project_root: Path | None = None) -> dict[str, bool]:
         if ".direnv/" not in content:
             additions.append(".direnv/")
         if additions:
-            # Add under the existing "Environment files" section if present,
-            # otherwise append at the end
+            # Append new entries at the end of .gitignore
             new_entries = "\n".join(additions)
             if not content.endswith("\n"):
                 content += "\n"
@@ -142,14 +142,14 @@ def setup_direnv(project_root: Path | None = None) -> dict[str, bool]:
     # Run direnv allow if direnv is installed
     if shutil.which("direnv"):
         try:
-            subprocess.run(
+            proc = subprocess.run(
                 ["direnv", "allow", str(root)],
                 capture_output=True,
                 text=True,
                 cwd=str(root),
             )
-            result["direnv_allowed"] = True
-        except (subprocess.CalledProcessError, OSError):
+            result["direnv_allowed"] = proc.returncode == 0
+        except OSError:
             pass
 
     return result
@@ -183,21 +183,23 @@ def check_direnv_status(project_root: Path | None = None) -> dict[str, bool | st
     if status["envrc_exists"] and status["direnv_installed"]:
         try:
             result = subprocess.run(
-                ["direnv", "status"],
+                ["direnv", "status", "--json"],
                 capture_output=True,
                 text=True,
                 cwd=str(root),
             )
-            # direnv status outputs "Found RC allowed true" when allowed
-            output = result.stdout
-            if "Found RC allowed true" in output:
-                status["direnv_allowed"] = True
-            elif "Found RC allowed false" in output:
-                status["direnv_allowed"] = False
-            else:
-                # Could not determine status
-                status["direnv_allowed"] = None
-        except (subprocess.CalledProcessError, OSError):
+            if result.returncode == 0:
+                try:
+                    data = json.loads(result.stdout)
+                    found_rc = data.get("state", {}).get("foundRC", {})
+                    # allowed: 0 = allowed, 1 = not yet allowed, 2 = denied
+                    if found_rc.get("allowed") == 0:
+                        status["direnv_allowed"] = True
+                    else:
+                        status["direnv_allowed"] = False
+                except (json.JSONDecodeError, KeyError):
+                    status["direnv_allowed"] = None
+        except OSError:
             status["direnv_allowed"] = None
 
     return status
