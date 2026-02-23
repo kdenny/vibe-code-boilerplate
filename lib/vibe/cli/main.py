@@ -9,6 +9,7 @@ from pathlib import Path
 import click
 
 from lib.vibe.cli.figma import figma
+from lib.vibe.cli.secrets import main as secrets_group
 from lib.vibe.doctor import print_results, run_doctor
 from lib.vibe.wizards.setup import run_individual_wizard, run_setup
 
@@ -294,44 +295,8 @@ def boilerplate_issue(title: str | None, body: str | None, print_only: bool) -> 
         click.echo(new_issue)
 
 
-@main.group()
-def secrets() -> None:
-    """Manage secrets and environment variables."""
-    pass
-
-
-@secrets.command("list")
-@click.option("--provider", "-p", help="Filter by provider (github, vercel, fly)")
-def secrets_list(provider: str | None) -> None:
-    """List configured secrets."""
-    from lib.vibe.config import load_config
-
-    config = load_config()
-    providers = config.get("secrets", {}).get("providers", [])
-
-    if not providers:
-        click.echo("No secret providers configured.")
-        click.echo("Run 'bin/vibe setup' to configure providers.")
-        return
-
-    click.echo(f"Configured providers: {', '.join(providers)}")
-
-    if provider and provider not in providers:
-        click.echo(f"Provider '{provider}' not configured.")
-        return
-
-    # TODO: Implement listing from each provider
-    click.echo("\nSecret listing not yet fully implemented.")
-
-
-@secrets.command("sync")
-@click.argument("env_file", default=".env.local")
-@click.option("--provider", "-p", required=True, help="Target provider")
-@click.option("--environment", "-e", default="repository", help="Target environment")
-def secrets_sync(env_file: str, provider: str, environment: str) -> None:
-    """Sync secrets from a local env file to a provider."""
-    click.echo(f"Syncing {env_file} to {provider}/{environment}...")
-    click.echo("Secret syncing not yet fully implemented.")
+# Register secrets commands from lib.vibe.cli.secrets
+main.add_command(secrets_group, "secrets")
 
 
 @main.command("init-actions")
