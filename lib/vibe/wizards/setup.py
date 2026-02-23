@@ -1,10 +1,12 @@
 """Initial setup wizard orchestrator."""
 
+import shutil
 from pathlib import Path
 
 import click
 
 from lib.vibe.config import DEFAULT_CONFIG, config_exists, load_config, save_config
+from lib.vibe.env import setup_direnv
 from lib.vibe.state import DEFAULT_STATE, save_state, state_exists
 from lib.vibe.ui.components import (
     MultiSelect,
@@ -139,6 +141,35 @@ def ensure_commit_convention(base_path: Path | None = None) -> bool:
     return True
 
 
+def ensure_direnv(base_path: Path | None = None) -> None:
+    """
+    Set up direnv for automatic env variable loading and print status.
+
+    Creates .envrc, updates .gitignore, and runs direnv allow if available.
+    """
+    root = base_path or Path(".")
+    result = setup_direnv(root)
+
+    if result["envrc_created"]:
+        click.echo("  • direnv: created .envrc (loads .env.local automatically)")
+    else:
+        click.echo("  • direnv: .envrc already exists")
+
+    if result["gitignore_updated"]:
+        click.echo("  • gitignore: added .envrc and .direnv/")
+
+    if shutil.which("direnv"):
+        if result["direnv_allowed"]:
+            click.echo("  • direnv: allowed (env vars will load automatically)")
+        else:
+            click.echo("  • direnv: installed but could not run 'direnv allow'")
+            click.echo("    Run 'direnv allow' manually in the project root")
+    else:
+        click.echo("  • direnv: not installed (optional but recommended)")
+        click.echo("    Install: https://direnv.net/docs/installation.html")
+        click.echo("    After installing, run 'direnv allow' in the project root")
+
+
 def _run_multi_assistant_generation() -> None:
     """Run multi-assistant instruction file generation."""
     try:
@@ -226,6 +257,7 @@ def run_setup(force: bool = False, quick: bool = False) -> bool:
         click.echo("  • PR template: .github/PULL_REQUEST_TEMPLATE.md")
         click.echo("  • Commit convention: .github/COMMIT_CONVENTION.md")
         click.echo("  • Local state: .vibe/local_state.json")
+        ensure_direnv()
         if github_configured:
             click.echo("  • GitHub: gh CLI + current repo")
             run_dependency_graph_prompt(config)
@@ -330,6 +362,10 @@ def run_setup(force: bool = False, quick: bool = False) -> bool:
             _run_multi_assistant_generation()
     else:
         click.echo("\n(Skipping optional configuration for expert mode)")
+
+    # Set up direnv for automatic env loading
+    click.echo("\n--- Environment Loading ---\n")
+    ensure_direnv()
 
     # Final save and summary
     save_config(config)

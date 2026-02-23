@@ -1,8 +1,15 @@
 """Secrets CLI commands."""
 
+import os
 import sys
 
 import click
+
+# Auto-load .env files at startup (unless disabled)
+if os.environ.get("VIBE_NO_DOTENV") != "1":
+    from lib.vibe.env import auto_load_env
+
+    auto_load_env(verbose=os.environ.get("VIBE_VERBOSE") == "1")
 
 from lib.vibe.config import load_config
 from lib.vibe.secrets.allowlist import add_to_allowlist, load_allowlist
