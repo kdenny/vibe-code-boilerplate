@@ -109,11 +109,11 @@ def do(ticket_id: str) -> None:
         sys.exit(1)
 
 
-def _get_first_commit_headline() -> str | None:
-    """Get the first commit message headline on this branch (relative to origin/main)."""
+def _get_first_commit_headline(main_branch: str = "main") -> str | None:
+    """Get the first commit message headline on this branch (relative to origin/<main_branch>)."""
     try:
         result = _subprocess.run(
-            ["git", "log", "origin/main..HEAD", "--format=%s", "--reverse"],
+            ["git", "log", f"origin/{main_branch}..HEAD", "--format=%s", "--reverse"],
             capture_output=True,
             text=True,
             check=True,
@@ -135,8 +135,13 @@ def _derive_pr_title(branch: str, config: dict) -> str:
     3. worktree-agent-* branch → warn and use first commit headline
     4. Raw branch name as absolute last resort
     """
+    main_branch = config.get("branching", {}).get("main_branch", "main")
+
+    # Cache the first-commit headline so we only shell out once
+    headline = _get_first_commit_headline(main_branch)
+
     # Step 1: Try to extract a ticket ID from the branch name
-    ticket_match = re.match(r"^([A-Z]+-\d+)", branch)
+    ticket_match = re.search(r"([A-Z]+-\d+)", branch)
     ticket_id = ticket_match.group(1) if ticket_match else None
 
     # Step 2: If we have a ticket ID, try to fetch the title from the tracker
@@ -163,7 +168,6 @@ def _derive_pr_title(branch: str, config: dict) -> str:
                 pass
 
         # Tracker not configured or API failed — use ticket ID + first commit
-        headline = _get_first_commit_headline()
         if headline:
             return f"{ticket_id}: {headline}"
         # Last resort with ticket ID
@@ -176,12 +180,10 @@ def _derive_pr_title(branch: str, config: dict) -> str:
             "Using first commit message as PR title.",
             err=True,
         )
-        headline = _get_first_commit_headline()
         if headline:
             return headline
 
     # Step 4: No ticket ID — try first commit headline for any branch
-    headline = _get_first_commit_headline()
     if headline:
         return headline
 
