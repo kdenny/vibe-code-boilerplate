@@ -74,7 +74,9 @@ bin/ticket link PROJ-101 --blocks PROJ-102
 
 ## Creating a Pull Request
 
-When ready to submit work for review:
+When ready to submit work for review.
+
+**Important:** `bin/vibe pr` checks for existing PRs and local branches for the same ticket before creating a new PR. If a duplicate is detected, you will be warned and asked to confirm. Do not use Claude Code's `isolation: "worktree"` and `bin/vibe do` for the same ticket — this leads to duplicate branches and PRs.
 
 ### Verify Changes
 Check what will be included in the PR.

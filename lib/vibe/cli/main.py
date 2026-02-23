@@ -70,7 +70,8 @@ def do(ticket_id: str) -> None:
 
     from lib.vibe.config import load_config
     from lib.vibe.git.branches import format_branch_name, get_main_branch
-    from lib.vibe.git.worktrees import create_worktree
+    from lib.vibe.git.worktrees import create_worktree, get_primary_repo_root
+    from lib.vibe.state import record_ticket_branch
     from lib.vibe.trackers.linear import LinearTracker
     from lib.vibe.ui.components import Spinner
 
@@ -108,6 +109,12 @@ def do(ticket_id: str) -> None:
         worktree = create_worktree(branch_name, base_branch=origin_main)
         click.echo(f"Worktree created at: {worktree.path}")
         click.echo(f"\nTo start working:\n  cd {worktree.path}")
+
+        # Record ticket-to-branch mapping for duplicate PR detection
+        repo_root = get_primary_repo_root()
+        record_ticket_branch(
+            ticket_id, branch_name, worktree_path=worktree.path, base_path=repo_root
+        )
     except (subprocess.CalledProcessError, OSError, RuntimeError) as e:
         click.echo(f"Failed to create worktree: {e}", err=True)
         sys.exit(1)
@@ -403,6 +410,127 @@ def _derive_pr_title(branch: str, config: dict) -> str:
     return branch
 
 
+def _extract_ticket_id(branch: str) -> str | None:
+    """Extract a ticket ID (e.g. PROJ-123) from a branch name."""
+    ticket_match = re.search(r"([A-Z]+-\d+)", branch)
+    return ticket_match.group(1) if ticket_match else None
+
+
+def _check_existing_prs_for_ticket(ticket_id: str) -> list[dict[str, object]]:
+    """Query GitHub for open or recently-merged PRs referencing *ticket_id*.
+
+    Returns a list of dicts with ``number``, ``title``, ``state``, and ``url`` keys.
+    An empty list means no matching PRs were found (or ``gh`` is unavailable).
+    """
+    import json as _json
+
+    try:
+        result = _subprocess.run(
+            [
+                "gh",
+                "pr",
+                "list",
+                "--search",
+                ticket_id,
+                "--state",
+                "all",
+                "--json",
+                "number,title,state,url",
+                "--limit",
+                "20",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            prs: list[dict[str, object]] = _json.loads(result.stdout)
+            # Filter to only PRs whose title actually contains the ticket ID
+            return [
+                pr_item
+                for pr_item in prs
+                if ticket_id.upper() in str(pr_item.get("title", "")).upper()
+            ]
+    except (FileNotFoundError, _subprocess.TimeoutExpired, _json.JSONDecodeError):
+        pass
+    return []
+
+
+def _check_local_state_for_ticket_conflicts(
+    ticket_id: str, current_branch: str
+) -> list[dict[str, str]]:
+    """Check .vibe/local_state.json for other branches associated with *ticket_id*.
+
+    Returns recorded branches that match the ticket but differ from *current_branch*.
+    """
+    from lib.vibe.state import get_branches_for_ticket
+
+    recorded = get_branches_for_ticket(ticket_id)
+    return [
+        entry for entry in recorded if entry.get("branch") and entry["branch"] != current_branch
+    ]
+
+
+def _warn_duplicate_prs(ticket_id: str, branch: str, *, skip_confirmation: bool = False) -> bool:
+    """Run duplicate-PR checks and warn the user.
+
+    Returns ``True`` if it is safe to proceed (no duplicates found, or user
+    confirmed).  Returns ``False`` if the user chose to abort.
+    """
+    should_abort = False
+
+    # Check 1: Existing GitHub PRs for this ticket
+    existing_prs = _check_existing_prs_for_ticket(ticket_id)
+    if existing_prs:
+        merged_prs = [p for p in existing_prs if p.get("state") == "MERGED"]
+        open_prs = [p for p in existing_prs if p.get("state") == "OPEN"]
+
+        if merged_prs:
+            click.echo(
+                f"\n** WARNING: Found {len(merged_prs)} MERGED PR(s) for ticket "
+                f"{ticket_id}. This may be duplicate work. **",
+                err=True,
+            )
+            for p in merged_prs:
+                click.echo(
+                    f"  - PR #{p.get('number')}: {p.get('title')} ({p.get('url')})",
+                    err=True,
+                )
+            should_abort = True
+
+        if open_prs:
+            click.echo(
+                f"\nWarning: Found {len(open_prs)} OPEN PR(s) for ticket {ticket_id}:",
+                err=True,
+            )
+            for p in open_prs:
+                click.echo(
+                    f"  - PR #{p.get('number')}: {p.get('title')} ({p.get('url')})",
+                    err=True,
+                )
+            should_abort = True
+
+    # Check 2: Local state — other branches for the same ticket
+    conflicts = _check_local_state_for_ticket_conflicts(ticket_id, branch)
+    if conflicts:
+        click.echo(
+            f"\nWarning: Another branch is already recorded for ticket {ticket_id}:",
+            err=True,
+        )
+        for c in conflicts:
+            click.echo(
+                f"  - Branch: {c.get('branch')} (worktree: {c.get('worktree_path', 'unknown')})",
+                err=True,
+            )
+        should_abort = True
+
+    if should_abort and not skip_confirmation:
+        if not click.confirm("\nA PR may already exist for this ticket. Create a new PR anyway?"):
+            return False
+
+    return True
+
+
 @main.command()
 @click.option("--title", "-t", help="PR title (default: branch name or branch + first commit line)")
 @click.option("--body", "-b", help="PR body (default: use template)")
@@ -423,6 +551,13 @@ def pr(title: str | None, body: str | None, web: bool) -> None:
         sys.exit(1)
 
     config = load_config()
+
+    # Check for duplicate PRs before creating a new one
+    ticket_id = _extract_ticket_id(branch)
+    if ticket_id:
+        if not _warn_duplicate_prs(ticket_id, branch):
+            click.echo("PR creation cancelled.")
+            sys.exit(0)
 
     args = ["gh", "pr", "create"]
     if title:
