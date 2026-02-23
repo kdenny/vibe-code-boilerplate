@@ -8,6 +8,13 @@ name: HUMAN follow-up on deployment merge
 on:
   push:
     branches: [main]
+    paths:
+      - 'fly.toml'
+      - '**/fly.toml'
+      - 'vercel.json'
+      - '**/vercel.json'
+      - '.env.example'
+      - '**/.env.example'
 
 permissions:
   contents: read

@@ -442,6 +442,23 @@ def create_human_followup(
         return
 
     tracker = ensure_tracker_configured()
+
+    # Deduplication: check if an open ticket with the same title already exists
+    terminal_states = {"Done", "Canceled", "Deployed", "Closed", "Cancelled"}
+    try:
+        existing_tickets = tracker.list_tickets(labels=["HUMAN"], limit=100)
+        for existing in existing_tickets:
+            if existing.title == title and getattr(existing, "status", "") not in terminal_states:
+                click.echo(f"HUMAN follow-up ticket already exists: {existing.id}")
+                click.echo(f"URL: {existing.url}")
+                click.echo("Skipping duplicate creation.")
+                return
+    except Exception:
+        click.echo(
+            "Warning: could not check for existing tickets, proceeding with creation.",
+            err=True,
+        )
+
     try:
         ticket = tracker.create_ticket(
             title=title,
