@@ -7,6 +7,7 @@ import requests
 
 from lib.vibe.trackers.base import Project, Ticket, TrackerBase
 from lib.vibe.utils.cache import get_cache
+from lib.vibe.utils.retry import with_retry
 
 LINEAR_API_URL = "https://api.linear.app/graphql"
 
@@ -65,6 +66,7 @@ class LinearTracker(TrackerBase):
         except Exception:
             return False
 
+    @with_retry()
     def _execute_query(self, query: str, variables: dict | None = None) -> dict[str, Any]:
         """Execute a GraphQL query against Linear API."""
         payload: dict[str, Any] = {"query": query}
