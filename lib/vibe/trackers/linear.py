@@ -6,6 +6,7 @@ from typing import Any
 import requests
 
 from lib.vibe.trackers.base import Project, Ticket, TrackerBase
+from lib.vibe.utils.cache import get_cache
 
 LINEAR_API_URL = "https://api.linear.app/graphql"
 
@@ -489,6 +490,16 @@ class LinearTracker(TrackerBase):
         if not team_id or not label_names:
             return []
         label_names = self._normalize_labels(label_names)
+
+        # Try cache first
+        cache = get_cache()
+        cache_key = f"linear_labels_{team_id}"
+        cached_labels = cache.get(cache_key)
+
+        if cached_labels is not None:
+            name_to_id = {n["name"]: n["id"] for n in cached_labels}
+            return [name_to_id[n] for n in label_names if n in name_to_id]
+
         query = """
         query TeamLabels($teamId: String!) {
             team(id: $teamId) {
@@ -499,6 +510,13 @@ class LinearTracker(TrackerBase):
         try:
             result = self._execute_query(query, {"teamId": team_id})
             nodes = result.get("data", {}).get("team", {}).get("labels", {}).get("nodes", [])
+
+            # Cache the raw label data
+            cache.set(
+                cache_key,
+                [{"name": n.get("name", ""), "id": n["id"]} for n in nodes if n.get("id")],
+            )
+
             name_to_id = {n.get("name", ""): n["id"] for n in nodes if n.get("id")}
             return [name_to_id[n] for n in label_names if n in name_to_id]
         except Exception:
@@ -508,12 +526,18 @@ class LinearTracker(TrackerBase):
         """Resolve label names to IDs, creating any that don't exist."""
         if not team_id or not label_names:
             return []
-        # First try to resolve all labels
+        label_names = self._normalize_labels(label_names)
+        # First try to resolve all labels (uses cache internally)
         existing_ids = self._get_label_ids(team_id, label_names)
         if len(existing_ids) == len(label_names):
             return existing_ids
 
-        # Some labels are missing — figure out which ones and create them
+        # Some labels are missing — figure out which ones and create them.
+        # Invalidate cache since we know it's stale (missing labels).
+        cache = get_cache()
+        cache_key = f"linear_labels_{team_id}"
+        cache.invalidate(cache_key)
+
         query = """
         query TeamLabels($teamId: String!) {
             team(id: $teamId) {
@@ -527,6 +551,7 @@ class LinearTracker(TrackerBase):
             name_to_id = {n.get("name", ""): n["id"] for n in nodes if n.get("id")}
 
             label_ids = []
+            created_any = False
             for name in label_names:
                 if name in name_to_id:
                     label_ids.append(name_to_id[name])
@@ -534,6 +559,12 @@ class LinearTracker(TrackerBase):
                     new_id = self._create_label(team_id, name)
                     if new_id:
                         label_ids.append(new_id)
+                        created_any = True
+
+            # Re-cache the updated label set if we created new labels
+            if created_any:
+                cache.invalidate(cache_key)
+
             return label_ids
         except Exception:
             return existing_ids
@@ -588,6 +619,16 @@ class LinearTracker(TrackerBase):
 
     def _get_workflow_state_id(self, team_id: str, state_name: str) -> str | None:
         """Resolve workflow state name to state ID for a team."""
+        cache = get_cache()
+        cache_key = f"linear_states_{team_id}"
+        cached_states = cache.get(cache_key)
+
+        if cached_states is not None:
+            for s in cached_states:
+                if s.get("name", "").lower() == state_name.lower():
+                    return s.get("id")
+            return None
+
         query = """
         query WorkflowStates($teamId: String!) {
             team(id: $teamId) {
@@ -603,6 +644,13 @@ class LinearTracker(TrackerBase):
         try:
             result = self._execute_query(query, {"teamId": team_id})
             nodes = result.get("data", {}).get("team", {}).get("states", {}).get("nodes", [])
+
+            # Cache the states
+            cache.set(
+                cache_key,
+                [{"id": n.get("id", ""), "name": n.get("name", "")} for n in nodes],
+            )
+
             for node in nodes:
                 if node.get("name", "").lower() == state_name.lower():
                     return node.get("id")
@@ -844,6 +892,13 @@ class LinearTracker(TrackerBase):
 
     def _get_viewer_id(self) -> str | None:
         """Get the current authenticated user's ID."""
+        cache = get_cache()
+        cache_key = "linear_viewer"
+        cached_viewer = cache.get(cache_key)
+
+        if cached_viewer is not None:
+            return cached_viewer
+
         query = """
         query {
             viewer {
@@ -853,7 +908,10 @@ class LinearTracker(TrackerBase):
         """
         try:
             result = self._execute_query(query)
-            return result.get("data", {}).get("viewer", {}).get("id")
+            viewer_id = result.get("data", {}).get("viewer", {}).get("id")
+            if viewer_id:
+                cache.set(cache_key, viewer_id, ttl=1800)  # 30 min TTL
+            return viewer_id
         except Exception:
             return None
 
@@ -888,6 +946,13 @@ class LinearTracker(TrackerBase):
 
     def list_users(self) -> list[dict[str, str]]:
         """List all users in the organization."""
+        cache = get_cache()
+        cache_key = "linear_users"
+        cached_users = cache.get(cache_key)
+
+        if cached_users is not None:
+            return cached_users
+
         query = """
         query {
             users {
@@ -904,7 +969,7 @@ class LinearTracker(TrackerBase):
         try:
             result = self._execute_query(query)
             users = result.get("data", {}).get("users", {}).get("nodes", [])
-            return [
+            user_list = [
                 {
                     "id": u.get("id", ""),
                     "name": u.get("name", ""),
@@ -914,5 +979,7 @@ class LinearTracker(TrackerBase):
                 }
                 for u in users
             ]
+            cache.set(cache_key, user_list, ttl=1800)  # 30 min TTL
+            return user_list
         except Exception:
             return []

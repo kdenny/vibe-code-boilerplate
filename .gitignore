@@ -2,6 +2,7 @@
 .vibe/config.json
 .vibe/local_state.json
 .vibe/.venv/
+.vibe/cache/
 
 # Claude Code local settings (may contain permissions)
 .claude/settings.local.json

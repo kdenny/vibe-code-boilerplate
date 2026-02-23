@@ -844,6 +844,44 @@ def generate_agent_instructions(
     click.echo("  3. Re-run this command after changes to sync files")
 
 
+@main.group()
+def cache() -> None:
+    """Manage the API response cache."""
+    pass
+
+
+@cache.command("clear")
+@click.option("--key", "-k", help="Clear specific cache key")
+def cache_clear(key: str | None) -> None:
+    """Clear cached API responses."""
+    from lib.vibe.utils.cache import get_cache
+
+    c = get_cache()
+    count = c.invalidate(key)
+    click.echo(f"Cleared {count} cache entries.")
+
+
+@cache.command("status")
+def cache_status() -> None:
+    """Show cache status."""
+    from lib.vibe.utils.cache import get_cache
+
+    c = get_cache()
+    entries = c.status()
+    if not entries:
+        click.echo("Cache is empty.")
+        return
+    click.echo(f"\nCached entries ({len(entries)}):")
+    for entry in entries:
+        if "error" in entry:
+            click.echo(f"  {entry['key']}: {entry['error']}")
+        else:
+            age = entry["age_seconds"]
+            remaining = entry["remaining_seconds"]
+            status = "expired" if entry["expired"] else f"{remaining}s remaining"
+            click.echo(f"  {entry['key']}: cached {age}s ago ({status})")
+
+
 # Register figma command group
 main.add_command(figma)
 
