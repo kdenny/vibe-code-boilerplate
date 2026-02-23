@@ -8,7 +8,6 @@ from lib.vibe.config_schema import (
     CURRENT_VERSION,
     get_config_version,
     migrate_config,
-    validate_config,
 )
 
 CONFIG_PATH = Path(".vibe/config.json")

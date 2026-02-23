@@ -1,9 +1,6 @@
 """Configuration schema validation and migration."""
 
-import json
-from pathlib import Path
 from typing import Any
-
 
 # Config schema version
 CURRENT_VERSION = 2
@@ -59,9 +56,22 @@ CONFIG_SCHEMA: dict[str, Any] = {
 
 # Known top-level keys (for typo detection)
 KNOWN_KEYS = {
-    "version", "project", "tracker", "github", "branching", "worktrees",
-    "labels", "security", "secrets", "figma", "frontend", "database",
-    "deployment", "observability", "testing", "boilerplate",
+    "version",
+    "project",
+    "tracker",
+    "github",
+    "branching",
+    "worktrees",
+    "labels",
+    "security",
+    "secrets",
+    "figma",
+    "frontend",
+    "database",
+    "deployment",
+    "observability",
+    "testing",
+    "boilerplate",
 }
 
 

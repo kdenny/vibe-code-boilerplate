@@ -1,7 +1,5 @@
 """Tests for UI context module."""
 
-import pytest
-
 from lib.vibe.ui.context import WizardContext
 
 
