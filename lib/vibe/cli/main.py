@@ -109,6 +109,208 @@ def do(ticket_id: str) -> None:
         sys.exit(1)
 
 
+@main.command()
+@click.option("--dry-run", is_flag=True, help="Show what would be removed without removing")
+@click.option("--force", is_flag=True, help="Skip confirmation prompt")
+def cleanup(dry_run: bool, force: bool) -> None:
+    """Clean up worktrees for branches that have been merged.
+
+    Detects worktrees whose PRs have been merged and removes them along
+    with their local branches. Runs `bin/vibe doctor` afterward to sync state.
+    """
+    import json as _json
+    import subprocess
+
+    # Get list of worktrees
+    result = subprocess.run(
+        ["git", "worktree", "list", "--porcelain"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        click.echo("Failed to list worktrees.", err=True)
+        sys.exit(1)
+
+    # Parse worktrees
+    main_worktree = str(Path.cwd().resolve())
+    worktrees: list[dict[str, str]] = []
+    current_wt: dict[str, str] = {}
+
+    for line in result.stdout.split("\n"):
+        if line.startswith("worktree "):
+            if current_wt:
+                worktrees.append(current_wt)
+            current_wt = {"path": line.split(" ", 1)[1]}
+        elif line.startswith("branch "):
+            current_wt["branch"] = line.split(" ", 1)[1].replace("refs/heads/", "")
+        elif line == "":
+            if current_wt:
+                worktrees.append(current_wt)
+            current_wt = {}
+    if current_wt:
+        worktrees.append(current_wt)
+
+    # Filter out main worktree
+    feature_worktrees = [
+        wt
+        for wt in worktrees
+        if wt.get("path") and str(Path(wt["path"]).resolve()) != main_worktree
+    ]
+
+    if not feature_worktrees:
+        click.echo("No feature worktrees found. Nothing to clean up.")
+        return
+
+    # Check each worktree for merged status
+    merged: list[dict[str, object]] = []
+    active: list[dict[str, str]] = []
+
+    for wt in feature_worktrees:
+        branch = wt.get("branch", "")
+        if not branch:
+            continue
+
+        # Check if branch has a merged PR
+        try:
+            pr_result = subprocess.run(
+                [
+                    "gh",
+                    "pr",
+                    "list",
+                    "--head",
+                    branch,
+                    "--state",
+                    "merged",
+                    "--json",
+                    "number,title",
+                    "--limit",
+                    "1",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=15,
+            )
+            if pr_result.returncode == 0 and pr_result.stdout.strip() not in ("", "[]"):
+                prs = _json.loads(pr_result.stdout)
+                if prs:
+                    wt["pr_number"] = prs[0].get("number")
+                    wt["pr_title"] = prs[0].get("title", "")
+                    merged.append(wt)
+                    continue
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            pass
+
+        # Check if branch was deleted on remote
+        try:
+            remote_check = subprocess.run(
+                ["git", "ls-remote", "--heads", "origin", branch],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if remote_check.returncode == 0 and not remote_check.stdout.strip():
+                # Branch deleted on remote - likely merged
+                wt["pr_number"] = None
+                wt["pr_title"] = "(branch deleted on remote)"
+                merged.append(wt)
+                continue
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            pass
+
+        active.append(wt)
+
+    # Report findings
+    if merged:
+        click.echo(f"\nMerged (safe to remove): {len(merged)}")
+        for wt in merged:
+            pr_info = f" (PR #{wt.get('pr_number')})" if wt.get("pr_number") else ""
+            click.echo(f"  {wt.get('branch', 'unknown')}{pr_info} — {wt['path']}")
+
+    if active:
+        click.echo(f"\nStill active: {len(active)}")
+        for wt in active:
+            click.echo(f"  {wt.get('branch', 'unknown')} — {wt['path']}")
+
+    if not merged:
+        click.echo("\nNo merged worktrees found. Nothing to clean up.")
+        return
+
+    if dry_run:
+        click.echo(f"\nDry run: would remove {len(merged)} worktree(s).")
+        return
+
+    # Confirm
+    if not force:
+        if not click.confirm(f"\nRemove {len(merged)} merged worktree(s)?", default=True):
+            click.echo("Cancelled.")
+            return
+
+    # Remove merged worktrees
+    removed = 0
+    for wt in merged:
+        branch = wt.get("branch", "")
+        path = wt.get("path", "")
+
+        # Check for uncommitted changes
+        try:
+            status_result = subprocess.run(
+                ["git", "-C", str(path), "status", "--porcelain"],
+                capture_output=True,
+                text=True,
+            )
+            if status_result.stdout.strip():
+                click.echo(f"  Skipping {branch} (has uncommitted changes)")
+                continue
+        except subprocess.CalledProcessError:
+            pass
+
+        # Remove worktree
+        try:
+            subprocess.run(
+                ["git", "worktree", "remove", str(path)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            click.echo(f"  Removed worktree: {path}")
+        except subprocess.CalledProcessError as e:
+            click.echo(f"  Failed to remove worktree {path}: {e.stderr}", err=True)
+            continue
+
+        # Delete local branch
+        try:
+            subprocess.run(
+                ["git", "branch", "-d", str(branch)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            click.echo(f"  Deleted branch: {branch}")
+        except subprocess.CalledProcessError:
+            # Try force delete if branch wasn't fully merged according to git
+            try:
+                subprocess.run(
+                    ["git", "branch", "-D", str(branch)],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+                click.echo(f"  Deleted branch: {branch} (force)")
+            except subprocess.CalledProcessError as e:
+                click.echo(f"  Could not delete branch {branch}: {e.stderr}", err=True)
+
+        removed += 1
+
+    click.echo(f"\nCleaned up {removed} worktree(s).")
+
+    # Run doctor to sync state
+    click.echo("\nRunning doctor to sync state...")
+    doctor_results = run_doctor()
+    # Just show a summary, not full results
+    passed = sum(1 for r in doctor_results if r.status.value == "\u2713")
+    click.echo(f"Doctor: {passed}/{len(doctor_results)} checks passed.")
+
+
 def _get_first_commit_headline(main_branch: str = "main") -> str | None:
     """Get the first commit message headline on this branch (relative to origin/<main_branch>)."""
     try:
