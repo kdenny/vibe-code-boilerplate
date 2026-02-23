@@ -109,10 +109,17 @@ def allowlist_add(pattern: str, reason: str, added_by: str, file: str | None) ->
 
 @main.command("sync")
 @click.argument("env_file", default=".env.local")
-@click.option("--provider", "-p", required=True, help="Target provider")
-@click.option("--environment", "-e", default="repository", help="Target environment")
+@click.option("--provider", "-p", help="Target provider (github, vercel, fly)")
+@click.option("--environment", "-e", default="production", help="Target environment")
 @click.option("--dry-run", is_flag=True, help="Show what would be synced")
-def sync(env_file: str, provider: str, environment: str, dry_run: bool) -> None:
+@click.option("--interactive", "-i", is_flag=True, help="Interactive mode with provider selection")
+def sync(
+    env_file: str,
+    provider: str | None,
+    environment: str,
+    dry_run: bool,
+    interactive: bool,
+) -> None:
     """Sync secrets from local env file to a provider."""
     from pathlib import Path
 
@@ -120,6 +127,26 @@ def sync(env_file: str, provider: str, environment: str, dry_run: bool) -> None:
     if not env_path.exists():
         click.echo(f"File not found: {env_file}", err=True)
         sys.exit(1)
+
+    # Interactive provider selection
+    if not provider:
+        if interactive:
+            available = ["github", "vercel", "fly"]
+            click.echo("Available providers:")
+            for i, p in enumerate(available, 1):
+                click.echo(f"  {i}. {p}")
+            choice = click.prompt("Select provider", type=int)
+            if 1 <= choice <= len(available):
+                provider = available[choice - 1]
+            else:
+                click.echo("Invalid selection.", err=True)
+                sys.exit(1)
+        else:
+            click.echo(
+                "Error: --provider is required. Use --interactive for guided selection.",
+                err=True,
+            )
+            sys.exit(1)
 
     # Parse env file
     secrets_to_sync = {}
@@ -141,24 +168,46 @@ def sync(env_file: str, provider: str, environment: str, dry_run: bool) -> None:
         click.echo(f"  - {key}")
 
     if dry_run:
-        click.echo("\n(dry run - no changes made)")
+        click.echo(f"\n(dry run - would sync to {provider}/{environment})")
         return
 
+    # Instantiate the provider
     if provider == "github":
         from lib.vibe.secrets.providers.github import GitHubSecretsProvider
 
         config = load_config()
         github_config = config.get("github", {})
-        gh = GitHubSecretsProvider(
+        prov = GitHubSecretsProvider(
             owner=github_config.get("owner"),
             repo=github_config.get("repo"),
         )
+    elif provider == "vercel":
+        from lib.vibe.secrets.providers.vercel import VercelSecretsProvider
 
-        results = gh.sync_from_local(env_file, environment)
-        succeeded = sum(1 for v in results.values() if v)
-        click.echo(f"\nSynced {succeeded}/{len(results)} secrets to GitHub.")
+        prov = VercelSecretsProvider()
+    elif provider == "fly":
+        from lib.vibe.secrets.providers.fly import FlySecretsProvider
+
+        config = load_config()
+        app_name = config.get("deployment", {}).get("fly", {}).get("app_name")
+        prov = FlySecretsProvider(app_name=app_name)
     else:
-        click.echo(f"\nProvider '{provider}' sync not yet implemented.")
+        click.echo(f"Unknown provider: {provider}", err=True)
+        sys.exit(1)
+
+    if not prov.authenticate():
+        click.echo(f"Not authenticated with {provider}. Check your credentials.", err=True)
+        sys.exit(1)
+
+    results = prov.sync_from_local(env_file, environment)
+    succeeded = sum(1 for v in results.values() if v)
+    failed = sum(1 for v in results.values() if not v)
+    click.echo(f"\nSynced {succeeded}/{len(results)} secrets to {provider}.")
+    if failed:
+        click.echo(f"{failed} secret(s) failed to sync.")
+        for key, success in results.items():
+            if not success:
+                click.echo(f"  - {key}: FAILED", err=True)
 
 
 if __name__ == "__main__":
