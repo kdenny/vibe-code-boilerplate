@@ -42,20 +42,27 @@ Get details for a specific ticket.
 - `bin/ticket get PROJ-123`
 
 ### ticket create
-Create a new ticket. **A description is REQUIRED** — never create a ticket without one.
-**Usage**: `bin/ticket create "<title>" --description "<description>"`
+Create a new ticket. **A description is REQUIRED** — never create a ticket without one. **Labels are REQUIRED** — always include at least one type label and one area label. Use --parent to set a parent ticket for sub-tasks.
+**Usage**: `bin/ticket create "<title>" --description "<description>" --label "<type>" --label "<area>"`
 **Examples:**
-- `bin/ticket create "Add user authentication" --description "Add OAuth2 login flow with Google and GitHub providers."`
-- `bin/ticket create "Fix login bug" --description "Login form returns 500 when password contains special chars." --label Bug --label "High Risk"`
+- `bin/ticket create "Add user authentication" --description "Add OAuth2 login flow with Google and GitHub providers." --label Feature --label Backend`
+- `bin/ticket create "Fix login bug" --description "Login form returns 500 when password contains special chars." --label Bug --label "High Risk" --label Frontend`
+- `bin/ticket create "Add signup form" --description "Create the signup form component." --label Feature --label Frontend --parent PROJ-100`
+
+### ticket link
+Link two tickets with a blocking relationship. The prerequisite ticket blocks the dependent ticket.
+**Usage**: `bin/ticket link <blocker-id> --blocks <dependent-id>`
+**Examples:**
+- `bin/ticket link PROJ-101 --blocks PROJ-102`
 
 ## Pull Requests
 
 ### pr
-Create a pull request for the current branch.
+Create a pull request for the current branch. PR titles must include the ticket reference.
 **Usage**: `bin/vibe pr`
 **Examples:**
 - `bin/vibe pr`
-- `bin/vibe pr --title "Add feature X"`
+- `bin/vibe pr --title "PROJ-123: Add feature X"`
 - `bin/vibe pr --web`
 
 ## Design

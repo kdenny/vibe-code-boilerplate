@@ -8,6 +8,13 @@ from lib.vibe.agents.spec import (
     WorkflowStep,
 )
 
+SAMPLE_LABELS = {
+    "type": ["Bug", "Feature", "Chore", "Refactor"],
+    "risk": ["Low Risk", "Medium Risk", "High Risk"],
+    "area": ["Frontend", "Backend", "Infra", "Docs"],
+    "special": ["HUMAN", "Milestone", "Blocked"],
+}
+
 
 class TestAssistantFormat:
     """Tests for AssistantFormat enum."""
@@ -35,6 +42,7 @@ class TestInstructionSpec:
         assert spec.core_rules == []
         assert spec.commands == []
         assert spec.workflows == {}
+        assert spec.labels == {}
 
     def test_from_files(self, tmp_path):
         """Test loading spec from markdown files."""
@@ -97,6 +105,36 @@ Start work on a ticket.
         assert "Read files before modifying" in spec.core_rules
         assert len(spec.anti_patterns) == 2
 
+    def test_from_files_with_labels(self, tmp_path):
+        """Test loading spec from files with config labels."""
+        core_md = """# Core Instructions
+
+## Core Rules
+
+- Read files before modifying
+"""
+        (tmp_path / "CORE.md").write_text(core_md)
+
+        spec = InstructionSpec.from_files(tmp_path, config_labels=SAMPLE_LABELS)
+
+        assert spec.labels == SAMPLE_LABELS
+        assert "Bug" in spec.labels["type"]
+        assert "Frontend" in spec.labels["area"]
+
+    def test_from_files_without_labels(self, tmp_path):
+        """Test loading spec from files without config labels."""
+        core_md = """# Core Instructions
+
+## Core Rules
+
+- Read files before modifying
+"""
+        (tmp_path / "CORE.md").write_text(core_md)
+
+        spec = InstructionSpec.from_files(tmp_path)
+
+        assert spec.labels == {}
+
     def test_to_dict(self):
         """Test serialization to dict."""
         spec = InstructionSpec(
@@ -109,6 +147,7 @@ Start work on a ticket.
                     usage="bin/test",
                 )
             ],
+            labels=SAMPLE_LABELS,
         )
 
         data = spec.to_dict()
@@ -116,6 +155,7 @@ Start work on a ticket.
         assert len(data["core_rules"]) == 2
         assert len(data["commands"]) == 1
         assert data["commands"][0]["name"] == "test"
+        assert data["labels"] == SAMPLE_LABELS
 
 
 class TestInstructionGenerator:
@@ -159,6 +199,7 @@ class TestInstructionGenerator:
                 ]
             },
             anti_patterns=["Guessing file contents", "Over-engineering"],
+            labels=SAMPLE_LABELS,
         )
         self.generator = InstructionGenerator(self.spec)
 
@@ -172,6 +213,52 @@ class TestInstructionGenerator:
         assert "bin/vibe doctor" in content
         assert "Guessing file contents" in content
 
+    def test_generate_claude_includes_labels(self):
+        """Test Claude format includes Available Labels section."""
+        content = self.generator.generate(AssistantFormat.CLAUDE)
+
+        assert "## Available Labels" in content
+        assert "Bug, Feature, Chore, Refactor" in content
+        assert "Low Risk, Medium Risk, High Risk" in content
+        assert "Frontend, Backend, Infra, Docs" in content
+        assert "HUMAN, Milestone, Blocked" in content
+
+    def test_generate_claude_includes_ticket_discipline(self):
+        """Test Claude format includes Ticket Discipline section."""
+        content = self.generator.generate(AssistantFormat.CLAUDE)
+
+        assert "## Ticket Discipline" in content
+        assert "### Labels Are Required" in content
+        assert "### Parent/Child Relationships" in content
+        assert "### Blocking Relationships" in content
+        assert "### Every PR Needs a Ticket" in content
+        assert "--parent PROJ-100" in content
+        assert "bin/ticket link PROJ-101 --blocks PROJ-102" in content
+
+    def test_generate_claude_no_labels_no_label_section(self):
+        """Test Claude format omits labels section when no labels configured."""
+        spec = InstructionSpec(
+            project_name="No Labels Project",
+            core_rules=["Rule 1"],
+        )
+        generator = InstructionGenerator(spec)
+        content = generator.generate(AssistantFormat.CLAUDE)
+
+        assert "## Available Labels" not in content
+        # Ticket discipline should still appear since core_rules exist
+        assert "## Ticket Discipline" in content
+
+    def test_generate_claude_no_rules_no_labels_no_discipline(self):
+        """Test Claude format omits discipline when no rules and no labels."""
+        spec = InstructionSpec(
+            project_name="Empty Project",
+        )
+        generator = InstructionGenerator(spec)
+        content = generator.generate(AssistantFormat.CLAUDE)
+
+        assert "## Available Labels" not in content
+        assert "## Ticket Discipline" not in content
+
     def test_generate_cursor(self):
         """Test Cursor format generation."""
         content = self.generator.generate(AssistantFormat.CURSOR)
@@ -180,6 +267,14 @@ class TestInstructionGenerator:
         assert "Test Project" in content
         assert "Read files before modifying" in content
         assert "bin/vibe doctor" in content
+
+    def test_generate_cursor_includes_labels(self):
+        """Test Cursor format includes labels and discipline."""
+        content = self.generator.generate(AssistantFormat.CURSOR)
+
+        assert "# Available Labels" in content
+        assert "# Ticket Discipline" in content
+        assert "Type: Bug, Feature, Chore, Refactor" in content
 
     def test_generate_copilot(self):
         """Test Copilot format generation."""
@@ -190,6 +285,14 @@ class TestInstructionGenerator:
         assert "Coding Guidelines" in content
         assert "Read files before modifying" in content
 
+    def test_generate_copilot_includes_labels(self):
+        """Test Copilot format includes labels and discipline."""
+        content = self.generator.generate(AssistantFormat.COPILOT)
+
+        assert "## Available Labels" in content
+        assert "## Ticket Discipline" in content
+        assert "Bug, Feature, Chore, Refactor" in content
+
     def test_generate_generic(self):
         """Test generic AGENTS.md format generation."""
         content = self.generator.generate(AssistantFormat.GENERIC)
@@ -197,6 +300,13 @@ class TestInstructionGenerator:
         assert "AGENTS.md" in content
         assert "Test Project" in content
         assert "Read files before modifying" in content
+
+    def test_generate_generic_includes_labels(self):
+        """Test generic format includes labels and discipline."""
+        content = self.generator.generate(AssistantFormat.GENERIC)
+
+        assert "## Available Labels" in content
+        assert "## Ticket Discipline" in content
 
     def test_generate_all(self, tmp_path):
         """Test generating all formats to directory."""
@@ -213,12 +323,34 @@ class TestInstructionGenerator:
         # Verify content
         claude_content = (tmp_path / "CLAUDE.md").read_text()
         assert "Test Project" in claude_content
+        assert "Available Labels" in claude_content
+        assert "Ticket Discipline" in claude_content
 
     def test_header_includes_timestamp(self):
         """Test that generated files include timestamp."""
         content = self.generator.generate(AssistantFormat.CLAUDE)
         assert "Generated:" in content
         assert "DO NOT EDIT DIRECTLY" in content
+
+    def test_ticket_discipline_examples_show_labels(self):
+        """Test that ticket discipline section has examples with labels."""
+        content = self.generator.generate(AssistantFormat.CLAUDE)
+
+        assert "--label Bug" in content
+        assert "--label Frontend" in content
+        assert "--label Feature" in content
+
+    def test_ticket_discipline_examples_show_parent(self):
+        """Test that ticket discipline section has examples with --parent."""
+        content = self.generator.generate(AssistantFormat.CLAUDE)
+
+        assert "--parent PROJ-100" in content
+
+    def test_ticket_discipline_examples_show_blocking(self):
+        """Test that ticket discipline section has blocking link example."""
+        content = self.generator.generate(AssistantFormat.CLAUDE)
+
+        assert "bin/ticket link PROJ-101 --blocks PROJ-102" in content
 
 
 class TestCommandSpec:

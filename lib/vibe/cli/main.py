@@ -971,13 +971,22 @@ def generate_agent_instructions(
     else:
         selected_formats = [format_map[f] for f in formats if f in format_map]
 
+    # Load label categories from .vibe/config.json (if available)
+    from lib.vibe.config import load_config
+
+    config = load_config(output_dir if output_dir != Path(".") else None)
+    config_labels: dict[str, list[str]] = config.get("labels", {})
+
     # Load spec from source files
     click.echo(f"Loading instruction spec from {source_path}/...")
-    spec = InstructionSpec.from_files(source_path)
+    spec = InstructionSpec.from_files(source_path, config_labels=config_labels)
 
     click.echo(f"  - Loaded {len(spec.core_rules)} core rules")
     click.echo(f"  - Loaded {len(spec.commands)} commands")
     click.echo(f"  - Loaded {len(spec.workflows)} workflows")
+    if spec.labels:
+        label_count = sum(len(v) for v in spec.labels.values())
+        click.echo(f"  - Loaded {label_count} labels from config")
 
     # Generate files
     generator = InstructionGenerator(spec)

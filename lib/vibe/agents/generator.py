@@ -36,6 +36,100 @@ def _has_project_content(file_path: Path) -> bool:
         return False
 
 
+def _render_labels_section(labels: dict[str, list[str]]) -> list[str]:
+    """Render the Available Labels section from config labels.
+
+    Returns a list of lines (without trailing newline) for embedding into
+    the generated output.
+    """
+    lines: list[str] = []
+    lines.append("## Available Labels")
+    lines.append("")
+    lines.append(
+        "These labels are configured in `.vibe/config.json`. Apply them when creating tickets."
+    )
+    lines.append("")
+
+    category_titles = {
+        "type": "Type (exactly one required)",
+        "risk": "Risk (exactly one required)",
+        "area": "Area (at least one required)",
+        "special": "Special (as needed)",
+    }
+
+    for category in ("type", "risk", "area", "special"):
+        values = labels.get(category, [])
+        if values:
+            title = category_titles.get(category, category.title())
+            lines.append(f"**{title}:** {', '.join(values)}")
+            lines.append("")
+
+    return lines
+
+
+def _render_ticket_discipline_section() -> list[str]:
+    """Render the Ticket Discipline section with enforcement rules.
+
+    Returns a list of lines for embedding into generated output.
+    """
+    lines: list[str] = []
+    lines.append("## Ticket Discipline")
+    lines.append("")
+    lines.append("Follow these rules for every ticket and PR:")
+    lines.append("")
+    lines.append("### Labels Are Required")
+    lines.append("")
+    lines.append("Every ticket **must** have labels when created:")
+    lines.append("")
+    lines.append("- **Type** (exactly one): Bug, Feature, Chore, or Refactor")
+    lines.append("- **Area** (at least one): Frontend, Backend, Infra, or Docs")
+    lines.append("- **Risk** (exactly one): Low Risk, Medium Risk, or High Risk")
+    lines.append("")
+    lines.append("```bash")
+    lines.append(
+        'bin/ticket create "Fix login bug" '
+        '--description "Login returns 500 on special chars." '
+        '--label Bug --label Frontend --label "Low Risk"'
+    )
+    lines.append("```")
+    lines.append("")
+    lines.append("### Parent/Child Relationships")
+    lines.append("")
+    lines.append("When creating sub-tasks, set the parent ticket:")
+    lines.append("")
+    lines.append("```bash")
+    lines.append(
+        'bin/ticket create "Add signup form" '
+        '--description "React signup component." '
+        "--label Feature --label Frontend --parent PROJ-100"
+    )
+    lines.append("```")
+    lines.append("")
+    lines.append("### Blocking Relationships")
+    lines.append("")
+    lines.append(
+        "When one ticket must be completed before another can start, "
+        "link them with a blocking relationship. "
+        "The prerequisite ticket blocks the dependent ticket:"
+    )
+    lines.append("")
+    lines.append("```bash")
+    lines.append("bin/ticket link PROJ-101 --blocks PROJ-102")
+    lines.append("```")
+    lines.append("")
+    lines.append("### Every PR Needs a Ticket")
+    lines.append("")
+    lines.append(
+        "Every pull request **must** reference a ticket. Include the ticket ID in the PR title:"
+    )
+    lines.append("")
+    lines.append("```bash")
+    lines.append('bin/vibe pr --title "PROJ-123: Add user authentication"')
+    lines.append("```")
+    lines.append("")
+    return lines
+
+
 class InstructionGenerator:
     """Generates assistant-specific instruction files from a common spec."""
 
@@ -160,6 +254,18 @@ class InstructionGenerator:
             lines.append("---")
             lines.append("")
 
+        # Available Labels (from config)
+        if self.spec.labels:
+            lines.extend(_render_labels_section(self.spec.labels))
+            lines.append("---")
+            lines.append("")
+
+        # Ticket Discipline
+        if self.spec.labels or self.spec.core_rules:
+            lines.extend(_render_ticket_discipline_section())
+            lines.append("---")
+            lines.append("")
+
         # Commands
         if self.spec.commands:
             lines.append("## Available Commands")
@@ -269,6 +375,25 @@ class InstructionGenerator:
                 lines.append(f"{rule}")
             lines.append("")
 
+        # Available Labels (from config)
+        if self.spec.labels:
+            lines.append("# Available Labels")
+            for category in ("type", "risk", "area", "special"):
+                values = self.spec.labels.get(category, [])
+                if values:
+                    lines.append(f"# {category.title()}: {', '.join(values)}")
+            lines.append("")
+
+        # Ticket Discipline (concise for Cursor)
+        if self.spec.labels or self.spec.core_rules:
+            lines.append("# Ticket Discipline")
+            lines.append(
+                "Every ticket must have type and area labels. "
+                "Every PR title must include the ticket ID. "
+                "Use --parent for sub-tasks and bin/ticket link for blocking."
+            )
+            lines.append("")
+
         # Anti-patterns
         if self.spec.anti_patterns:
             lines.append("# Avoid")
@@ -335,6 +460,14 @@ class InstructionGenerator:
             for rule in self.spec.core_rules:
                 lines.append(f"- {rule}")
             lines.append("")
+
+        # Available Labels (from config)
+        if self.spec.labels:
+            lines.extend(_render_labels_section(self.spec.labels))
+
+        # Ticket Discipline
+        if self.spec.labels or self.spec.core_rules:
+            lines.extend(_render_ticket_discipline_section())
 
         # What to avoid
         if self.spec.anti_patterns:
@@ -410,6 +543,14 @@ class InstructionGenerator:
             for i, rule in enumerate(self.spec.core_rules, 1):
                 lines.append(f"{i}. {rule}")
             lines.append("")
+
+        # Available Labels (from config)
+        if self.spec.labels:
+            lines.extend(_render_labels_section(self.spec.labels))
+
+        # Ticket Discipline
+        if self.spec.labels or self.spec.core_rules:
+            lines.extend(_render_ticket_discipline_section())
 
         # Commands
         if self.spec.commands:
