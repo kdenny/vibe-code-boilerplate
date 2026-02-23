@@ -3,7 +3,6 @@
 import os
 import shutil
 import subprocess
-import urllib.error
 from dataclasses import dataclass
 from typing import Any
 
