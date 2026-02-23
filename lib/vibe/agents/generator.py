@@ -77,8 +77,8 @@ class InstructionGenerator:
                 AssistantFormat.COPILOT,
             ]
 
-        results = {}
-        skipped = {}
+        results: dict[str, Path] = {}
+        skipped: dict[str, Path | str] = {}
 
         for format in formats:
             output_path = output_dir / format.output_path
@@ -166,24 +166,24 @@ class InstructionGenerator:
             lines.append("")
             lines.append("| Command | Description |")
             lines.append("|---------|-------------|")
-            for cmd in self.spec.commands:
-                lines.append(f"| `{cmd.usage or cmd.name}` | {cmd.description} |")
+            for cmd_spec in self.spec.commands:
+                lines.append(f"| `{cmd_spec.usage or cmd_spec.name}` | {cmd_spec.description} |")
             lines.append("")
 
             # Detailed command reference
             lines.append("### Command Details")
             lines.append("")
-            for cmd in self.spec.commands:
-                lines.append(f"#### {cmd.name}")
+            for cmd_spec in self.spec.commands:
+                lines.append(f"#### {cmd_spec.name}")
                 lines.append("")
-                lines.append(cmd.description)
-                if cmd.usage:
+                lines.append(cmd_spec.description)
+                if cmd_spec.usage:
                     lines.append("")
-                    lines.append(f"**Usage:** `{cmd.usage}`")
-                if cmd.examples:
+                    lines.append(f"**Usage:** `{cmd_spec.usage}`")
+                if cmd_spec.examples:
                     lines.append("")
                     lines.append("**Examples:**")
-                    for ex in cmd.examples:
+                    for ex in cmd_spec.examples:
                         lines.append("```bash")
                         lines.append(ex)
                         lines.append("```")
@@ -205,8 +205,8 @@ class InstructionGenerator:
                     if step.commands:
                         lines.append("")
                         lines.append("```bash")
-                        for cmd in step.commands:
-                            lines.append(cmd)
+                        for step_cmd in step.commands:
+                            lines.append(step_cmd)
                         lines.append("```")
                     lines.append("")
             lines.append("---")
@@ -281,8 +281,8 @@ class InstructionGenerator:
         if self.spec.commands:
             lines.append("# Available Commands")
             lines.append("")
-            for cmd in self.spec.commands:
-                lines.append(f"# {cmd.name}: {cmd.usage or cmd.description}")
+            for cmd_spec in self.spec.commands:
+                lines.append(f"# {cmd_spec.name}: {cmd_spec.usage or cmd_spec.description}")
             lines.append("")
 
         # Workflows - condensed
@@ -292,8 +292,8 @@ class InstructionGenerator:
                 lines.append(f"# {workflow_name}:")
                 for step in steps:
                     if step.commands:
-                        for cmd in step.commands:
-                            lines.append(f"#   {cmd}")
+                        for step_cmd in step.commands:
+                            lines.append(f"#   {step_cmd}")
             lines.append("")
 
         return "\n".join(lines)
@@ -358,11 +358,11 @@ class InstructionGenerator:
             lines.append("")
             lines.append("Use these commands for common operations:")
             lines.append("")
-            for cmd in self.spec.commands:
-                if cmd.usage:
-                    lines.append(f"- `{cmd.usage}` - {cmd.description}")
+            for cmd_spec in self.spec.commands:
+                if cmd_spec.usage:
+                    lines.append(f"- `{cmd_spec.usage}` - {cmd_spec.description}")
                 else:
-                    lines.append(f"- **{cmd.name}**: {cmd.description}")
+                    lines.append(f"- **{cmd_spec.name}**: {cmd_spec.description}")
             lines.append("")
 
         return "\n".join(lines)
@@ -418,11 +418,11 @@ class InstructionGenerator:
             lines.append("Use these commands:")
             lines.append("")
             lines.append("```")
-            for cmd in self.spec.commands:
-                if cmd.usage:
-                    lines.append(f"{cmd.usage}  # {cmd.description}")
+            for cmd_spec in self.spec.commands:
+                if cmd_spec.usage:
+                    lines.append(f"{cmd_spec.usage}  # {cmd_spec.description}")
                 else:
-                    lines.append(f"{cmd.name}: {cmd.description}")
+                    lines.append(f"{cmd_spec.name}: {cmd_spec.description}")
             lines.append("```")
             lines.append("")
 
@@ -439,8 +439,8 @@ class InstructionGenerator:
                         lines.append(f"   {step.description}")
                     if step.commands:
                         lines.append("   ```")
-                        for cmd in step.commands:
-                            lines.append(f"   {cmd}")
+                        for step_cmd in step.commands:
+                            lines.append(f"   {step_cmd}")
                         lines.append("   ```")
                 lines.append("")
 

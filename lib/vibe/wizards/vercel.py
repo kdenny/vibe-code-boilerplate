@@ -51,12 +51,13 @@ def check_project_linked() -> bool:
     return project_json.exists()
 
 
-def get_project_info() -> dict | None:
+def get_project_info() -> dict[str, Any] | None:
     """Get linked project info."""
     project_json = Path(".vercel/project.json")
     if project_json.exists():
         try:
-            return json.loads(project_json.read_text())
+            result: dict[str, Any] = json.loads(project_json.read_text())
+            return result
         except (json.JSONDecodeError, OSError):
             pass
     return None
@@ -116,8 +117,8 @@ def run_vercel_wizard(config: dict[str, Any]) -> bool:
         click.echo("  Not authenticated with Vercel.")
         if click.confirm("  Run 'vercel login' now?", default=True):
             click.echo("  Opening browser for authentication...")
-            result = subprocess.run(["vercel", "login"])
-            if result.returncode != 0:
+            login_result = subprocess.run(["vercel", "login"])
+            if login_result.returncode != 0:
                 click.echo("  Authentication failed. Run 'vercel login' manually.")
                 return False
             click.echo("  ✓ Authenticated")
@@ -134,8 +135,8 @@ def run_vercel_wizard(config: dict[str, Any]) -> bool:
         click.echo("  Project is not linked to Vercel.")
         if click.confirm("  Run 'vercel link' now?", default=True):
             click.echo("  Linking project...")
-            result = subprocess.run(["vercel", "link"])
-            if result.returncode != 0:
+            link_result = subprocess.run(["vercel", "link"])
+            if link_result.returncode != 0:
                 click.echo("  Linking failed. Run 'vercel link' manually.")
                 return False
             click.echo("  ✓ Project linked")

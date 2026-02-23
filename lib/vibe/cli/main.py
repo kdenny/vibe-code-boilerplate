@@ -357,15 +357,15 @@ def _derive_pr_title(branch: str, config: dict) -> str:
                 if tracker_type == "linear":
                     from lib.vibe.trackers.linear import LinearTracker
 
-                    tracker = LinearTracker()
-                    ticket = tracker.get_ticket(ticket_id)
+                    linear_tracker = LinearTracker()
+                    ticket = linear_tracker.get_ticket(ticket_id)
                     if ticket and ticket.title:
                         return f"{ticket_id}: {ticket.title}"
                 elif tracker_type == "shortcut":
                     from lib.vibe.trackers.shortcut import ShortcutTracker
 
-                    tracker = ShortcutTracker()
-                    ticket = tracker.get_ticket(ticket_id)
+                    shortcut_tracker = ShortcutTracker()
+                    ticket = shortcut_tracker.get_ticket(ticket_id)
                     if ticket and ticket.title:
                         return f"{ticket_id}: {ticket.title}"
             except Exception:

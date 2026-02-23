@@ -7,6 +7,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 
 class ToolStatus(Enum):
@@ -43,7 +44,7 @@ def get_platform() -> str:
 
 
 # Tool definitions with install instructions per platform
-TOOL_DEFINITIONS = {
+TOOL_DEFINITIONS: dict[str, dict[str, Any]] = {
     "git": {
         "commands": ["git"],
         "version_flag": "--version",

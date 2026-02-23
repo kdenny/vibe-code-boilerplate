@@ -94,12 +94,13 @@ def detect_base_url() -> str | None:
 
 def analyze_existing_config(config_path: Path) -> dict[str, Any]:
     """Analyze existing Playwright config for improvements."""
-    analysis = {
+    browsers: list[str] = []
+    analysis: dict[str, Any] = {
         "has_base_url": False,
         "has_ci_config": False,
         "has_retries": False,
         "has_reporter": False,
-        "browsers": [],
+        "browsers": browsers,
     }
 
     try:
@@ -113,11 +114,11 @@ def analyze_existing_config(config_path: Path) -> dict[str, Any]:
 
         # Check browsers
         if "chromium" in content.lower():
-            analysis["browsers"].append("chromium")
+            browsers.append("chromium")
         if "firefox" in content.lower():
-            analysis["browsers"].append("firefox")
+            browsers.append("firefox")
         if "webkit" in content.lower():
-            analysis["browsers"].append("webkit")
+            browsers.append("webkit")
 
     except Exception:
         pass

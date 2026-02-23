@@ -51,7 +51,7 @@ class ShortcutTracker(TrackerBase):
                 headers=self._headers,
                 timeout=30,
             )
-            return response.status_code == 200
+            return bool(response.status_code == 200)
         except Exception:
             return False
 
@@ -286,7 +286,8 @@ class ShortcutTracker(TrackerBase):
             )
             response.raise_for_status()
             label = response.json()
-            return label.get("id")
+            label_id = label.get("id")
+            return int(label_id) if label_id is not None else None
         except Exception:
             return None
 
@@ -325,7 +326,8 @@ class ShortcutTracker(TrackerBase):
             for workflow in workflows:
                 for state in workflow.get("states", []):
                     if state.get("name", "").lower() == state_name.lower():
-                        return state.get("id")
+                        state_id = state.get("id")
+                        return int(state_id) if state_id is not None else None
             return None
         except Exception:
             return None

@@ -65,7 +65,7 @@ class LinearTracker(TrackerBase):
         except Exception:
             return False
 
-    def _execute_query(self, query: str, variables: dict | None = None) -> dict:
+    def _execute_query(self, query: str, variables: dict | None = None) -> dict[str, Any]:
         """Execute a GraphQL query against Linear API."""
         payload: dict[str, Any] = {"query": query}
         if variables:
@@ -73,7 +73,8 @@ class LinearTracker(TrackerBase):
 
         response = requests.post(LINEAR_API_URL, headers=self._headers, json=payload, timeout=30)
         response.raise_for_status()
-        return response.json()
+        result: dict[str, Any] = response.json()
+        return result
 
     def get_ticket(self, ticket_id: str, include_children: bool = False) -> Ticket | None:
         """Fetch a single ticket by ID or identifier.
@@ -388,6 +389,7 @@ class LinearTracker(TrackerBase):
                 raise RuntimeError(f"Ticket not found: {ticket_id}")
 
         if status:
+            assert issue is not None  # guaranteed by the check above
             # Resolve status name to workflow state ID
             team_id = (issue.raw.get("team") or {}).get("id") or self._team_id
             if not team_id:
@@ -401,6 +403,7 @@ class LinearTracker(TrackerBase):
             input_obj["stateId"] = state_id
 
         if labels:
+            assert issue is not None  # guaranteed by the check above
             team_id = (issue.raw.get("team") or {}).get("id") or self._team_id
             if team_id:
                 label_ids = self._get_or_create_label_ids(team_id, labels)
@@ -679,7 +682,8 @@ class LinearTracker(TrackerBase):
 
             for node in nodes:
                 if node.get("name", "").lower() == state_name.lower():
-                    return node.get("id")
+                    node_id: str | None = node.get("id")
+                    return node_id
             return None
         except Exception:
             return None
@@ -735,7 +739,9 @@ class LinearTracker(TrackerBase):
 
         try:
             result = self._execute_query(mutation, {"input": input_obj})
-            success = result.get("data", {}).get("issueRelationCreate", {}).get("success", False)
+            success: bool = (
+                result.get("data", {}).get("issueRelationCreate", {}).get("success", False)
+            )
             return success
         except Exception as e:
             raise RuntimeError(f"Failed to create relation: {e}") from e
@@ -934,7 +940,7 @@ class LinearTracker(TrackerBase):
         """
         try:
             result = self._execute_query(query)
-            viewer_id = result.get("data", {}).get("viewer", {}).get("id")
+            viewer_id: str | None = result.get("data", {}).get("viewer", {}).get("id")
             if viewer_id:
                 cache.set(cache_key, viewer_id, ttl=1800)  # 30 min TTL
             return viewer_id
@@ -965,7 +971,8 @@ class LinearTracker(TrackerBase):
                     or user.get("email", "").lower() == name_lower
                     or user.get("displayName", "").lower() == name_lower
                 ):
-                    return user.get("id")
+                    user_id: str | None = user.get("id")
+                    return user_id
             return None
         except Exception:
             return None

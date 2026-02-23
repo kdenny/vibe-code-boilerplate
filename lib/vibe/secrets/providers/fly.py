@@ -72,6 +72,7 @@ class FlySecretsProvider(SecretProvider):
                     name=s.get("Name", ""),
                     value="<hidden>",  # Fly doesn't expose values
                     environment=environment or "production",
+                    provider="fly",
                 )
                 for s in secrets_data
             ]

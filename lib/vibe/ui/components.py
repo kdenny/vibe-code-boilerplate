@@ -83,7 +83,7 @@ class NumberedMenu:
         click.echo()
 
         while True:
-            choice = click.prompt(
+            choice: int = click.prompt(
                 "Select option",
                 type=int,
                 default=self.default,

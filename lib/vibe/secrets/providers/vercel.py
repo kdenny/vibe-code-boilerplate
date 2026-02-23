@@ -57,6 +57,7 @@ class VercelSecretsProvider(SecretProvider):
                             name=name,
                             value="<hidden>",  # Vercel ls doesn't show values
                             environment=env,
+                            provider="vercel",
                         )
                     )
             return secrets

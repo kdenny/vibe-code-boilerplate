@@ -1052,7 +1052,7 @@ def print_results(results: list[CheckResult], show_skipped: bool = True) -> int:
     has_failure = False
 
     # Group by category
-    categories = {}
+    categories: dict[str, list[CheckResult]] = {}
     for result in results:
         cat = result.category
         if cat not in categories:

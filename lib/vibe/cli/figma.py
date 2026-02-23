@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import Any
 
 import click
 
@@ -412,9 +413,9 @@ def tickets_cmd(figma_link: str, description: str, project_path: str, dry_run: b
             click.echo("Cancelled")
 
 
-def _generate_tickets(figma_link: str, description: str, analysis) -> list[dict]:
+def _generate_tickets(figma_link: str, description: str, analysis) -> list[dict[str, Any]]:
     """Generate ticket specifications from design description."""
-    tickets = []
+    tickets: list[dict[str, Any]] = []
 
     # Ticket 1: Layout/Structure
     tickets.append(
@@ -503,11 +504,11 @@ Integrate the components into a complete feature.
     return tickets
 
 
-def _create_tickets(tickets: list[dict]) -> None:
+def _create_tickets(tickets: list[dict[str, Any]]) -> None:
     """Create tickets using the ticket CLI."""
     import subprocess
 
-    created_ids = {}
+    created_ids: dict[int, str] = {}
 
     for i, ticket in enumerate(tickets, 1):
         cmd = [
