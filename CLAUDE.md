@@ -504,6 +504,17 @@ For bulk cleanup: run `git worktree list`, remove each non-main worktree, delete
 
 See `recipes/workflows/git-worktrees.md` for full details on worktree setup, directory structure, and best practices.
 
+### Avoiding Duplicate PRs (Multiple Worktree Systems)
+
+**Risk:** Claude Code's `isolation: "worktree"` setting and `bin/vibe do` both create worktrees, but they use **different branch naming conventions** and are unaware of each other. If both are used for the same ticket, two branches — and two PRs — get created for the same work.
+
+**Rules:**
+- **Do not** use `isolation: "worktree"` (in `.claude/settings.json`) alongside `bin/vibe do` for the **same ticket**. Pick one system per ticket.
+- `bin/vibe pr` will automatically check for existing PRs referencing the same ticket ID before creating a new one. If a duplicate is detected, it warns and asks for confirmation.
+- `bin/vibe do` records the ticket-to-branch mapping in `.vibe/local_state.json`. The `pr` command checks this state to detect when a second branch exists for the same ticket.
+
+**If you see a duplicate-PR warning**, stop and check whether the existing PR already covers the work. If it does, discard the current branch. If the new branch contains different/additional changes, coordinate manually (e.g. close the old PR or rebase onto the existing branch).
+
 ---
 
 ## Multi-Agent Coordination
@@ -748,6 +759,7 @@ Read the actual failure first (`gh pr checks <number>`, then `gh run view <run-i
 8. **Don't work in the main checkout** - Use worktrees for ticket work.
 9. **Don't leave merged worktrees around** - After a PR is merged, remove the worktree, delete the local branch, and run `bin/vibe doctor`.
 10. **Don't use `cd path && command`** - Use `git -C path`, `npm --prefix path`, or `gh pr create --repo owner/repo` so commands can run without changing directory and can be parallelized when appropriate.
+11. **Don't use multiple worktree systems for the same ticket** - If using `bin/vibe do`, do not also use Claude Code's `isolation: "worktree"` for the same ticket. This creates duplicate branches and duplicate PRs. See [Avoiding Duplicate PRs](#avoiding-duplicate-prs-multiple-worktree-systems).
 
 ---
 
