@@ -3,8 +3,9 @@
 import os
 import random
 import time
+from collections.abc import Callable
 from functools import wraps
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
 
 import requests
 
@@ -47,21 +48,13 @@ def with_retry(
                 try:
                     return func(*args, **kwargs)
                 except requests.HTTPError as e:
-                    if (
-                        e.response is not None
-                        and e.response.status_code not in retryable_statuses
-                    ):
+                    if e.response is not None and e.response.status_code not in retryable_statuses:
                         raise
                     if attempt == retries:
                         raise
-                    delay = min(
-                        base_delay * (2**attempt) + random.uniform(0, 1), max_delay
-                    )
+                    delay = min(base_delay * (2**attempt) + random.uniform(0, 1), max_delay)
                     # Respect Retry-After header for 429s
-                    if (
-                        e.response is not None
-                        and e.response.status_code == 429
-                    ):
+                    if e.response is not None and e.response.status_code == 429:
                         retry_after = e.response.headers.get("Retry-After")
                         if retry_after:
                             try:
@@ -72,9 +65,7 @@ def with_retry(
                 except requests.ConnectionError:
                     if attempt == retries:
                         raise
-                    delay = min(
-                        base_delay * (2**attempt) + random.uniform(0, 1), max_delay
-                    )
+                    delay = min(base_delay * (2**attempt) + random.uniform(0, 1), max_delay)
                     time.sleep(delay)
 
         return wrapper  # type: ignore[return-value]

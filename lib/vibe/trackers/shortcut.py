@@ -37,9 +37,7 @@ class ShortcutTracker(TrackerBase):
     def _request(self, method: str, path: str, **kwargs: Any) -> requests.Response:
         """Make an API request with retry logic."""
         url = f"{SHORTCUT_API_URL}{path}"
-        response = requests.request(
-            method, url, headers=self._headers, timeout=30, **kwargs
-        )
+        response = requests.request(method, url, headers=self._headers, timeout=30, **kwargs)
         response.raise_for_status()
         return response
 
@@ -199,9 +197,7 @@ class ShortcutTracker(TrackerBase):
         """Add a comment to a story."""
         story_id = ticket_id.lstrip("SC-").lstrip("#")
         try:
-            self._request(
-                "POST", f"/stories/{story_id}/comments", json={"text": body}
-            )
+            self._request("POST", f"/stories/{story_id}/comments", json={"text": body})
         except requests.HTTPError as e:
             raise RuntimeError(f"Failed to add comment: {e}") from e
 
