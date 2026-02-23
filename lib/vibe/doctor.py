@@ -65,6 +65,7 @@ def run_doctor(
     # Config-dependent checks
     if config_exists():
         config = load_config()
+        results.append(check_config_schema())
         results.append(check_tracker_config(config))
         results.append(check_github_config(config))
         results.append(check_secrets_allowlist())
@@ -141,6 +142,28 @@ def check_config_exists() -> CheckResult:
         status=Status.FAIL,
         message=".vibe/config.json not found",
         fix_hint="Run 'bin/vibe setup' to create configuration",
+    )
+
+
+def check_config_schema() -> CheckResult:
+    """Validate config schema."""
+    from lib.vibe.config_schema import validate_config
+
+    config = load_config()
+    errors = validate_config(config)
+
+    if not errors:
+        return CheckResult(
+            name="Config schema",
+            status=Status.PASS,
+            message="Configuration is valid",
+        )
+
+    return CheckResult(
+        name="Config schema",
+        status=Status.WARN,
+        message=f"{len(errors)} issue(s): {errors[0]}",
+        fix_hint="Review .vibe/config.json for typos or missing fields",
     )
 
 

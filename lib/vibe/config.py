@@ -4,6 +4,12 @@ import json
 from pathlib import Path
 from typing import Any
 
+from lib.vibe.config_schema import (
+    CURRENT_VERSION,
+    get_config_version,
+    migrate_config,
+)
+
 CONFIG_PATH = Path(".vibe/config.json")
 
 DEFAULT_CONFIG: dict[str, Any] = {
@@ -65,7 +71,16 @@ def load_config(base_path: Path | None = None) -> dict[str, Any]:
         return DEFAULT_CONFIG.copy()
 
     with open(config_file) as f:
-        return json.load(f)
+        config = json.load(f)
+
+    # Auto-migrate if needed
+    version = get_config_version(config)
+    if version < CURRENT_VERSION:
+        config, notes = migrate_config(config)
+        if notes:
+            save_config(config, base_path)
+
+    return config
 
 
 def save_config(config: dict[str, Any], base_path: Path | None = None) -> None:
