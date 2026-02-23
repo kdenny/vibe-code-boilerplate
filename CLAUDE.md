@@ -393,14 +393,7 @@ So: **"do this ticket {ticket}"** = **do this ticket on a fresh worktree and ope
 
 ### Ticketing System (Linear) Must Be Configured First
 
-Before creating, listing, or fetching tickets, a tracker (e.g. Linear) must be configured in `.vibe/config.json`. If you or the user runs `bin/ticket create`, `bin/ticket list`, or `bin/ticket get` without a tracker configured:
-
-- The CLI **pauses** and prints: "No ticketing system (e.g. Linear) is configured. Set up a tracker before creating or viewing tickets."
-- It then prompts: **"Run tracker setup now?"** (default: yes).
-- If the user confirms, it runs the tracker wizard (Linear/Shortcut/None), saves config, and the ticket command proceeds.
-- If the user declines, it exits with a hint to run `bin/vibe setup` or `bin/vibe setup --wizard tracker` when ready.
-
-When writing tickets or advising the user to create tickets, either ensure the project has already run `bin/vibe setup` (or `bin/vibe setup --wizard tracker`), or expect the interactive prompt and let the user complete it.
+A tracker must be configured in `.vibe/config.json` before ticket commands work. If no tracker is configured, the CLI will prompt to run setup. Ensure the project has run `bin/vibe setup` (or `bin/vibe setup --wizard tracker`) before using ticket commands.
 
 ### Starting Work on a Ticket
 
@@ -426,57 +419,17 @@ When creating tickets programmatically:
 
 #### Avoiding Duplicate Tickets
 
-Before creating a new ticket, **always search** for existing tickets that might cover the same work:
-
-```bash
-bin/ticket list  # Review open tickets for overlap
-```
-
-**Signs of a duplicate:**
-- Same component/area being modified
-- Similar acceptance criteria
-- Part of the same milestone or initiative
-- Would result in conflicting changes if both were implemented
-
-**If you find a potential duplicate:**
-- Update the existing ticket with any new requirements
-- Add a comment explaining the additional scope
-- Do NOT create a new ticket
-
-**If scopes overlap but aren't identical:**
-- Consider if one ticket can be expanded to cover both
-- If truly separate, document the boundary clearly in both tickets
-- Link them with "related to" (not blocking)
+Before creating a ticket, run `bin/ticket list` and check for existing tickets covering the same scope. If a duplicate exists, update it instead of creating a new one. If scopes overlap but differ, document the boundary in both and link with "related to".
 
 #### Blocking relationships
 
-Direction matters. The **prerequisite** (foundation) ticket **blocks** the dependent ticket — not the other way around.
+Direction matters: the **prerequisite** ticket **blocks** the dependent ticket, not the other way around.
 
-- **"A blocks B"** = B cannot start until A is done. (A is the prerequisite.)
-- **"A is blocked by B"** = A cannot start until B is done. (B is the prerequisite.)
+- **"A blocks B"** = B cannot start until A is done. Set the foundation ticket as blocking the dependent one.
+- Use blocking only for true code dependencies, HUMAN prerequisites, or sequential deployments — not for parallel work or ordering preferences.
+- **Keep the dependency graph shallow.** If you have A → B → C → D, consider if B and C can be parallel.
 
-**CORRECT:** "Initialize monorepo" BLOCKS "Set up React app"
-(React app depends on monorepo being done first.)
-
-**WRONG:** "Initialize monorepo" BLOCKED BY "Set up React app"
-(That would mean monorepo can't start until React is done — backwards.)
-
-When linking: set the **foundation ticket** as blocking the **dependent ticket(s)**. Do not set the foundation as "blocked by" the later tickets.
-
-**When to use blocking:**
-- True code dependencies (B imports from A, B needs A's API)
-- HUMAN prerequisites (need credential value before next step)
-- Sequential deployments (database migration before app deploy)
-
-**When NOT to use blocking:**
-- Parallel work on different files/components
-- "Nice-to-have" ordering preferences
-- Same milestone tickets (use milestone label instead)
-- Related but independent features
-
-**Keep the dependency graph shallow.** Deep chains slow down work. If you have A → B → C → D, consider if B and C can actually be parallel.
-
-See `recipes/tickets/creating-tickets.md` for full guidance.
+See `recipes/tickets/creating-tickets.md` for full guidance and examples.
 
 #### Label checklist for ticket creation
 
@@ -513,80 +466,14 @@ Update ticket status as work progresses:
 
 ### Finding Actionable Tickets
 
-When asked to "find unblocked tickets" or "look for work to do", follow this systematic triage process:
+When asked to "find unblocked tickets" or "look for work to do":
 
-#### Step 0: Check open GitHub PRs
+1. **Check open PRs** — `gh pr list --repo <owner>/<repo>`. Tickets with open PRs are already in flight; exclude them.
+2. **Filter candidates** — `bin/ticket list --status "Todo,Backlog"`. Exclude Done/Deployed/Canceled, HUMAN-labeled, and blocked tickets.
+3. **Validate each candidate** — Fetch details. Fix hygiene issues: add missing blocking relationships, cancel completed/stale tickets, add missing HUMAN labels.
+4. **Pick highest-priority** — Milestone priority first, then ticket number (lower first), then foundation work before dependents, then lower risk for quick wins.
 
-```bash
-gh pr list --repo <owner>/<repo>
-```
-
-Any ticket with an open PR is already **In Progress / In Review** — exclude it from candidates even if the tracker still shows "Todo" or "Backlog". Tracker status is often stale; open PRs are the source of truth for work that's actively in flight.
-
-#### Step 1: Filter for candidates
-
-```bash
-bin/ticket list --status "Todo,Backlog"
-```
-
-Exclude tickets that are:
-- Already **Done**, **Deployed**, **Canceled**, or **In Progress**
-- Labeled **HUMAN** (requires human action)
-- Blocked by other tickets (check `blockedBy` relationships)
-- **Associated with an open PR** (found in Step 0)
-
-#### Step 2: Validate each candidate
-
-For each potential ticket, fetch details and check:
-
-| Issue | Detection | Action |
-|-------|-----------|--------|
-| Actually blocked | Depends on work that doesn't exist yet | Add blocking relationship to prerequisite ticket |
-| Already completed | Work already exists in codebase | Cancel ticket with comment explaining it's done |
-| Requires human action | Needs external access, secrets, decisions | Add **HUMAN** label |
-| Missing HUMAN label | Title starts with "HUMAN:" | Add **HUMAN** label for consistency |
-| Stale/obsolete | Requirements no longer make sense | Cancel with explanation |
-
-#### Step 3: Fix ticket hygiene issues
-
-Before picking a ticket, fix any issues found:
-- Add missing blocking relationships
-- Cancel completed tickets (with comment)
-- Add **HUMAN** labels where needed
-- Update stale descriptions
-
-#### Step 4: Pick highest-priority actionable ticket
-
-Priority order:
-1. **Milestone priority** - v1 before v2/Future
-2. **Ticket number** - Lower numbers first (within same milestone)
-3. **Foundation work** - Prerequisites before dependent work
-4. **Risk level** - Lower risk first (for quick wins)
-
-#### Example triage report
-
-```
-## Ticket Triage Report
-
-### Open PRs (excluded from candidates)
-- PROJ-103: PR #42 open (in review)
-
-### Actionable (3)
-1. PROJ-101 - Add user authentication (Medium Risk, Backend)
-2. PROJ-105 - Create API endpoint for /users (Low Risk, Backend)
-3. PROJ-108 - Add input validation (Low Risk, Backend)
-
-### Fixed during triage
-- PROJ-102: Added blocking relationship (blocked by PROJ-101)
-- PROJ-106: Canceled - feature already exists in codebase
-- PROJ-107: Added HUMAN label - requires AWS account setup
-
-### Still blocked (2)
-- PROJ-102 - Add login page (blocked by PROJ-101)
-- PROJ-110 - Deploy to production (blocked by PROJ-108, PROJ-109)
-
-**Recommendation:** Start with PROJ-105 (lowest risk, no blockers)
-```
+Produce a short triage report listing: actionable tickets, issues fixed during triage, and still-blocked tickets with a recommendation.
 
 ### HUMAN Follow-Up for Deployment Infrastructure
 
@@ -601,57 +488,21 @@ See `recipes/tickets/human-followup-deployment.md` for full guidance.
 
 ## Worktree Management
 
-**Agent rule:** When the user asks to clean up worktrees, branches, or "tidy up" local state, follow the [Cleaning Up Worktrees](#cleaning-up-worktrees--follow-this-order) steps (remove worktrees first, then delete branches, then run `bin/vibe doctor`). Do not skip steps.
+**Agent rule:** When the user asks to clean up worktrees, branches, or "tidy up" local state, follow the cleanup order below. Do not skip steps.
 
-### Creating Worktrees
-
-```bash
-bin/vibe do PROJ-123
-```
-
-This creates a worktree (path from config, typically `../<repo>-worktrees/PROJ-123`) and a branch for that ticket.
-
-### When to Clean Up Worktrees
-
-**Clean up a worktree when:**
-- The PR for that ticket has been **merged** to main (or the branch is no longer needed), or
-- The user asks to "clean up branches/worktrees" or "tidy up".
-
-**Do not remove a worktree** while the branch is still in use (open PR, WIP, or user is working there).
+- **Create:** `bin/vibe do PROJ-123` creates a worktree and branch for that ticket.
+- **Clean up when:** PR is merged, branch is no longer needed, or user asks to "tidy up".
+- **Do not remove** a worktree while the branch is still in use (open PR, WIP).
 
 ### Cleaning Up Worktrees — Follow This Order
 
-Agents and users **must** do these steps in order whenever cleaning up after a merged PR or doing a general cleanup:
+1. `git worktree remove <path-to-worktree>` (from **main** repo, not from inside the worktree; use `--force` if needed)
+2. `git branch -d PROJ-123` (use `-D` if git reports "not fully merged")
+3. `bin/vibe doctor` (syncs `.vibe/local_state.json`)
 
-1. **Remove the worktree** (from the **main** repo checkout, not from inside the worktree):
-   ```bash
-   git worktree remove <path-to-worktree>
-   ```
-   Path is usually relative to the repo root, e.g. `../<repo>-worktrees/PROJ-123`. Use `git worktree list` to see exact paths. If the worktree has uncommitted changes and you're sure they're not needed: `git worktree remove --force <path>`.
+For bulk cleanup: run `git worktree list`, remove each non-main worktree, delete obsolete branches, then `bin/vibe doctor`.
 
-2. **Delete the local branch** (only after the worktree is removed):
-   ```bash
-   git branch -d PROJ-123
-   ```
-   Use `-D` if the branch was merged via a merge commit and git reports "not fully merged".
-
-3. **Sync local state** so `.vibe/local_state.json` matches reality:
-   ```bash
-   bin/vibe doctor
-   ```
-
-### One-Time Cleanup of Multiple Worktrees/Branches
-
-When the user asks to "clean up local branches and worktrees":
-
-1. From the **main** repo, run `git worktree list` and note every worktree that is **not** the main repo.
-2. For each such worktree: `git worktree remove <path>` (or `--force` if needed).
-3. Delete obsolete local branches (e.g. merged feature branches): `git branch -d <branch>` or `git branch -D <branch>`.
-4. Run `bin/vibe doctor` to fix `.vibe/local_state.json`.
-
-### Active Worktree State
-
-Worktrees are tracked in `.vibe/local_state.json` (gitignored). Stale entries cause confusion; **always run `bin/vibe doctor`** after adding or removing worktrees so that state stays accurate.
+See `recipes/workflows/git-worktrees.md` for full details on worktree setup, directory structure, and best practices.
 
 ---
 
@@ -735,57 +586,28 @@ See `recipes/tickets/creating-tickets.md` for details.
 
 ### Understanding CI Failures
 
-**Always read the actual failure first.** Do not guess the cause from workflow names or assumptions.
+**Always read the actual failure first.** Do not guess from workflow names.
 
-1. **PR comments and review threads** – CodeQL and other checks post inline comments (e.g. from `github-advanced-security`). Read them to see the exact finding (e.g. "Incomplete URL substring sanitization") and the file/line.
-2. **Failed run logs** – `gh pr checks <number>` to see which check failed; then `gh run view <run-id> --log-failed` (or open the failed job in the GitHub Checks tab) to read the error output.
-3. **PR policy bot comment** – If the bot commented on the PR, it lists missing items (ticket reference, risk label, etc.).
+1. **PR comments** – CodeQL and checks post inline comments. Read the exact finding, file, and line.
+2. **Failed run logs** – `gh pr checks <number>` then `gh run view <run-id> --log-failed`.
+3. **PR policy bot** – Lists missing items (ticket reference, risk label, etc.).
 
-Only after you know the real failure (e.g. "CodeQL alert on line 45", "missing risk label", "test X failed") should you fix it. See below for common workflows and responses.
+### Workflow Reference
 
-When a workflow fails, check:
-
-1. **security.yml**
-   - Gitleaks: Secret detected in code
-   - Dependency review: Vulnerable dependency in PR
-   - CodeQL: Security finding in code (see PR review comments from github-advanced-security for file/line and query name, e.g. `py/incomplete-url-substring-sanitization`)
-
-2. **pr-policy.yml**
-   - Missing ticket reference in PR
-   - Missing risk label
-   - Branch naming violation
-
-3. **pr-opened.yml** (fallback - prefer native Linear GitHub integration)
-   - Runs when a PR is opened or reopened; updates the Linear ticket (from branch name) to "In Review" state. Requires repo secret `LINEAR_API_KEY`. Optional repo variable `LINEAR_IN_REVIEW_STATE` (default: `In Review`). On failure, logs a warning and does not fail the job.
-   - **Note**: If using Linear's native GitHub integration (recommended), this workflow is not needed. See `recipes/tickets/linear-github-integration.md`.
-
-4. **pr-merged.yml** (fallback - prefer native Linear GitHub integration)
-   - Runs when a PR is merged; updates the Linear ticket (from branch name) to the "deployed" state. Requires repo secret `LINEAR_API_KEY`. Optional repo variable `LINEAR_DEPLOYED_STATE` (default: `Deployed`). On failure (e.g. no API key, ticket not found), logs a warning and does not fail the job.
-   - **Note**: If using Linear's native GitHub integration (recommended), this workflow is not needed. See `recipes/tickets/linear-github-integration.md`.
-
-5. **tests.yml** (if tests exist)
-   - Test failure (check output for details)
-   - No tests detected (may be intentional for new projects)
+| Workflow | Common Failures |
+|----------|----------------|
+| **security.yml** | Gitleaks (secret in code), dependency review, CodeQL findings |
+| **pr-policy.yml** | Missing ticket reference, risk label, or branch naming |
+| **pr-opened.yml** | Fallback Linear integration (not needed with native integration). See `recipes/tickets/linear-github-integration.md` |
+| **pr-merged.yml** | Fallback Linear integration (not needed with native integration). See `recipes/tickets/linear-github-integration.md` |
+| **tests.yml** | Test failure or no tests detected |
 
 ### Responding to CI Failures
 
-**Secret detected:**
-1. Remove the secret from code
-2. If intentional, add to `.vibe/secrets.allowlist.json`
-3. Rotate the exposed secret
-
-**Missing labels:**
-1. Add the required label via GitHub UI or `gh pr edit`
-
-**CodeQL / security findings** (see PR review comments for the exact alert):
-1. Read the inline comment: query ID, file, line, and "Show more details" link
-2. Fix the finding (e.g. avoid URL substring checks in tests; use allowlists in production code) or add a documented suppression if it is a false positive
-3. Push the fix
-
-**Test failures** (if the project has tests):
-1. Read the failure output (from logs or `gh run view ... --log-failed`)
-2. Fix the failing test or the code
-3. Push the fix
+- **Secret detected:** Remove from code, add to `.vibe/secrets.allowlist.json` if intentional, rotate the secret.
+- **Missing labels:** `gh pr edit` to add the required label.
+- **CodeQL findings:** Read the inline PR comment, fix or add documented suppression, push.
+- **Test failures:** Read failure output, fix the test or code, push.
 
 ---
 
@@ -874,59 +696,17 @@ bin/vibe figma tickets      # Break design into implementation tickets
 ### Starting a New Feature
 
 ```bash
-# 1. Get ticket details
-bin/ticket get PROJ-123
-
-# 2. Create worktree
-bin/vibe do PROJ-123
-
-# 3. Work in the worktree (or use absolute path for commands from elsewhere)
-WORKTREE=../project-worktrees/PROJ-123  # or absolute path
-# ... implement feature in that directory ...
-
-# 4. Commit and push (from anywhere, using git -C)
-git -C "$WORKTREE" add .
-git -C "$WORKTREE" commit -m "PROJ-123: Add feature description"
+bin/ticket get PROJ-123                    # 1. Get ticket details
+bin/vibe do PROJ-123                       # 2. Create worktree
+# ... implement feature in worktree ...
+git -C "$WORKTREE" add . && git -C "$WORKTREE" commit -m "PROJ-123: Add feature"
 git -C "$WORKTREE" push -u origin PROJ-123
-
-# 5. Create PR (no cd needed; use --repo and --head)
 gh pr create --repo owner/repo --head PROJ-123 --title "PROJ-123: Add feature" --body "..."
-```
-
-### Fixing a Bug
-
-```bash
-# 1. Create worktree
-bin/vibe do PROJ-456
-
-# 2. Fix the bug in the worktree (e.g. cd there to edit, or use your editor with the path)
-# ... make changes in ../project-worktrees/PROJ-456 ...
-
-# 3. Add tests that would have caught it
-# 4. Commit with bug ticket reference (git -C from anywhere)
-git -C ../project-worktrees/PROJ-456 commit -m "PROJ-456: Fix null pointer in auth flow"
 ```
 
 ### Handling CI Failures
 
-**First:** Read the actual failure. Check PR comments (e.g. CodeQL inline comments from github-advanced-security), PR policy bot comment, and failed run logs. Do not guess from workflow names.
-
-```bash
-# 1. See which check failed
-gh pr checks <number>
-
-# 2. Read failed run logs (use run ID from the failed check link)
-gh run view <run-id> --log-failed
-
-# 3. If tests failed (and the project has tests), run locally
-pytest  # or npm test, etc.
-
-# 3. If secret scanning failed
-# Review .vibe/secrets.allowlist.json
-
-# 4. Fix and push
-git push
-```
+Read the actual failure first (`gh pr checks <number>`, then `gh run view <run-id> --log-failed`). Check PR comments for CodeQL/policy bot findings. Fix and push.
 
 ---
 
@@ -947,45 +727,7 @@ git push
 
 ## When Things Go Wrong
 
-### Rebase Conflicts
-```bash
-git rebase --abort  # Start over
-# Or resolve and continue:
-git add <resolved-files>
-git rebase --continue
-```
-
-### Accidentally Committed a Secret
-1. Remove from code immediately
-2. Push the fix
-3. Rotate the secret at its source
-4. Consider adding to allowlist if it's actually public
-
-### Worktree in Bad State
-```bash
-# From the main repo: force remove the worktree
-git worktree remove --force <path-from-git-worktree-list>
-# Delete the branch if needed
-git branch -D PROJ-123
-# Recreate if you still need to work on that ticket
-bin/vibe do PROJ-123
-```
-See [Cleaning Up Worktrees](#cleaning-up-worktrees--follow-this-order) for the full cleanup procedure.
-
-### CORS Errors
-
-When you see CORS errors (browser blocking API requests):
-
-1. **Diagnose first:**
-   ```bash
-   bin/vibe cors-check https://api.example.com/endpoint -o http://localhost:3000
-   ```
-
-2. **Check the output** for missing headers and specific suggestions.
-
-3. **Apply framework-specific fix** from `recipes/debugging/cors-errors.md`.
-
-Common quick fixes:
-- **Missing headers entirely**: Add CORS middleware to your server
-- **Wrong origin**: Add your frontend's URL to allowed origins
-- **Credentials issue**: Can't use `*` with credentials; specify exact origins
+- **Rebase conflicts:** `git rebase --abort` to start over, or resolve files and `git rebase --continue`.
+- **Accidentally committed a secret:** Remove from code, push the fix, rotate the secret. See `recipes/security/secret-management.md`.
+- **Worktree in bad state:** `git worktree remove --force <path>`, then `git branch -D PROJ-123`, then `bin/vibe do PROJ-123` to recreate. See [Cleaning Up Worktrees](#cleaning-up-worktrees--follow-this-order).
+- **CORS errors:** Run `bin/vibe cors-check <url> -o <origin>` to diagnose, then apply fixes from `recipes/debugging/cors-errors.md`.
