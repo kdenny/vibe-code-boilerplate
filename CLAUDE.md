@@ -613,7 +613,33 @@ See `recipes/tickets/creating-tickets.md` for details.
 
 ## Recipes Reference
 
-The `recipes/` directory contains detailed guides organized by topic: `workflows/`, `agents/`, `security/`, `architecture/`, `tickets/`, `testing/`, `debugging/`, `integrations/`, `deployment/`, `databases/`, `design/`, and more. Browse the directory or search by keyword when implementing specific features. Key recipes are linked inline throughout this document where relevant.
+Browse `recipes/` for the full collection. Key recipes:
+
+- `recipes/workflows/git-worktrees.md` — Parallel development
+- `recipes/workflows/branching-and-rebasing.md` — Git workflow
+- `recipes/workflows/multi-agent-coordination.md` — Multi-agent conflict prevention
+- `recipes/workflows/pr-risk-assessment.md` — Risk classification
+- `recipes/agents/sub-agent-patterns.md` — Sub-agent task decomposition
+- `recipes/agents/asking-clarifying-questions.md` — When to ask vs proceed
+- `recipes/agents/human-required-work.md` — HUMAN tickets
+- `recipes/agents/readme-maintenance.md` — README upkeep
+- `recipes/security/secret-management.md` — Secrets
+- `recipes/security/permissions-hardening.md` — GitHub Actions security
+- `recipes/architecture/adr-guide.md` — Decision records
+- `recipes/tickets/creating-tickets.md` — Ticket best practices
+- `recipes/tickets/linear-github-integration.md` — Linear + GitHub
+- `recipes/testing/playwright.md` — E2E testing
+- `recipes/testing/vitest.md` — Unit testing
+- `recipes/debugging/cors-errors.md` — CORS diagnosis
+- `recipes/integrations/promptvault.md` — LLM prompt management
+- `recipes/integrations/sentry.md` — Error monitoring
+- `recipes/integrations/neon.md` — Neon Postgres
+- `recipes/deployment/fly-io.md` — Fly.io deployment
+- `recipes/deployment/vercel.md` — Vercel deployment
+- `recipes/databases/supabase.md` — Supabase
+- `recipes/databases/neon.md` — Neon branching
+- `recipes/databases/byo-postgres.md` — BYO Postgres
+- `recipes/design/figma-to-code.md` — Design to implementation
 
 ---
 
