@@ -136,7 +136,7 @@ class LinearTracker(TrackerBase):
         assignee: str | None = None,
         unassigned: bool = False,
     ) -> list[Ticket]:
-        """List tickets with optional filters.
+        """List tickets with optional filters, with automatic pagination.
 
         Args:
             status: Filter by status name (e.g., "In Progress", "Done")
@@ -149,8 +149,8 @@ class LinearTracker(TrackerBase):
             unassigned: If True, show only unassigned tickets
         """
         query = """
-        query ListIssues($first: Int!, $filter: IssueFilter) {
-            issues(first: $first, filter: $filter) {
+        query ListIssues($first: Int!, $after: String, $filter: IssueFilter) {
+            issues(first: $first, after: $after, filter: $filter) {
                 nodes {
                     id
                     identifier
@@ -163,6 +163,10 @@ class LinearTracker(TrackerBase):
                     assignee { name }
                     project { name }
                     parent { identifier }
+                }
+                pageInfo {
+                    hasNextPage
+                    endCursor
                 }
             }
         }
@@ -204,16 +208,38 @@ class LinearTracker(TrackerBase):
                 if user_id:
                     filter_obj["assignee"] = {"id": {"eq": user_id}}
 
-        variables: dict[str, Any] = {"first": limit}
-        if filter_obj:
-            variables["filter"] = filter_obj
+        all_tickets: list[Ticket] = []
+        cursor: str | None = None
+        page_size = min(limit, 50)  # Linear max per page is 50
 
         try:
-            result = self._execute_query(query, variables)
-            issues = result.get("data", {}).get("issues", {}).get("nodes", [])
-            return [self._parse_issue(issue) for issue in issues]
+            while True:
+                variables: dict[str, Any] = {"first": page_size}
+                if cursor:
+                    variables["after"] = cursor
+                if filter_obj:
+                    variables["filter"] = filter_obj
+
+                result = self._execute_query(query, variables)
+                data = result.get("data", {}).get("issues", {})
+                issues = data.get("nodes", [])
+                page_info = data.get("pageInfo", {})
+
+                all_tickets.extend(self._parse_issue(issue) for issue in issues)
+
+                if len(all_tickets) >= limit:
+                    return all_tickets[:limit]
+
+                if not page_info.get("hasNextPage", False):
+                    break
+
+                cursor = page_info.get("endCursor")
+                if not cursor:
+                    break
+
+            return all_tickets
         except Exception:
-            return []
+            return all_tickets  # Return what we have so far
 
     def create_ticket(
         self,

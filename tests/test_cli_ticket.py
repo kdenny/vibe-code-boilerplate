@@ -206,6 +206,53 @@ class TestTicketCLI:
         assert result.exit_code == 0
         mock_tracker.list_tickets.assert_called_once_with(status="Done", labels=["Bug"], limit=5)
 
+    def test_list_command_with_all_flag(self) -> None:
+        runner = CliRunner()
+        mock_tracker = MagicMock()
+        mock_tracker.list_tickets.return_value = [
+            Ticket(
+                id="TEST-1",
+                title="Ticket 1",
+                description="",
+                status="Todo",
+                labels=[],
+                url="",
+                raw={},
+            ),
+        ]
+
+        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+            result = runner.invoke(main, ["list", "--all"])
+
+        assert result.exit_code == 0
+        mock_tracker.list_tickets.assert_called_once_with(
+            status=None, labels=None, limit=10000
+        )
+        assert "1 ticket(s) found." in result.output
+
+    def test_list_command_shows_truncation_warning(self) -> None:
+        runner = CliRunner()
+        mock_tracker = MagicMock()
+        # Return exactly 50 tickets (the default limit)
+        mock_tracker.list_tickets.return_value = [
+            Ticket(
+                id=f"TEST-{i}",
+                title=f"Ticket {i}",
+                description="",
+                status="Todo",
+                labels=[],
+                url="",
+                raw={},
+            )
+            for i in range(50)
+        ]
+
+        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+            result = runner.invoke(main, ["list"])
+
+        assert result.exit_code == 0
+        assert "Showing 50 tickets. Use --all to fetch all matching tickets." in result.output
+
     def test_list_command_empty(self) -> None:
         runner = CliRunner()
         mock_tracker = MagicMock()

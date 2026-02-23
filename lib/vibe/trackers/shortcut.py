@@ -79,7 +79,7 @@ class ShortcutTracker(TrackerBase):
         labels: list[str] | None = None,
         limit: int = 50,
     ) -> list[Ticket]:
-        """List stories with optional filters using search."""
+        """List stories with optional filters using search, with pagination."""
         # Build search query
         query_parts = []
 
@@ -97,19 +97,38 @@ class ShortcutTracker(TrackerBase):
 
         search_query = " ".join(query_parts)
 
+        all_tickets: list[Ticket] = []
+        page_size = min(limit, 25)  # Shortcut default page size
+        next_token: str | None = None
+
         try:
-            response = requests.get(
-                f"{SHORTCUT_API_URL}/search/stories",
-                headers=self._headers,
-                params={"query": search_query, "page_size": limit},
-                timeout=30,
-            )
-            response.raise_for_status()
-            data = response.json()
-            stories = data.get("data", [])
-            return [self._parse_story(story) for story in stories[:limit]]
+            while True:
+                params: dict[str, Any] = {"query": search_query, "page_size": page_size}
+                if next_token:
+                    params["next"] = next_token
+
+                response = requests.get(
+                    f"{SHORTCUT_API_URL}/search/stories",
+                    headers=self._headers,
+                    params=params,
+                    timeout=30,
+                )
+                response.raise_for_status()
+                data = response.json()
+                stories = data.get("data", [])
+
+                all_tickets.extend(self._parse_story(story) for story in stories)
+
+                if len(all_tickets) >= limit:
+                    return all_tickets[:limit]
+
+                next_token = data.get("next")
+                if not next_token:
+                    break
+
+            return all_tickets
         except Exception:
-            return []
+            return all_tickets  # Return what we have so far
 
     def create_ticket(
         self,

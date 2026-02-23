@@ -265,6 +265,108 @@ class TestShortcutTrackerListTickets:
         assert "!is:done" in query
         assert "!is:archived" in query
 
+    def test_list_tickets_paginates_multiple_pages(self) -> None:
+        tracker = ShortcutTracker(api_token="sc_token")
+        page1_response = MagicMock()
+        page1_response.json.return_value = {
+            "data": [
+                {
+                    "id": 1,
+                    "name": "Story 1",
+                    "description": "",
+                    "workflow_state": {"name": "To Do"},
+                    "labels": [],
+                    "app_url": "",
+                },
+            ],
+            "next": "token-page2",
+        }
+        page1_response.raise_for_status = MagicMock()
+
+        page2_response = MagicMock()
+        page2_response.json.return_value = {
+            "data": [
+                {
+                    "id": 2,
+                    "name": "Story 2",
+                    "description": "",
+                    "workflow_state": {"name": "To Do"},
+                    "labels": [],
+                    "app_url": "",
+                },
+            ],
+        }
+        page2_response.raise_for_status = MagicMock()
+
+        with patch(
+            "lib.vibe.trackers.shortcut.requests.get",
+            side_effect=[page1_response, page2_response],
+        ) as mock_get:
+            tickets = tracker.list_tickets(limit=100)
+
+        assert len(tickets) == 2
+        assert tickets[0].id == "SC-1"
+        assert tickets[1].id == "SC-2"
+        # Verify second call includes next token
+        second_call_params = mock_get.call_args_list[1][1]["params"]
+        assert second_call_params["next"] == "token-page2"
+
+    def test_list_tickets_stops_at_limit(self) -> None:
+        tracker = ShortcutTracker(api_token="sc_token")
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "data": [
+                {
+                    "id": i,
+                    "name": f"Story {i}",
+                    "description": "",
+                    "workflow_state": {"name": "To Do"},
+                    "labels": [],
+                    "app_url": "",
+                }
+                for i in range(1, 4)
+            ],
+            "next": "token-more",
+        }
+        mock_response.raise_for_status = MagicMock()
+
+        with patch(
+            "lib.vibe.trackers.shortcut.requests.get", return_value=mock_response
+        ) as mock_get:
+            tickets = tracker.list_tickets(limit=2)
+
+        assert len(tickets) == 2
+        # Should only make one API call since we got enough results
+        assert mock_get.call_count == 1
+
+    def test_list_tickets_exception_returns_partial(self) -> None:
+        tracker = ShortcutTracker(api_token="sc_token")
+        page1_response = MagicMock()
+        page1_response.json.return_value = {
+            "data": [
+                {
+                    "id": 1,
+                    "name": "Story 1",
+                    "description": "",
+                    "workflow_state": {"name": "To Do"},
+                    "labels": [],
+                    "app_url": "",
+                },
+            ],
+            "next": "token-page2",
+        }
+        page1_response.raise_for_status = MagicMock()
+
+        with patch(
+            "lib.vibe.trackers.shortcut.requests.get",
+            side_effect=[page1_response, Exception("API error")],
+        ):
+            tickets = tracker.list_tickets(limit=100)
+
+        # Should return the tickets from page 1
+        assert len(tickets) == 1
+        assert tickets[0].id == "SC-1"
+
     def test_list_tickets_exception_returns_empty(self) -> None:
         tracker = ShortcutTracker(api_token="sc_token")
 
