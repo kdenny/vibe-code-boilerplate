@@ -1,5 +1,7 @@
 """Core UI components for interactive wizards."""
 
+import sys
+import threading
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
@@ -136,6 +138,81 @@ class ProgressIndicator:
     def reset(self) -> None:
         """Reset progress to beginning."""
         self.current_step = 0
+
+
+class Spinner:
+    """Context manager that shows a spinner during long operations.
+
+    Example:
+        with Spinner("Fetching tickets from Linear"):
+            tickets = api.list_tickets()
+        # Prints: Fetching tickets from Linear... ✓
+
+    Suppressed when stdout is not a TTY (piped output) or --quiet is set.
+    """
+
+    FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+
+    def __init__(self, message: str, quiet: bool = False):
+        self.message = message
+        self.quiet = quiet or not sys.stderr.isatty()
+        self._stop_event = threading.Event()
+        self._thread: threading.Thread | None = None
+
+    def __enter__(self) -> "Spinner":
+        if self.quiet:
+            return self
+        self._stop_event.clear()
+        self._thread = threading.Thread(target=self._spin, daemon=True)
+        self._thread.start()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        self._stop_event.set()
+        if self._thread:
+            self._thread.join(timeout=1)
+        if not self.quiet:
+            if exc_type is None:
+                sys.stderr.write(f"\r{self.message}... ✓\n")
+            else:
+                sys.stderr.write(f"\r{self.message}... ✗\n")
+            sys.stderr.flush()
+
+    def _spin(self) -> None:
+        i = 0
+        while not self._stop_event.is_set():
+            frame = self.FRAMES[i % len(self.FRAMES)]
+            sys.stderr.write(f"\r{frame} {self.message}...")
+            sys.stderr.flush()
+            i += 1
+            self._stop_event.wait(0.1)
+
+
+class CommandSummary:
+    """Collects and displays a post-command summary.
+
+    Example:
+        summary = CommandSummary()
+        summary.add("Created", "3 tickets")
+        summary.add("Skipped", "1 (already exists)")
+        summary.show()
+    """
+
+    def __init__(self) -> None:
+        self._items: list[tuple[str, str]] = []
+
+    def add(self, label: str, value: str) -> None:
+        """Add a summary item."""
+        self._items.append((label, value))
+
+    def show(self) -> None:
+        """Display the summary."""
+        if not self._items:
+            return
+        click.echo()
+        max_label = max(len(label) for label, _ in self._items)
+        for label, value in self._items:
+            click.echo(f"  {label:<{max_label}}  {value}")
 
 
 class SkillLevelSelector:
