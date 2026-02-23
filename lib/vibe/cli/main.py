@@ -1,6 +1,8 @@
 """Main CLI entry point for vibe commands."""
 
 import os
+import re
+import subprocess as _subprocess
 import sys
 from pathlib import Path
 
@@ -107,6 +109,88 @@ def do(ticket_id: str) -> None:
         sys.exit(1)
 
 
+def _get_first_commit_headline(main_branch: str = "main") -> str | None:
+    """Get the first commit message headline on this branch (relative to origin/<main_branch>)."""
+    try:
+        result = _subprocess.run(
+            ["git", "log", f"origin/{main_branch}..HEAD", "--format=%s", "--reverse"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        lines = result.stdout.strip().splitlines()
+        if lines:
+            return lines[0].strip()
+    except _subprocess.CalledProcessError:
+        pass
+    return None
+
+
+def _derive_pr_title(branch: str, config: dict) -> str:
+    """Derive a meaningful PR title from branch name, tracker, or commit history.
+
+    Priority order:
+    1. Extract ticket ID from branch → fetch title from tracker → "TICKET-ID: Title"
+    2. No ticket ID but valid branch → first commit headline on branch
+    3. worktree-agent-* branch → warn and use first commit headline
+    4. Raw branch name as absolute last resort
+    """
+    main_branch = config.get("branching", {}).get("main_branch", "main")
+
+    # Cache the first-commit headline so we only shell out once
+    headline = _get_first_commit_headline(main_branch)
+
+    # Step 1: Try to extract a ticket ID from the branch name
+    ticket_match = re.search(r"([A-Z]+-\d+)", branch)
+    ticket_id = ticket_match.group(1) if ticket_match else None
+
+    # Step 2: If we have a ticket ID, try to fetch the title from the tracker
+    if ticket_id:
+        tracker_type = config.get("tracker", {}).get("type")
+        if tracker_type:
+            try:
+                if tracker_type == "linear":
+                    from lib.vibe.trackers.linear import LinearTracker
+
+                    tracker = LinearTracker()
+                    ticket = tracker.get_ticket(ticket_id)
+                    if ticket and ticket.title:
+                        return f"{ticket_id}: {ticket.title}"
+                elif tracker_type == "shortcut":
+                    from lib.vibe.trackers.shortcut import ShortcutTracker
+
+                    tracker = ShortcutTracker()
+                    ticket = tracker.get_ticket(ticket_id)
+                    if ticket and ticket.title:
+                        return f"{ticket_id}: {ticket.title}"
+            except Exception:
+                # Tracker API failed; fall through to commit-based title
+                pass
+
+        # Tracker not configured or API failed — use ticket ID + first commit
+        if headline:
+            return f"{ticket_id}: {headline}"
+        # Last resort with ticket ID
+        return ticket_id
+
+    # Step 3: Handle worktree-agent-* branches (no meaningful ticket ID)
+    if re.match(r"^worktree-agent-", branch):
+        click.echo(
+            "Warning: branch name looks auto-generated (worktree-agent-*). "
+            "Using first commit message as PR title.",
+            err=True,
+        )
+        if headline:
+            return headline
+
+    # Step 4: No ticket ID — try first commit headline for any branch
+    if headline:
+        return headline
+
+    # Step 5: Absolute last resort — raw branch name
+    return branch
+
+
 @main.command()
 @click.option("--title", "-t", help="PR title (default: branch name or branch + first commit line)")
 @click.option("--body", "-b", help="PR body (default: use template)")
@@ -115,6 +199,7 @@ def pr(title: str | None, body: str | None, web: bool) -> None:
     """Open a pull request for the current branch (run from your worktree when done)."""
     import subprocess
 
+    from lib.vibe.config import load_config
     from lib.vibe.git.branches import current_branch, get_main_branch
 
     main_branch = get_main_branch()
@@ -129,7 +214,9 @@ def pr(title: str | None, body: str | None, web: bool) -> None:
     if title:
         args.extend(["--title", title])
     else:
-        args.extend(["--title", branch])  # default: branch name as title
+        config = load_config()
+        derived_title = _derive_pr_title(branch, config)
+        args.extend(["--title", derived_title])
     if body:
         args.extend(["--body", body])
     else:
