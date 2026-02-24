@@ -113,11 +113,13 @@ def record_ticket_branch(
     if "ticket_branches" not in state:
         state["ticket_branches"] = {}
 
-    state["ticket_branches"].setdefault(ticket_id, []).append({
-        "branch": branch_name,
-        "worktree_path": worktree_path,
-        "created_at": datetime.now().isoformat(),
-    })
+    state["ticket_branches"].setdefault(ticket_id, []).append(
+        {
+            "branch": branch_name,
+            "worktree_path": worktree_path,
+            "created_at": datetime.now().isoformat(),
+        }
+    )
     save_state(state, base_path)
 
 
