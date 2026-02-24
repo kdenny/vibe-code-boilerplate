@@ -270,9 +270,46 @@ class TestTicketBranchState:
         branches = get_branches_for_ticket("PROJ-301", base_path=tmp_path)
         assert branches == []
 
-    def test_overwrite_existing_entry(self, tmp_path: Path) -> None:
+    def test_append_preserves_all_entries(self, tmp_path: Path) -> None:
+        """Recording the same ticket twice appends; both branches are preserved."""
         record_ticket_branch("PROJ-400", "PROJ-400-first", base_path=tmp_path)
         record_ticket_branch("PROJ-400", "PROJ-400-second", base_path=tmp_path)
+
+        # get_ticket_branch returns the most recent entry
         result = get_ticket_branch("PROJ-400", base_path=tmp_path)
         assert result is not None
         assert result["branch"] == "PROJ-400-second"
+
+        # get_branches_for_ticket returns ALL entries
+        branches = get_branches_for_ticket("PROJ-400", base_path=tmp_path)
+        assert len(branches) == 2
+        assert branches[0]["branch"] == "PROJ-400-first"
+        assert branches[1]["branch"] == "PROJ-400-second"
+
+    def test_backward_compat_old_dict_format(self, tmp_path: Path) -> None:
+        """Old state files with a single dict per ticket are handled gracefully."""
+        import json
+
+        # Simulate old format: ticket_branches values are plain dicts, not lists
+        state_file = tmp_path / ".vibe" / "local_state.json"
+        state_file.parent.mkdir(parents=True, exist_ok=True)
+        old_state = {
+            "ticket_branches": {
+                "PROJ-500": {
+                    "branch": "PROJ-500-legacy",
+                    "worktree_path": "/old/path",
+                    "created_at": "2025-01-01T00:00:00",
+                }
+            }
+        }
+        state_file.write_text(json.dumps(old_state))
+
+        # get_ticket_branch should return the dict directly
+        result = get_ticket_branch("PROJ-500", base_path=tmp_path)
+        assert result is not None
+        assert result["branch"] == "PROJ-500-legacy"
+
+        # get_branches_for_ticket should wrap it in a list
+        branches = get_branches_for_ticket("PROJ-500", base_path=tmp_path)
+        assert len(branches) == 1
+        assert branches[0]["branch"] == "PROJ-500-legacy"

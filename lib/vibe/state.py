@@ -104,31 +104,47 @@ def record_ticket_branch(
 ) -> None:
     """Record a ticket-to-branch mapping in local state.
 
-    This allows detection of duplicate branches for the same ticket,
-    preventing duplicate PRs when multiple worktree systems are used
-    (e.g. ``bin/vibe do`` alongside Claude Code's ``isolation: "worktree"``).
+    Entries are stored as a list per ticket so that multiple branches for
+    the same ticket are preserved (e.g. when ``bin/vibe do`` and Claude
+    Code's ``isolation: "worktree"`` both create branches).  This enables
+    duplicate-PR detection.
     """
     state = load_state(base_path)
     if "ticket_branches" not in state:
         state["ticket_branches"] = {}
 
-    state["ticket_branches"][ticket_id] = {
-        "branch": branch_name,
-        "worktree_path": worktree_path,
-        "created_at": datetime.now().isoformat(),
-    }
+    state["ticket_branches"].setdefault(ticket_id, []).append(
+        {
+            "branch": branch_name,
+            "worktree_path": worktree_path,
+            "created_at": datetime.now().isoformat(),
+        }
+    )
     save_state(state, base_path)
 
 
 def get_ticket_branch(ticket_id: str, base_path: Path | None = None) -> dict[str, str] | None:
-    """Look up the branch recorded for a ticket.
+    """Look up the most recent branch recorded for a ticket.
 
     Returns a dict with ``branch``, ``worktree_path``, and ``created_at``
-    keys, or ``None`` if no mapping exists.
+    keys, or ``None`` if no mapping exists.  When multiple entries exist
+    the last (most recent) one is returned.
+
+    Handles backward compatibility: if the stored value is a plain dict
+    (old format) it is returned directly.
     """
     state = load_state(base_path)
-    result: dict[str, str] | None = state.get("ticket_branches", {}).get(ticket_id)
-    return result
+    entry = state.get("ticket_branches", {}).get(ticket_id)
+    if entry is None:
+        return None
+    # Old format: single dict
+    if isinstance(entry, dict):
+        return entry
+    # New format: list of dicts – return the most recent
+    if isinstance(entry, list) and entry:
+        result: dict[str, str] = entry[-1]
+        return result
+    return None
 
 
 def get_branches_for_ticket(ticket_id: str, base_path: Path | None = None) -> list[dict[str, str]]:
@@ -137,11 +153,20 @@ def get_branches_for_ticket(ticket_id: str, base_path: Path | None = None) -> li
     Searches the ``ticket_branches`` mapping for entries that match
     *ticket_id*.  Useful for detecting when a second branch is created
     for the same ticket.
+
+    Handles backward compatibility: if the stored value is a plain dict
+    (old format) it is wrapped in a list.
     """
     state = load_state(base_path)
-    ticket_branches: dict[str, dict[str, str]] = state.get("ticket_branches", {})
+    ticket_branches = state.get("ticket_branches", {})
     results: list[dict[str, str]] = []
-    for tid, info in ticket_branches.items():
+    for tid, value in ticket_branches.items():
         if tid == ticket_id:
-            results.append({"ticket_id": tid, **info})
+            # Old format: single dict
+            if isinstance(value, dict):
+                results.append({"ticket_id": tid, **value})
+            # New format: list of dicts
+            elif isinstance(value, list):
+                for info in value:
+                    results.append({"ticket_id": tid, **info})
     return results
