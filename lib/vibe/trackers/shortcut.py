@@ -63,7 +63,7 @@ class ShortcutTracker(TrackerBase):
     def get_ticket(self, ticket_id: str) -> Ticket | None:
         """Fetch a single story by ID."""
         # Shortcut story IDs are numeric
-        story_id = ticket_id.lstrip("SC-").lstrip("#")
+        story_id = ticket_id.removeprefix("SC-").lstrip("#")
         try:
             response = self._request("GET", f"/stories/{story_id}")
             story = response.json()
@@ -165,12 +165,12 @@ class ShortcutTracker(TrackerBase):
         labels: list[str] | None = None,
     ) -> Ticket:
         """Update an existing story."""
-        story_id = ticket_id.lstrip("SC-").lstrip("#")
+        story_id = ticket_id.removeprefix("SC-").lstrip("#")
         payload: dict[str, Any] = {}
 
-        if title:
+        if title is not None:
             payload["name"] = title
-        if description:
+        if description is not None:
             payload["description"] = description
         if status:
             # Need to resolve workflow state ID
@@ -195,7 +195,7 @@ class ShortcutTracker(TrackerBase):
 
     def comment_ticket(self, ticket_id: str, body: str) -> None:
         """Add a comment to a story."""
-        story_id = ticket_id.lstrip("SC-").lstrip("#")
+        story_id = ticket_id.removeprefix("SC-").lstrip("#")
         try:
             self._request("POST", f"/stories/{story_id}/comments", json={"text": body})
         except requests.HTTPError as e:
@@ -211,8 +211,8 @@ class ShortcutTracker(TrackerBase):
             ticket_id: The child story identifier (e.g. "SC-101")
             parent_id: The parent epic/story identifier (e.g. "SC-100")
         """
-        story_id = ticket_id.lstrip("SC-").lstrip("#")
-        parent_story_id = parent_id.lstrip("SC-").lstrip("#")
+        story_id = ticket_id.removeprefix("SC-").lstrip("#")
+        parent_story_id = parent_id.removeprefix("SC-").lstrip("#")
 
         try:
             # Try to set as epic relationship first
@@ -246,8 +246,8 @@ class ShortcutTracker(TrackerBase):
             related_id: Second story identifier
             relation_type: Type of relation ("related" or "blocks")
         """
-        story_id = ticket_id.lstrip("SC-").lstrip("#")
-        related_story_id = related_id.lstrip("SC-").lstrip("#")
+        story_id = ticket_id.removeprefix("SC-").lstrip("#")
+        related_story_id = related_id.removeprefix("SC-").lstrip("#")
 
         # Map relation types to Shortcut verbs
         verb = "relates to" if relation_type == "related" else "blocks"
