@@ -7,12 +7,15 @@ from pathlib import Path
 
 from lib.vibe.agents.spec import AssistantFormat, InstructionSpec
 
-# Placeholder patterns that indicate a generated/template file
+# Placeholder patterns that indicate an uncustomized template file.
+# These should ONLY be patterns that disappear once a user fills in real
+# project details.  Header lines like "# Generated:" or "# DO NOT EDIT
+# DIRECTLY" persist in every generated file (even customised ones) and
+# must NOT be listed here – otherwise _is_generated_file() always
+# returns True and customised files get overwritten.
 _PLACEHOLDER_PATTERNS = [
     "(your project name)",
-    "# DO NOT EDIT DIRECTLY - regenerate with:",
-    "# Generated:",
-    "# Source: agent_instructions/",
+    "(what this project does)",
 ]
 
 
