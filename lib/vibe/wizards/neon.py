@@ -45,7 +45,7 @@ def get_neon_projects() -> list[dict[str, Any]]:
             projects: list[dict[str, Any]] = json.loads(result.stdout)
             return projects
         return []
-    except (FileNotFoundError, subprocess.TimeoutExpired, Exception):
+    except (FileNotFoundError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
         return []
 
 
@@ -150,7 +150,7 @@ def run_neon_wizard(config: dict[str, Any]) -> bool:
                 else:
                     click.echo("  No projects found.")
                     click.echo("  Create one at: https://console.neon.tech")
-        except (subprocess.TimeoutExpired, Exception) as e:
+        except (FileNotFoundError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
             click.echo(f"  Could not list projects: {e}")
 
     # Step 4: Get connection string
@@ -175,7 +175,7 @@ def run_neon_wizard(config: dict[str, Any]) -> bool:
                     if len(user_pass) > 1:
                         masked = f"{user_pass[0]}:****@{parts[1]}"
                 click.echo(f"  Connection string: {masked}")
-        except (subprocess.TimeoutExpired, Exception) as e:
+        except (FileNotFoundError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
             click.echo(f"  Could not get connection string: {e}")
 
     if not connection_string:
