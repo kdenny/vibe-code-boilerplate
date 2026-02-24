@@ -152,6 +152,13 @@ def migrate_config(config: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
                 config[key] = default_value
                 notes.append(f"Added missing section: {key}")
 
+        # Ensure risk labels exist (added in v2)
+        labels = config.get("labels", {})
+        if "risk" not in labels:
+            labels["risk"] = ["Low Risk", "Medium Risk", "High Risk"]
+            config["labels"] = labels
+            notes.append("Added missing labels.risk category")
+
     return config, notes
 
 

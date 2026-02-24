@@ -207,3 +207,54 @@ class TestDeepUpdate:
         base = {"a": "string"}
         _deep_update(base, {"a": {"nested": True}})
         assert base == {"a": {"nested": True}}
+
+
+# --- Migration tests ---
+
+from lib.vibe.config_schema import migrate_config
+
+
+class TestMigrateConfig:
+    """Tests for migrate_config function."""
+
+    def test_v1_to_v2_backfills_labels_risk(self) -> None:
+        """v1→v2 migration adds labels.risk when labels exist but risk is missing."""
+        v1_config: dict = {
+            "version": "1.0.0",
+            "labels": {
+                "type": ["Bug", "Feature", "Chore", "Refactor"],
+                "area": ["Frontend", "Backend", "Infra", "Docs"],
+                "special": ["HUMAN", "Milestone", "Blocked"],
+            },
+        }
+
+        migrated, notes = migrate_config(v1_config)
+
+        assert migrated["labels"]["risk"] == ["Low Risk", "Medium Risk", "High Risk"]
+        assert "Added missing labels.risk category" in notes
+
+    def test_v1_to_v2_preserves_existing_risk_labels(self) -> None:
+        """v1→v2 migration does not overwrite existing labels.risk."""
+        v1_config: dict = {
+            "version": "1.0.0",
+            "labels": {
+                "type": ["Bug", "Feature"],
+                "risk": ["Custom Low", "Custom High"],
+            },
+        }
+
+        migrated, notes = migrate_config(v1_config)
+
+        assert migrated["labels"]["risk"] == ["Custom Low", "Custom High"]
+        assert "Added missing labels.risk category" not in notes
+
+    def test_v1_to_v2_backfills_risk_when_no_labels_section(self) -> None:
+        """v1→v2 migration adds labels.risk even when labels section is missing entirely."""
+        v1_config: dict = {
+            "version": "1.0.0",
+        }
+
+        migrated, notes = migrate_config(v1_config)
+
+        assert migrated["labels"]["risk"] == ["Low Risk", "Medium Risk", "High Risk"]
+        assert "Added missing labels.risk category" in notes
