@@ -38,10 +38,13 @@ jobs:
 
       - name: Check Dependency graph status
         id: depgraph
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPOSITORY: ${{ github.repository }}
         run: |
-          status=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+          status=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}" \
+            "https://api.github.com/repos/$GH_REPOSITORY" \
             | jq -r '.security_and_analysis.dependency_graph.status // "disabled"')
           echo "status=$status" >> $GITHUB_OUTPUT
 
@@ -53,10 +56,12 @@ jobs:
 
       - name: Warn if Dependency graph disabled
         if: steps.depgraph.outputs.status != 'enabled'
+        env:
+          GH_REPOSITORY: ${{ github.repository }}
         run: |
           echo "::warning::Dependency Review is not supported on this repository."
           echo "Enable Dependency graph in Settings > Code security and analysis:"
-          echo "https://github.com/${{ github.repository }}/settings/security_analysis"
+          echo "https://github.com/$GH_REPOSITORY/settings/security_analysis"
           echo "Run 'bin/vibe setup' to be prompted to enable it when configuring the project."
 
   sbom:

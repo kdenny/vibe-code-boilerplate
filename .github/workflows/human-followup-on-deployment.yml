@@ -32,8 +32,11 @@ jobs:
 
       - name: Get changed files
         id: changed
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
         run: |
-          FILES=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" 2>/dev/null || true)
+          FILES=$(git diff --name-only "$BEFORE_SHA" "$AFTER_SHA" 2>/dev/null || true)
           echo "changed<<EOF" >> "$GITHUB_OUTPUT"
           echo "$FILES" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
@@ -48,6 +51,8 @@ jobs:
           LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
           LINEAR_TEAM_ID: ${{ secrets.LINEAR_TEAM_ID }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
         run: |
           if [ -z "$LINEAR_API_KEY" ]; then
             echo "LINEAR_API_KEY not set. Add repo secrets LINEAR_API_KEY and LINEAR_TEAM_ID to enable auto-creation of HUMAN follow-up tickets."
@@ -57,7 +62,7 @@ jobs:
           python3 -m venv .vibe/.venv 2>/dev/null || true
           . .vibe/.venv/bin/activate
           pip install -q -e .
-          FILES=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" 2>/dev/null \
+          FILES=$(git diff --name-only "$BEFORE_SHA" "$AFTER_SHA" 2>/dev/null \
             | grep -E 'fly\.toml|vercel\.json|\.env\.example' || true)
           ARGS=""
           for f in $FILES; do ARGS="$ARGS --files $f"; done
