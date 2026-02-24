@@ -1,5 +1,6 @@
 """Apply retrofit actions to a project."""
 
+import copy
 import shutil
 import subprocess
 from collections.abc import Callable
@@ -119,13 +120,13 @@ class RetrofitApplier:
         if self.dry_run:
             return ApplyResult(True, "vibe_config", "Would create .vibe/config.json")
 
-        config = DEFAULT_CONFIG.copy()
+        config = copy.deepcopy(DEFAULT_CONFIG)
 
         # Will be populated by other actions
         save_config(config, self.project_path)
 
         # Also create local state
-        save_state(DEFAULT_STATE.copy(), self.project_path)
+        save_state(copy.deepcopy(DEFAULT_STATE), self.project_path)
 
         return ApplyResult(True, "vibe_config", "Created .vibe/config.json and local_state.json")
 

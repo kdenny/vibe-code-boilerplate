@@ -1,5 +1,6 @@
 """Local state management for .vibe/local_state.json."""
 
+import copy
 import json
 from datetime import datetime
 from pathlib import Path
@@ -32,7 +33,7 @@ def load_state(base_path: Path | None = None) -> dict[str, Any]:
     """Load local state from .vibe/local_state.json."""
     state_file = get_state_path(base_path)
     if not state_file.exists():
-        return DEFAULT_STATE.copy()
+        return copy.deepcopy(DEFAULT_STATE)
 
     with open(state_file) as f:
         result: dict[str, Any] = json.load(f)

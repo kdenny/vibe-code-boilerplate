@@ -790,8 +790,8 @@ def check_infrastructure_readiness(config: dict) -> list[CheckResult]:
         )
 
     # Hosting check
-    has_vercel = config.get("vercel", {}).get("enabled")
-    has_fly = config.get("fly", {}).get("enabled")
+    has_vercel = config.get("deployment", {}).get("vercel", {}).get("enabled")
+    has_fly = config.get("deployment", {}).get("fly", {}).get("enabled")
 
     if has_vercel or has_fly:
         provider = "Vercel" if has_vercel else "Fly.io"
