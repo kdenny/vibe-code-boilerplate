@@ -12,6 +12,7 @@ import requests
 from lib.vibe.cli.figma import figma
 from lib.vibe.cli.secrets import main as secrets_group
 from lib.vibe.doctor import print_results, run_doctor
+from lib.vibe.version import bump_version, get_version, write_version
 from lib.vibe.wizards.setup import run_individual_wizard, run_setup
 
 # Auto-load .env files at startup (unless disabled)
@@ -22,10 +23,26 @@ if os.environ.get("VIBE_NO_DOTENV") != "1":
 
 
 @click.group()
-@click.version_option(version="0.1.0", prog_name="vibe")
+@click.version_option(version=get_version(), prog_name="vibe")
 def main() -> None:
     """Vibe Code Boilerplate - AI-assisted development workflows."""
     pass
+
+
+@main.command("version")
+def version_cmd() -> None:
+    """Print the current version."""
+    click.echo(get_version())
+
+
+@main.command()
+@click.argument("bump_type", type=click.Choice(["patch", "minor"]))
+def bump(bump_type: str) -> None:
+    """Bump the project version (patch or minor)."""
+    current = get_version()
+    new = bump_version(current, bump_type)
+    write_version(new)
+    click.echo(f"{current} → {new}")
 
 
 @main.command()

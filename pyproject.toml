@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vibe-boilerplate"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Framework-agnostic project boilerplate for AI-assisted development"
 readme = "README.md"
 license = {text = "MIT"}
@@ -41,6 +41,9 @@ batch = [
 
 [project.scripts]
 vibe = "lib.vibe.cli.main:main"
+
+[tool.setuptools.dynamic]
+version = {file = "VERSION"}
 
 [tool.setuptools.packages.find]
 where = ["."]
