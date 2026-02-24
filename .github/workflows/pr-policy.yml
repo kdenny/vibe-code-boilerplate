@@ -4,6 +4,10 @@ on:
   pull_request:
     types: [opened, edited, synchronize, labeled, unlabeled]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
   pull-requests: write
@@ -12,6 +16,7 @@ jobs:
   validate-pr:
     name: Validate PR
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v6

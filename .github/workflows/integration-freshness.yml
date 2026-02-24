@@ -14,9 +14,14 @@ on:
   workflow_dispatch:
     # Allow manual trigger for testing
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   check-freshness:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
       issues: write

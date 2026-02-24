@@ -16,6 +16,10 @@ on:
       - '.env.example'
       - '**/.env.example'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
@@ -23,6 +27,7 @@ jobs:
   create-human-followup:
     name: Create HUMAN follow-up ticket
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     if: github.event.before != '0000000000000000000000000000000000000000'
     steps:
       - name: Checkout
