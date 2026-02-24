@@ -103,9 +103,16 @@ When the user invokes `/doctor`:
 
 ## Interactive Setup
 
-If many integrations are skipped/warned, suggest:
+If many integrations are skipped/warned, suggest running the specific wizard for each failed check:
 
 ```
-Would you like to run the integration setup wizard?
-Run: bin/vibe setup --wizard integrations
+Would you like to configure the missing integrations?
+Run the relevant wizard:
+  bin/vibe setup --wizard tracker
+  bin/vibe setup --wizard vercel
+  bin/vibe setup --wizard fly
+  bin/vibe setup --wizard supabase
+  bin/vibe setup --wizard sentry
+  bin/vibe setup --wizard neon
+  bin/vibe setup --wizard promptvault
 ```

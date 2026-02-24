@@ -29,7 +29,7 @@ These rules MUST be followed by all AI assistants:
 - Test your changes - verify code works before marking task complete
 - Document non-obvious code - add comments only where the logic isn't self-evident
 - Every PR must reference a ticket - PR titles must include the ticket ID (e.g. "PROJ-123: Add feature")
-- Every ticket must have labels - at minimum one type label (Bug/Feature/Chore/Refactor) and one area label (Frontend/Backend/Infra/Docs)
+- Every ticket must have labels - at minimum one type label (Bug/Feature/Chore/Refactor), one risk label (Low Risk/Medium Risk/High Risk), and one area label (Frontend/Backend/Infra/Docs)
 - Set parent/child relationships for related tickets - use --parent when creating sub-tasks
 - Use blocking links for dependencies - the prerequisite ticket blocks the dependent ticket
 
@@ -45,7 +45,7 @@ Avoid these common mistakes:
 - Ignoring existing error handling patterns
 - Making assumptions about requirements without asking
 - Committing secrets, API keys, or credentials
-- Creating tickets without labels - every ticket needs type and area labels
+- Creating tickets without labels - every ticket needs type, risk, and area labels
 - Opening PRs without a ticket reference in the title
 - Creating related tickets without parent/child or blocking relationships
 

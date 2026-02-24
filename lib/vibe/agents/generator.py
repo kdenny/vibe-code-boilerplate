@@ -117,7 +117,7 @@ def _render_ticket_discipline_section() -> list[str]:
     )
     lines.append("")
     lines.append("```bash")
-    lines.append("bin/ticket link PROJ-101 --blocks PROJ-102")
+    lines.append("bin/ticket relate PROJ-101 --blocks PROJ-102")
     lines.append("```")
     lines.append("")
     lines.append("### Every PR Needs a Ticket")
@@ -393,7 +393,7 @@ class InstructionGenerator:
             lines.append(
                 "Every ticket must have type and area labels. "
                 "Every PR title must include the ticket ID. "
-                "Use --parent for sub-tasks and bin/ticket link for blocking."
+                "Use --parent for sub-tasks and bin/ticket relate for blocking."
             )
             lines.append("")
 

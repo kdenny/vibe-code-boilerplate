@@ -50,7 +50,7 @@ Update an existing ticket.
 
 ```
 /ticket update PROJ-123 --status "In Progress"
-/ticket update PROJ-123 --add-label "High Risk"
+/ticket update PROJ-123 --label "High Risk"
 ```
 
 ### labels

@@ -233,7 +233,7 @@ class TestInstructionGenerator:
         assert "### Blocking Relationships" in content
         assert "### Every PR Needs a Ticket" in content
         assert "--parent PROJ-100" in content
-        assert "bin/ticket link PROJ-101 --blocks PROJ-102" in content
+        assert "bin/ticket relate PROJ-101 --blocks PROJ-102" in content
 
     def test_generate_claude_no_labels_no_label_section(self):
         """Test Claude format omits labels section when no labels configured."""
@@ -350,7 +350,7 @@ class TestInstructionGenerator:
         """Test that ticket discipline section has blocking link example."""
         content = self.generator.generate(AssistantFormat.CLAUDE)
 
-        assert "bin/ticket link PROJ-101 --blocks PROJ-102" in content
+        assert "bin/ticket relate PROJ-101 --blocks PROJ-102" in content
 
 
 class TestCommandSpec:
