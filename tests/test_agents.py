@@ -382,3 +382,116 @@ class TestWorkflowStep:
         )
         assert step.title == "Create PR"
         assert len(step.commands) == 2
+
+
+class TestIsGeneratedFile:
+    """Tests for _is_generated_file detection logic."""
+
+    def test_uncustomized_template_detected_as_generated(self):
+        """A file with template placeholders is detected as generated."""
+        from lib.vibe.agents.generator import _is_generated_file
+
+        content = (
+            "# AI Agent Instructions\n"
+            "# Generated: 2026-01-15\n"
+            "# Source: agent_instructions/\n"
+            "#\n"
+            "# DO NOT EDIT DIRECTLY - regenerate with: bin/vibe generate-agent-instructions\n"
+            "\n"
+            "## Project Overview\n"
+            "**Project:** (your project name)\n"
+        )
+        assert _is_generated_file(content) is True
+
+    def test_customized_file_with_headers_not_detected_as_generated(self):
+        """A file with real project content but generated headers is NOT generated."""
+        from lib.vibe.agents.generator import _is_generated_file
+
+        content = (
+            "# AI Agent Instructions\n"
+            "# Generated: 2026-01-15\n"
+            "# Source: agent_instructions/\n"
+            "#\n"
+            "# DO NOT EDIT DIRECTLY - regenerate with: bin/vibe generate-agent-instructions\n"
+            "\n"
+            "## Project Overview\n"
+            "**Project:** My Awesome SaaS App\n"
+            "**Description:** A dashboard for inventory management\n"
+        )
+        assert _is_generated_file(content) is False
+
+    def test_placeholder_what_this_project_does_detected(self):
+        """A file with '(what this project does)' placeholder is detected as generated."""
+        from lib.vibe.agents.generator import _is_generated_file
+
+        content = (
+            "# AI Agent Instructions\n"
+            "## Project Overview\n"
+            "**Description:** (what this project does)\n"
+        )
+        assert _is_generated_file(content) is True
+
+    def test_empty_content_not_detected_as_generated(self):
+        """Empty content does not match any placeholder patterns."""
+        from lib.vibe.agents.generator import _is_generated_file
+
+        assert _is_generated_file("") is False
+
+    def test_headers_only_not_detected_as_generated(self):
+        """A file containing only header lines (no placeholders) is NOT generated."""
+        from lib.vibe.agents.generator import _is_generated_file
+
+        content = (
+            "# AI Agent Instructions\n"
+            "# Generated: 2026-01-15\n"
+            "# Source: agent_instructions/\n"
+            "# DO NOT EDIT DIRECTLY - regenerate with: bin/vibe generate-agent-instructions\n"
+        )
+        assert _is_generated_file(content) is False
+
+
+class TestHasProjectContent:
+    """Tests for _has_project_content detection logic."""
+
+    def test_customized_file_has_project_content(self, tmp_path):
+        """A file with real project content (no placeholders) has project content."""
+        from lib.vibe.agents.generator import _has_project_content
+
+        f = tmp_path / "CLAUDE.md"
+        f.write_text(
+            "# AI Agent Instructions\n"
+            "# Generated: 2026-01-15\n"
+            "# DO NOT EDIT DIRECTLY - regenerate with: bin/vibe generate-agent-instructions\n"
+            "\n"
+            "## Project Overview\n"
+            "**Project:** My Real Project\n"
+        )
+        assert _has_project_content(f) is True
+
+    def test_uncustomized_template_no_project_content(self, tmp_path):
+        """A file with template placeholders does NOT have project content."""
+        from lib.vibe.agents.generator import _has_project_content
+
+        f = tmp_path / "CLAUDE.md"
+        f.write_text(
+            "# AI Agent Instructions\n"
+            "# Generated: 2026-01-15\n"
+            "## Project Overview\n"
+            "**Project:** (your project name)\n"
+        )
+        assert _has_project_content(f) is False
+
+    def test_missing_file_no_project_content(self, tmp_path):
+        """A nonexistent file does NOT have project content."""
+        from lib.vibe.agents.generator import _has_project_content
+
+        f = tmp_path / "nonexistent.md"
+        assert _has_project_content(f) is False
+
+    def test_empty_file_no_project_content(self, tmp_path):
+        """An empty file does NOT have project content."""
+        from lib.vibe.agents.generator import _has_project_content
+
+        f = tmp_path / "empty.md"
+        f.write_text("")
+        assert _has_project_content(f) is False
