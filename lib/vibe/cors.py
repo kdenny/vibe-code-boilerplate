@@ -103,7 +103,7 @@ def check_cors(
                 "Check network connectivity",
             ],
         )
-    except (urllib.error.URLError, OSError, ValueError) as e:
+    except (OSError, ValueError) as e:
         return CORSCheckResult(
             url=url,
             success=False,

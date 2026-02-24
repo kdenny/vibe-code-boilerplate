@@ -2,7 +2,7 @@
 
 import sys
 import threading
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
@@ -428,7 +428,7 @@ class WhatNextFlow:
     """
 
     # Mapping of completed wizard -> suggested next wizards
-    WIZARD_SUGGESTIONS: dict[str, list[tuple[str, str, int]]] = field(default_factory=lambda: {})
+    WIZARD_SUGGESTIONS: dict[str, list[tuple[str, str, int]]] = {}
 
     def __init__(self, completed_wizard: str, config: dict[str, Any]):
         """Initialize flow.

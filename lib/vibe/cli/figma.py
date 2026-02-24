@@ -531,9 +531,25 @@ def _create_tickets(tickets: list[dict[str, Any]]) -> None:
             result = subprocess.run(cmd, capture_output=True, text=True)
             if result.returncode == 0:
                 click.secho(f"✓ Created ticket {i}", fg="green")
-                # Store ID for blocking relationships (simplified - real impl would parse ID from result.stdout)
-                created_ids[i] = str(i)
+                # Parse ticket ID from creation output (e.g. "Created PROJ-123")
+                ticket_id = _parse_ticket_id(result.stdout)
+                if ticket_id:
+                    created_ids[i] = ticket_id
+                else:
+                    click.secho(f"  Warning: could not parse ticket ID from output, skipping blocking links for dependents", fg="yellow")
             else:
                 click.secho(f"✗ Failed to create ticket {i}: {result.stderr}", fg="red")
         except (subprocess.CalledProcessError, OSError) as e:
             click.secho(f"✗ Error creating ticket {i}: {e}", fg="red")
+
+
+def _parse_ticket_id(stdout: str) -> str | None:
+    """Parse a ticket ID from bin/ticket create output.
+
+    Looks for patterns like 'PROJ-123' in the output text.
+    Returns the ticket ID string, or None if not found.
+    """
+    import re
+
+    match = re.search(r"[A-Z]+-\d+", stdout)
+    return match.group(0) if match else None
