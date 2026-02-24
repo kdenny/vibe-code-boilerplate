@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Linear status update hook - marks ticket as In Progress when starting work
 # Triggers when user prompt contains a ticket ID pattern (e.g., PROJ-123)
 #
@@ -8,9 +8,12 @@
 
 set -e
 
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
 # Source .env.local if LINEAR_API_KEY not already set
-if [ -z "$LINEAR_API_KEY" ] && [ -f ".env.local" ]; then
-  export $(grep -E '^LINEAR_API_KEY=' .env.local 2>/dev/null | xargs) || true
+if [ -z "$LINEAR_API_KEY" ] && [ -f "$REPO_ROOT/.env.local" ]; then
+  LINEAR_API_KEY=$(grep -E '^LINEAR_API_KEY=' "$REPO_ROOT/.env.local" 2>/dev/null | cut -d= -f2-)
+  export LINEAR_API_KEY
 fi
 
 # Check for API key - exit silently if not configured

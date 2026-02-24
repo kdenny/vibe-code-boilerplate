@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Linear status update hook - runs after git commits
-# Updates ticket status to "Done" when commit message contains ticket ID
+# Updates ticket status to "In Progress" when commit message contains ticket ID
 #
 # Configuration:
 #   - Set LINEAR_API_KEY in .env.local
@@ -8,9 +8,12 @@
 
 set -e
 
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
 # Source .env.local if LINEAR_API_KEY not already set
-if [ -z "$LINEAR_API_KEY" ] && [ -f ".env.local" ]; then
-  export $(grep -E '^LINEAR_API_KEY=' .env.local 2>/dev/null | xargs) || true
+if [ -z "$LINEAR_API_KEY" ] && [ -f "$REPO_ROOT/.env.local" ]; then
+  LINEAR_API_KEY=$(grep -E '^LINEAR_API_KEY=' "$REPO_ROOT/.env.local" 2>/dev/null | cut -d= -f2-)
+  export LINEAR_API_KEY
 fi
 
 # Check for API key - exit silently if not configured
@@ -35,13 +38,13 @@ if [ -z "$TICKET_ID" ]; then
   exit 0
 fi
 
-echo "Updating Linear ticket $TICKET_ID to Done..."
+echo "Updating Linear ticket $TICKET_ID to In Progress..."
 
 # Get the issue details and workflow states
 ISSUE_RESPONSE=$(curl -s -X POST \
   -H "Content-Type: application/json" \
   -H "Authorization: $LINEAR_API_KEY" \
-  --data "{\"query\": \"query { issue(id: \\\"$TICKET_ID\\\") { id team { states { nodes { id name type } } } } }\"}" \
+  --data "{\"query\": \"query { issue(id: \\\"$TICKET_ID\\\") { id state { type } team { states { nodes { id name type } } } } }\"}" \
   https://api.linear.app/graphql 2>/dev/null)
 
 # Extract issue ID
@@ -52,28 +55,44 @@ if [ -z "$ISSUE_ID" ] || [ "$ISSUE_ID" = "null" ]; then
   exit 0
 fi
 
-# Find the "Done" state ID (type: completed)
-DONE_STATE_ID=$(echo "$ISSUE_RESPONSE" | python3 -c "
+# Check if already in progress or completed - don't downgrade status
+CURRENT_STATE_TYPE=$(echo "$ISSUE_RESPONSE" | python3 -c "
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    state_type = data.get('data', {}).get('issue', {}).get('state', {}).get('type', '')
+    print(state_type)
+except:
+    pass
+" 2>/dev/null)
+
+# Skip if already started or completed
+if [ "$CURRENT_STATE_TYPE" = "started" ] || [ "$CURRENT_STATE_TYPE" = "completed" ]; then
+  exit 0
+fi
+
+# Find the "In Progress" state ID (type: started)
+IN_PROGRESS_STATE_ID=$(echo "$ISSUE_RESPONSE" | python3 -c "
 import sys, json
 try:
     data = json.load(sys.stdin)
     states = data.get('data', {}).get('issue', {}).get('team', {}).get('states', {}).get('nodes', [])
     for state in states:
-        if state.get('type') == 'completed' and state.get('name', '').lower() == 'done':
+        if state.get('type') == 'started' and 'progress' in state.get('name', '').lower():
             print(state['id'])
             break
     else:
-        # Fallback to any completed state
+        # Fallback to any started state
         for state in states:
-            if state.get('type') == 'completed':
+            if state.get('type') == 'started':
                 print(state['id'])
                 break
 except:
     pass
 " 2>/dev/null)
 
-if [ -z "$DONE_STATE_ID" ]; then
-  echo "Could not find 'Done' state for team"
+if [ -z "$IN_PROGRESS_STATE_ID" ]; then
+  echo "Could not find 'In Progress' state for team"
   exit 0
 fi
 
@@ -81,11 +100,11 @@ fi
 UPDATE_RESPONSE=$(curl -s -X POST \
   -H "Content-Type: application/json" \
   -H "Authorization: $LINEAR_API_KEY" \
-  --data "{\"query\": \"mutation { issueUpdate(id: \\\"$ISSUE_ID\\\", input: { stateId: \\\"$DONE_STATE_ID\\\" }) { success } }\"}" \
+  --data "{\"query\": \"mutation { issueUpdate(id: \\\"$ISSUE_ID\\\", input: { stateId: \\\"$IN_PROGRESS_STATE_ID\\\" }) { success } }\"}" \
   https://api.linear.app/graphql 2>/dev/null)
 
 if echo "$UPDATE_RESPONSE" | grep -q '"success":true'; then
-  echo "Linear ticket $TICKET_ID marked as Done"
+  echo "Linear ticket $TICKET_ID marked as In Progress"
 else
   echo "Failed to update Linear ticket"
 fi
