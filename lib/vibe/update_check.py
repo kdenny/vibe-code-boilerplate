@@ -47,7 +47,8 @@ def _fetch_upstream_version(repo: str) -> str | None:
     try:
         response = requests.get(url, timeout=5)
         response.raise_for_status()
-        return response.text.strip()
+        version: str = response.text.strip()
+        return version
     except (requests.RequestException, OSError):
         return None
 
