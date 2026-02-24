@@ -66,7 +66,7 @@ class LinearTracker(TrackerBase):
         try:
             response = self._execute_query(query)
             return "viewer" in response.get("data", {})
-        except requests.RequestException:
+        except (requests.RequestException, RuntimeError):
             return False
 
     @with_retry()
@@ -79,6 +79,10 @@ class LinearTracker(TrackerBase):
         response = requests.post(LINEAR_API_URL, headers=self._headers, json=payload, timeout=30)
         response.raise_for_status()
         result: dict[str, Any] = response.json()
+        if "errors" in result:
+            errors = result["errors"]
+            msg = errors[0].get("message", "Unknown GraphQL error") if errors else "Unknown error"
+            raise RuntimeError(f"Linear API error: {msg}")
         return result
 
     def get_ticket(self, ticket_id: str, include_children: bool = False) -> Ticket | None:
@@ -129,7 +133,7 @@ class LinearTracker(TrackerBase):
             if not issue:
                 return None
             return self._parse_issue(issue, include_children=include_children)
-        except (requests.RequestException, KeyError):
+        except (requests.RequestException, RuntimeError, KeyError):
             return None
 
     def list_tickets(
@@ -245,7 +249,7 @@ class LinearTracker(TrackerBase):
                     break
 
             return all_tickets
-        except requests.RequestException:
+        except (requests.RequestException, RuntimeError):
             return all_tickets  # Return what we have so far
 
     def create_ticket(
@@ -381,9 +385,9 @@ class LinearTracker(TrackerBase):
             unassign: If True, remove assignee
         """
         input_obj: dict[str, Any] = {}
-        if title:
+        if title is not None:
             input_obj["title"] = title
-        if description:
+        if description is not None:
             input_obj["description"] = description
 
         # Always resolve identifier to UUID – the issueUpdate mutation
@@ -556,7 +560,7 @@ class LinearTracker(TrackerBase):
 
             name_to_id = {n.get("name", "").lower(): n["id"] for n in nodes if n.get("id")}
             return [name_to_id[n.lower()] for n in label_names if n.lower() in name_to_id]
-        except requests.RequestException:
+        except (requests.RequestException, RuntimeError):
             return []
 
     def _get_or_create_label_ids(self, team_id: str | None, label_names: list[str]) -> list[str]:
@@ -610,7 +614,7 @@ class LinearTracker(TrackerBase):
                 logger.warning("Only %d of %d requested labels were applied", applied, requested)
 
             return label_ids
-        except requests.RequestException:
+        except (requests.RequestException, RuntimeError):
             logger.warning("Failed to resolve labels due to API error")
             return existing_ids
 
@@ -628,7 +632,7 @@ class LinearTracker(TrackerBase):
             result = self._execute_query(mutation, {"input": {"name": name, "teamId": team_id}})
             label = result.get("data", {}).get("issueLabelCreate", {}).get("issueLabel")
             return label.get("id") if label else None
-        except requests.RequestException:
+        except (requests.RequestException, RuntimeError):
             return None
 
     def list_labels(self) -> list[dict[str, str]]:
@@ -659,7 +663,7 @@ class LinearTracker(TrackerBase):
                 }
                 for node in nodes
             ]
-        except requests.RequestException:
+        except (requests.RequestException, RuntimeError):
             return []
 
     def _get_workflow_state_id(self, team_id: str, state_name: str) -> str | None:
@@ -702,7 +706,7 @@ class LinearTracker(TrackerBase):
                     node_id: str | None = node.get("id")
                     return node_id
             return None
-        except requests.RequestException:
+        except (requests.RequestException, RuntimeError):
             return None
 
     def create_relation(
@@ -889,7 +893,7 @@ class LinearTracker(TrackerBase):
             result = self._execute_query(query, variables)
             nodes = result.get("data", {}).get("projects", {}).get("nodes", [])
             return [self._parse_project(p) for p in nodes]
-        except requests.RequestException:
+        except (requests.RequestException, RuntimeError):
             return []
 
     def get_project(self, project_id: str) -> Project | None:
@@ -917,7 +921,7 @@ class LinearTracker(TrackerBase):
             project = result.get("data", {}).get("project")
             if project:
                 return self._parse_project(project)
-        except requests.RequestException:
+        except (requests.RequestException, RuntimeError):
             pass
 
         # Try by name
@@ -1014,7 +1018,7 @@ class LinearTracker(TrackerBase):
             if viewer_id:
                 cache.set(cache_key, viewer_id, ttl=1800)  # 30 min TTL
             return viewer_id
-        except requests.RequestException:
+        except (requests.RequestException, RuntimeError):
             return None
 
     def _get_user_id_by_name(self, name: str) -> str | None:
@@ -1044,7 +1048,7 @@ class LinearTracker(TrackerBase):
                     user_id: str | None = user.get("id")
                     return user_id
             return None
-        except requests.RequestException:
+        except (requests.RequestException, RuntimeError):
             return None
 
     def list_users(self) -> list[dict[str, str]]:
@@ -1085,5 +1089,5 @@ class LinearTracker(TrackerBase):
             ]
             cache.set(cache_key, user_list, ttl=1800)  # 30 min TTL
             return user_list
-        except requests.RequestException:
+        except (requests.RequestException, RuntimeError):
             return []
