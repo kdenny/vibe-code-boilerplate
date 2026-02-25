@@ -1,5 +1,6 @@
 """Configuration management for .vibe/config.json."""
 
+import copy
 import json
 from pathlib import Path
 from typing import Any
@@ -68,7 +69,7 @@ def load_config(base_path: Path | None = None) -> dict[str, Any]:
     """Load configuration from .vibe/config.json."""
     config_file = get_config_path(base_path)
     if not config_file.exists():
-        return DEFAULT_CONFIG.copy()
+        return copy.deepcopy(DEFAULT_CONFIG)
 
     with open(config_file) as f:
         config: dict[str, Any] = json.load(f)
