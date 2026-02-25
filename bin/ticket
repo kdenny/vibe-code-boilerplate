@@ -24,6 +24,11 @@ if [[ ! -d "$VENV_DIR" ]]; then
     "$SCRIPT_DIR/vibe" doctor > /dev/null 2>&1 || true
 fi
 
+if [[ ! -d "$VENV_DIR" ]]; then
+    echo "Error: Failed to create virtual environment. Run 'bin/vibe' first." >&2
+    exit 1
+fi
+
 # Activate venv and run
 source "$VENV_DIR/bin/activate"
 cd "$REPO_ROOT"
