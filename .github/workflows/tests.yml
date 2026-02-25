@@ -25,8 +25,8 @@ jobs:
           if [ -f "pyproject.toml" ] || [ -f "setup.py" ] || [ -f "requirements.txt" ]; then
             if grep -q "pytest" pyproject.toml 2>/dev/null || \
                grep -q "pytest" requirements.txt 2>/dev/null || \
-               [ -d "tests" ] && ls tests/*.py 2>/dev/null; then
-              echo "framework=pytest" >> $GITHUB_OUTPUT
+               { [ -d "tests" ] && ls tests/*.py >/dev/null 2>&1; }; then
+              echo "has_pytest=true" >> $GITHUB_OUTPUT
               echo "Detected: pytest"
             fi
           fi
@@ -34,14 +34,16 @@ jobs:
           # Detect Node.js tests
           if [ -f "package.json" ]; then
             if grep -q '"vitest"' package.json; then
-              echo "framework=vitest" >> $GITHUB_OUTPUT
+              echo "has_vitest=true" >> $GITHUB_OUTPUT
               echo "Detected: vitest"
-            elif grep -q '"jest"' package.json; then
-              echo "framework=jest" >> $GITHUB_OUTPUT
+            fi
+            if grep -q '"jest"' package.json; then
+              echo "has_jest=true" >> $GITHUB_OUTPUT
               echo "Detected: jest"
-            elif grep -q '"test"' package.json; then
-              echo "framework=npm-test" >> $GITHUB_OUTPUT
-              echo "Detected: npm test"
+            fi
+            if grep -q '"test"' package.json; then
+              echo "has_npm_test=true" >> $GITHUB_OUTPUT
+              echo "Detected: npm test script"
             fi
           fi
 
@@ -51,47 +53,78 @@ jobs:
             echo "Detected: playwright"
           fi
 
+          # Detect package manager
+          if [ -f "pnpm-lock.yaml" ]; then
+            echo "node_pm=pnpm" >> $GITHUB_OUTPUT
+            echo "Package manager: pnpm"
+          elif [ -f "yarn.lock" ]; then
+            echo "node_pm=yarn" >> $GITHUB_OUTPUT
+            echo "Package manager: yarn"
+          else
+            echo "node_pm=npm" >> $GITHUB_OUTPUT
+            echo "Package manager: npm"
+          fi
+
+          # Detect lockfile presence (for install strategy)
+          if [ -f "package-lock.json" ] || [ -f "yarn.lock" ] || [ -f "pnpm-lock.yaml" ]; then
+            echo "has_lockfile=true" >> $GITHUB_OUTPUT
+          fi
+
       # Python tests with pytest
       - name: Set up Python
-        if: steps.detect.outputs.framework == 'pytest'
+        if: steps.detect.outputs.has_pytest == 'true'
         uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
       - name: Install Python dependencies
-        if: steps.detect.outputs.framework == 'pytest'
+        if: steps.detect.outputs.has_pytest == 'true'
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev]" 2>/dev/null || pip install pytest pytest-cov
 
       - name: Run pytest
-        if: steps.detect.outputs.framework == 'pytest'
+        if: steps.detect.outputs.has_pytest == 'true'
         run: |
-          pytest --cov --cov-report=xml --cov-report=term || true
+          pytest --cov --cov-report=xml --cov-report=term
 
       # Node.js tests
       - name: Set up Node.js
-        if: contains(fromJSON('["vitest", "jest", "npm-test"]'), steps.detect.outputs.framework)
+        if: steps.detect.outputs.has_vitest == 'true' || steps.detect.outputs.has_jest == 'true' || steps.detect.outputs.has_npm_test == 'true' || steps.detect.outputs.has_playwright == 'true'
         uses: actions/setup-node@v6
         with:
           node-version: '20'
-          cache: 'npm'
+          cache: ${{ steps.detect.outputs.has_lockfile == 'true' && steps.detect.outputs.node_pm || '' }}
 
       - name: Install Node dependencies
-        if: contains(fromJSON('["vitest", "jest", "npm-test"]'), steps.detect.outputs.framework)
-        run: npm ci
+        if: steps.detect.outputs.has_vitest == 'true' || steps.detect.outputs.has_jest == 'true' || steps.detect.outputs.has_npm_test == 'true' || steps.detect.outputs.has_playwright == 'true'
+        run: |
+          PM="${{ steps.detect.outputs.node_pm }}"
+          HAS_LOCK="${{ steps.detect.outputs.has_lockfile }}"
+          if [ "$PM" = "pnpm" ]; then
+            corepack enable
+            pnpm install --frozen-lockfile
+          elif [ "$PM" = "yarn" ]; then
+            yarn install --frozen-lockfile
+          else
+            if [ "$HAS_LOCK" = "true" ]; then
+              npm ci
+            else
+              npm install
+            fi
+          fi
 
       - name: Run vitest
-        if: steps.detect.outputs.framework == 'vitest'
-        run: npm run test -- --coverage || true
+        if: steps.detect.outputs.has_vitest == 'true'
+        run: npm run test -- --coverage
 
       - name: Run jest
-        if: steps.detect.outputs.framework == 'jest'
-        run: npm test -- --coverage || true
+        if: steps.detect.outputs.has_jest == 'true'
+        run: npm test -- --coverage
 
       - name: Run npm test
-        if: steps.detect.outputs.framework == 'npm-test'
-        run: npm test || true
+        if: steps.detect.outputs.has_npm_test == 'true' && steps.detect.outputs.has_vitest != 'true' && steps.detect.outputs.has_jest != 'true'
+        run: npm test
 
       # Playwright tests
       - name: Install Playwright
@@ -100,7 +133,7 @@ jobs:
 
       - name: Run Playwright tests
         if: steps.detect.outputs.has_playwright == 'true'
-        run: npx playwright test || true
+        run: npx playwright test
 
       - name: Upload coverage
         if: always()
@@ -115,7 +148,7 @@ jobs:
           retention-days: 30
 
       - name: No tests found
-        if: steps.detect.outputs.framework == ''
+        if: steps.detect.outputs.has_pytest != 'true' && steps.detect.outputs.has_vitest != 'true' && steps.detect.outputs.has_jest != 'true' && steps.detect.outputs.has_npm_test != 'true' && steps.detect.outputs.has_playwright != 'true'
         run: |
           echo "No test framework detected."
           echo "Supported frameworks: pytest, vitest, jest, playwright"
