@@ -29,7 +29,8 @@ jobs:
             const patterns = [
               /[A-Z]+-\d+/,           // PROJ-123 (Linear, Jira)
               /SC-\d+/i,              // SC-12345 (Shortcut)
-              /\#\d+/,                // #123 (GitHub issues)
+              /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?|refs?)\s*#\d+\b/i,  // Closes #123, Fixes #123, etc.
+              /(?:^|\s)#\d+\b/,       // #123 at start or after whitespace (avoids color codes, markdown headers)
               /issues\/\d+/,          // issues/123 (GitHub)
             ];
 
@@ -143,6 +144,18 @@ jobs:
             if (!hasTicket) issues.push('- Missing ticket reference in title, body, or branch');
             if (!hasRisk) issues.push('- Missing risk label (Low Risk, Medium Risk, or High Risk)');
 
+            // Check if we already have a bot comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+            });
+
+            const botComment = comments.find(c =>
+              c.user.type === 'Bot' &&
+              c.body.includes('PR Policy Check')
+            );
+
             if (issues.length > 0) {
               const body = `## PR Policy Check
 
@@ -151,18 +164,6 @@ jobs:
             ${issues.join('\n')}
 
             Please update your PR to address these items.`;
-
-              // Check if we already have a comment
-              const { data: comments } = await github.rest.issues.listComments({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.payload.pull_request.number,
-              });
-
-              const botComment = comments.find(c =>
-                c.user.type === 'Bot' &&
-                c.body.includes('PR Policy Check')
-              );
 
               if (botComment) {
                 await github.rest.issues.updateComment({
@@ -179,4 +180,18 @@ jobs:
                   body: body,
                 });
               }
+
+              core.setFailed('PR policy violations found: ' + issues.join(', '));
+            } else if (botComment) {
+              // All checks pass — clean up the stale warning comment
+              const passBody = `## PR Policy Check
+
+            All checks passed. Nice work!`;
+
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: passBody,
+              });
             }
