@@ -246,16 +246,16 @@ def do(ticket_id: str) -> None:
     # Get ticket info if tracker configured
     title = None
     if tracker_type == "linear":
-        tracker = LinearTracker()
+        linear = LinearTracker()
         with Spinner(f"Fetching ticket {ticket_id}"):
-            ticket = tracker.get_ticket(ticket_id)
+            ticket = linear.get_ticket(ticket_id)
         if ticket:
             title = ticket.title
             click.echo(f"Found ticket: {ticket.title}")
     elif tracker_type == "github":
-        tracker = GitHubIssuesTracker(repo=tracker_config.get("repo"))
+        gh_tracker = GitHubIssuesTracker(repo=tracker_config.get("repo"))
         with Spinner(f"Fetching issue {ticket_id}"):
-            ticket = tracker.get_ticket(ticket_id)
+            ticket = gh_tracker.get_ticket(ticket_id)
         if ticket:
             title = ticket.title
             click.echo(f"Found issue: {ticket.title}")
