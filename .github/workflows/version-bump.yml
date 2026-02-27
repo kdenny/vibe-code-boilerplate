@@ -5,6 +5,10 @@ on:
     types: [closed]
     branches: [main]
 
+concurrency:
+  group: version-bump
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -12,6 +16,7 @@ jobs:
   bump:
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
         with:

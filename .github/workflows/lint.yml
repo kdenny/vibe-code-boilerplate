@@ -15,9 +15,17 @@ on:
       - 'pyproject.toml'
       - '.github/workflows/lint.yml'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
 jobs:
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
 
@@ -30,10 +38,10 @@ jobs:
         run: pip install ruff mypy
 
       - name: Run ruff check
-        run: ruff check lib/ bin/ --output-format=github
+        run: ruff check . --output-format=github
 
       - name: Run ruff format check
-        run: ruff format lib/ bin/ --check --diff
+        run: ruff format . --check --diff
 
       - name: Run mypy type checking
         run: mypy lib/vibe/
