@@ -20,6 +20,7 @@ from lib.vibe.deployment_followup import (
     get_default_human_followup_title,
 )
 from lib.vibe.trackers.base import Ticket
+from lib.vibe.trackers.github_issues import GitHubIssuesTracker
 from lib.vibe.trackers.linear import LinearTracker
 from lib.vibe.trackers.shortcut import ShortcutTracker
 from lib.vibe.ui.components import NumberedMenu, ProgressIndicator, Spinner
@@ -36,6 +37,8 @@ def get_tracker():
         return LinearTracker(team_id=tracker_config.get("team_id"))
     if tracker_type == "shortcut":
         return ShortcutTracker()
+    if tracker_type == "github":
+        return GitHubIssuesTracker(repo=tracker_config.get("repo"))
     # CI: allow Linear via env when no tracker is configured (e.g. HUMAN follow-up workflow)
     if os.environ.get("LINEAR_API_KEY"):
         return LinearTracker(
