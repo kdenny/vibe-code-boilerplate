@@ -223,10 +223,9 @@ When building applications that make API calls to LLMs (OpenAI, Anthropic, etc.)
 ```bash
 # During initial setup
 bin/vibe setup   # Select "Yes" for PromptVault when prompted
-
-# Or add later
-bin/vibe setup --wizard promptvault
 ```
+
+> **Note:** There is no `--wizard promptvault` option yet. Configure PromptVault during initial `bin/vibe setup`.
 
 ### Usage Pattern
 

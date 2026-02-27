@@ -49,11 +49,52 @@ Create a new ticket. **A description is REQUIRED** — never create a ticket wit
 - `bin/ticket create "Fix login bug" --description "Login form returns 500 when password contains special chars." --label Bug --label "High Risk" --label Frontend`
 - `bin/ticket create "Add signup form" --description "Create the signup form component." --label Feature --label Frontend --parent PROJ-100`
 
-### ticket link
-Link two tickets with a blocking relationship. The prerequisite ticket blocks the dependent ticket.
-**Usage**: `bin/ticket link <blocker-id> --blocks <dependent-id>`
+### ticket update
+Update a ticket's status, title, description, or labels.
+**Usage**: `bin/ticket update <ticket-id> [OPTIONS]`
 **Examples:**
-- `bin/ticket link PROJ-101 --blocks PROJ-102`
+- `bin/ticket update PROJ-123 --status "In Progress"`
+- `bin/ticket update PROJ-123 --title "New title" --description "Updated description"`
+- `bin/ticket update PROJ-123 --label Feature --label Backend`
+
+### ticket close
+Close a ticket (set status to Done or Canceled).
+**Usage**: `bin/ticket close <ticket-id> [--reason canceled]`
+**Examples:**
+- `bin/ticket close PROJ-123`
+- `bin/ticket close PROJ-123 --reason canceled`
+
+### ticket comment
+Add a comment to a ticket.
+**Usage**: `bin/ticket comment <ticket-id> "<comment>"`
+**Examples:**
+- `bin/ticket comment PROJ-123 "PR opened, ready for review"`
+
+### ticket relate
+Link two tickets with a blocking relationship. The prerequisite ticket blocks the dependent ticket.
+**Usage**: `bin/ticket relate <blocker-id> --blocks <dependent-id>`
+**Examples:**
+- `bin/ticket relate PROJ-101 --blocks PROJ-102`
+
+### ticket labels
+List all labels with their IDs.
+**Usage**: `bin/ticket labels`
+**Examples:**
+- `bin/ticket labels`
+
+### ticket projects
+List all projects.
+**Usage**: `bin/ticket projects`
+**Examples:**
+- `bin/ticket projects`
+
+### ticket create-human-followup
+Create a HUMAN-labeled follow-up ticket for deployment infrastructure that requires human action.
+**Usage**: `bin/ticket create-human-followup [--parent <ticket-id>] [--files <file>...]`
+**Examples:**
+- `bin/ticket create-human-followup`
+- `bin/ticket create-human-followup --parent PROJ-123`
+- `bin/ticket create-human-followup --parent PROJ-123 --files fly.toml --files vercel.json`
 
 ## Pull Requests
 

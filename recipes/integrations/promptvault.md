@@ -57,10 +57,7 @@ bin/vibe setup
 
 When prompted about PromptVault, select **Yes** to enable integration.
 
-Or run the specific wizard:
-```bash
-bin/vibe setup --wizard promptvault
-```
+> **Note:** There is no `--wizard promptvault` option yet. Configure PromptVault during initial `bin/vibe setup`.
 
 ### 4. Verify Setup
 

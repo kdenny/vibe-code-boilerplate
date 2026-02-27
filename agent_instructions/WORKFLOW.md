@@ -69,7 +69,7 @@ bin/ticket create "Add signup form" --description "React signup form component."
 Link tickets that have dependencies.
 
 ```bash
-bin/ticket link PROJ-101 --blocks PROJ-102
+bin/ticket relate PROJ-101 --blocks PROJ-102
 ```
 
 ## Creating a Pull Request
