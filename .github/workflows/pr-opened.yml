@@ -22,8 +22,9 @@ jobs:
     steps:
       - name: Extract ticket ID from branch
         id: ticket
+        env:
+          BRANCH: ${{ github.event.pull_request.head.ref }}
         run: |
-          BRANCH="${{ github.event.pull_request.head.ref }}"
           TICKET=$(echo "$BRANCH" | grep -oE '^[A-Z]+-[0-9]+' || true)
           echo "ticket_id=$TICKET" >> $GITHUB_OUTPUT
           if [ -z "$TICKET" ]; then
