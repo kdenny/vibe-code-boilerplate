@@ -29,6 +29,7 @@ def run_tracker_wizard(config: dict[str, Any]) -> bool:
         title="Select your ticket tracking system:",
         options=[
             ("Linear", "Full integration with status syncing"),
+            ("GitHub Issues", "Use GitHub Issues (no API key needed)"),
             ("Shortcut", "Coming soon (stub)"),
             ("None", "Skip ticket tracking"),
         ],
@@ -40,8 +41,10 @@ def run_tracker_wizard(config: dict[str, Any]) -> bool:
     if choice == 1:
         return _setup_linear(config)
     elif choice == 2:
-        return _setup_shortcut(config)
+        return _setup_github_issues(config)
     elif choice == 3:
+        return _setup_shortcut(config)
+    elif choice == 4:
         config["tracker"]["type"] = None
         click.echo("Ticket tracking disabled.")
         return True
@@ -124,6 +127,61 @@ def _setup_linear(config: dict[str, Any]) -> bool:
         click.echo("Using fallback GitHub Actions workflows.")
         click.echo("Required: Add LINEAR_API_KEY as a repository secret.")
         click.echo("See: recipes/workflows/pr-opened-linear.md")
+
+    return True
+
+
+def _setup_github_issues(config: dict[str, Any]) -> bool:
+    """Set up GitHub Issues integration."""
+    import subprocess
+
+    click.echo("\n--- GitHub Issues Setup ---")
+    click.echo()
+
+    # Check gh CLI is installed
+    try:
+        subprocess.run(["gh", "--version"], capture_output=True, check=True, timeout=10)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        click.echo("Error: gh CLI is not installed.")
+        click.echo("Install from: https://cli.github.com/")
+        return False
+
+    # Check gh is authenticated
+    result = subprocess.run(["gh", "auth", "status"], capture_output=True, text=True, timeout=10)
+    if result.returncode == 0:
+        click.echo("gh CLI is authenticated!")
+    else:
+        click.echo("gh CLI is not authenticated.")
+        click.echo("Run: gh auth login")
+        if not click.confirm("Continue anyway?", default=False):
+            return False
+
+    # Detect repo
+    repo = ""
+    result = subprocess.run(
+        ["gh", "repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    if result.returncode == 0 and result.stdout.strip():
+        detected_repo = result.stdout.strip()
+        click.echo(f"Detected repository: {detected_repo}")
+        if click.confirm("Use this repository?", default=True):
+            repo = detected_repo
+
+    if not repo:
+        repo = click.prompt("GitHub repository (owner/repo)", default="")
+
+    config["tracker"]["type"] = "github"
+    config["tracker"]["config"] = {
+        "repo": repo if repo else None,
+    }
+
+    click.echo("\nGitHub Issues configured successfully!")
+    click.echo()
+    click.echo("No API keys needed - gh CLI handles authentication.")
+    click.echo("All bin/ticket commands will use GitHub Issues.")
 
     return True
 

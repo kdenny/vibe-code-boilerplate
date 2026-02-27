@@ -1,6 +1,7 @@
 """Ticket tracker integrations."""
 
 from lib.vibe.trackers.base import TrackerBase
+from lib.vibe.trackers.github_issues import GitHubIssuesTracker
 from lib.vibe.trackers.linear import LinearTracker
 
-__all__ = ["TrackerBase", "LinearTracker"]
+__all__ = ["TrackerBase", "GitHubIssuesTracker", "LinearTracker"]

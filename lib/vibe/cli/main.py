@@ -235,21 +235,30 @@ def do(ticket_id: str) -> None:
     from lib.vibe.git.branches import format_branch_name, get_main_branch
     from lib.vibe.git.worktrees import create_worktree, get_primary_repo_root
     from lib.vibe.state import record_ticket_branch
+    from lib.vibe.trackers.github_issues import GitHubIssuesTracker
     from lib.vibe.trackers.linear import LinearTracker
     from lib.vibe.ui.components import Spinner
 
     config = load_config()
     tracker_type = config.get("tracker", {}).get("type")
+    tracker_config = config.get("tracker", {}).get("config", {})
 
     # Get ticket info if tracker configured
     title = None
     if tracker_type == "linear":
-        tracker = LinearTracker()
+        linear = LinearTracker()
         with Spinner(f"Fetching ticket {ticket_id}"):
-            ticket = tracker.get_ticket(ticket_id)
+            ticket = linear.get_ticket(ticket_id)
         if ticket:
             title = ticket.title
             click.echo(f"Found ticket: {ticket.title}")
+    elif tracker_type == "github":
+        gh_tracker = GitHubIssuesTracker(repo=tracker_config.get("repo"))
+        with Spinner(f"Fetching issue {ticket_id}"):
+            ticket = gh_tracker.get_ticket(ticket_id)
+        if ticket:
+            title = ticket.title
+            click.echo(f"Found issue: {ticket.title}")
 
     # Create branch name
     branch_name = format_branch_name(ticket_id, title)
