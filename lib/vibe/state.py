@@ -6,6 +6,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from lib.vibe.utils.file_lock import atomic_write_json, file_lock
+
 STATE_PATH = Path(".vibe/local_state.json")
 
 DEFAULT_STATE: dict[str, Any] = {
@@ -43,18 +45,16 @@ def load_state(base_path: Path | None = None) -> dict[str, Any]:
 def save_state(state: dict[str, Any], base_path: Path | None = None) -> None:
     """Save local state to .vibe/local_state.json."""
     state_file = get_state_path(base_path)
-    state_file.parent.mkdir(parents=True, exist_ok=True)
-
-    with open(state_file, "w") as f:
-        json.dump(state, f, indent=2)
-        f.write("\n")
+    atomic_write_json(state_file, state)
 
 
 def update_state(updates: dict[str, Any], base_path: Path | None = None) -> dict[str, Any]:
     """Update specific keys in the local state."""
-    state = load_state(base_path)
-    _deep_update(state, updates)
-    save_state(state, base_path)
+    state_file = get_state_path(base_path)
+    with file_lock(state_file):
+        state = load_state(base_path)
+        _deep_update(state, updates)
+        save_state(state, base_path)
     return state
 
 
@@ -69,32 +69,40 @@ def _deep_update(base: dict, updates: dict) -> None:
 
 def add_worktree(worktree_path: str, base_path: Path | None = None) -> None:
     """Add a worktree to the active worktrees list."""
-    state = load_state(base_path)
-    if worktree_path not in state["active_worktrees"]:
-        state["active_worktrees"].append(worktree_path)
-        save_state(state, base_path)
+    state_file = get_state_path(base_path)
+    with file_lock(state_file):
+        state = load_state(base_path)
+        if worktree_path not in state["active_worktrees"]:
+            state["active_worktrees"].append(worktree_path)
+            save_state(state, base_path)
 
 
 def remove_worktree(worktree_path: str, base_path: Path | None = None) -> None:
     """Remove a worktree from the active worktrees list."""
-    state = load_state(base_path)
-    if worktree_path in state["active_worktrees"]:
-        state["active_worktrees"].remove(worktree_path)
-        save_state(state, base_path)
+    state_file = get_state_path(base_path)
+    with file_lock(state_file):
+        state = load_state(base_path)
+        if worktree_path in state["active_worktrees"]:
+            state["active_worktrees"].remove(worktree_path)
+            save_state(state, base_path)
 
 
 def set_last_doctor_run(base_path: Path | None = None) -> None:
     """Update the last doctor run timestamp."""
-    state = load_state(base_path)
-    state["last_doctor_run"] = datetime.now().isoformat()
-    save_state(state, base_path)
+    state_file = get_state_path(base_path)
+    with file_lock(state_file):
+        state = load_state(base_path)
+        state["last_doctor_run"] = datetime.now().isoformat()
+        save_state(state, base_path)
 
 
 def set_github_auth(username: str, base_path: Path | None = None) -> None:
     """Update GitHub authentication state."""
-    state = load_state(base_path)
-    state["github_cache"] = {"authenticated": True, "username": username}
-    save_state(state, base_path)
+    state_file = get_state_path(base_path)
+    with file_lock(state_file):
+        state = load_state(base_path)
+        state["github_cache"] = {"authenticated": True, "username": username}
+        save_state(state, base_path)
 
 
 def record_ticket_branch(
@@ -110,18 +118,20 @@ def record_ticket_branch(
     Code's ``isolation: "worktree"`` both create branches).  This enables
     duplicate-PR detection.
     """
-    state = load_state(base_path)
-    if "ticket_branches" not in state:
-        state["ticket_branches"] = {}
+    state_file = get_state_path(base_path)
+    with file_lock(state_file):
+        state = load_state(base_path)
+        if "ticket_branches" not in state:
+            state["ticket_branches"] = {}
 
-    state["ticket_branches"].setdefault(ticket_id, []).append(
-        {
-            "branch": branch_name,
-            "worktree_path": worktree_path,
-            "created_at": datetime.now().isoformat(),
-        }
-    )
-    save_state(state, base_path)
+        state["ticket_branches"].setdefault(ticket_id, []).append(
+            {
+                "branch": branch_name,
+                "worktree_path": worktree_path,
+                "created_at": datetime.now().isoformat(),
+            }
+        )
+        save_state(state, base_path)
 
 
 def get_ticket_branch(ticket_id: str, base_path: Path | None = None) -> dict[str, str] | None:

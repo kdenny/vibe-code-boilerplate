@@ -10,6 +10,7 @@ from lib.vibe.config_schema import (
     get_config_version,
     migrate_config,
 )
+from lib.vibe.utils.file_lock import atomic_write_json, file_lock
 
 CONFIG_PATH = Path(".vibe/config.json")
 
@@ -87,18 +88,16 @@ def load_config(base_path: Path | None = None) -> dict[str, Any]:
 def save_config(config: dict[str, Any], base_path: Path | None = None) -> None:
     """Save configuration to .vibe/config.json."""
     config_file = get_config_path(base_path)
-    config_file.parent.mkdir(parents=True, exist_ok=True)
-
-    with open(config_file, "w") as f:
-        json.dump(config, f, indent=2)
-        f.write("\n")
+    atomic_write_json(config_file, config)
 
 
 def update_config(updates: dict[str, Any], base_path: Path | None = None) -> dict[str, Any]:
     """Update specific keys in the configuration."""
-    config = load_config(base_path)
-    _deep_update(config, updates)
-    save_config(config, base_path)
+    config_file = get_config_path(base_path)
+    with file_lock(config_file):
+        config = load_config(base_path)
+        _deep_update(config, updates)
+        save_config(config, base_path)
     return config
 
 
