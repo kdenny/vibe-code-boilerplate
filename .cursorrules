@@ -1,0 +1,105 @@
+# AI Agent Instructions
+# Format: Cursor IDE
+# Generated: 2026-02-27
+# Source: agent_instructions/
+#
+# DO NOT EDIT DIRECTLY - regenerate with: bin/vibe generate-agent-instructions
+
+
+# Project: (your project name)
+# (what this project does)
+
+# Tech Stack
+# - Backend: (e.g., FastAPI, Django, Express)
+# - Frontend: (e.g., React, Next.js, Vue)
+# - Database: (e.g., PostgreSQL, Supabase, Neon)
+# - Deployment: (e.g., Vercel, Fly.io, AWS)
+
+# Rules
+
+Read files before modifying them - understand existing code before making changes
+Use existing patterns - match the codebase's style, naming conventions, and architecture
+Prefer editing over creating - modify existing files rather than creating new ones
+Keep changes minimal - only change what's necessary to complete the task
+No security vulnerabilities - avoid XSS, SQL injection, command injection, etc.
+Handle errors gracefully - don't leave code in broken states
+Test your changes - verify code works before marking task complete
+Document non-obvious code - add comments only where the logic isn't self-evident
+Every PR must reference a ticket - PR titles must include the ticket ID (e.g. "PROJ-123: Add feature")
+Every ticket must have labels - at minimum one type label (Bug/Feature/Chore/Refactor), one risk label (Low Risk/Medium Risk/High Risk), and one area label (Frontend/Backend/Infra/Docs)
+Set parent/child relationships for related tickets - use --parent when creating sub-tasks
+Use blocking links for dependencies - the prerequisite ticket blocks the dependent ticket
+
+# Available Labels
+# Type: Bug, Feature, Chore, Refactor
+# Risk: Low Risk, Medium Risk, High Risk
+# Area: Frontend, Backend, Infra, Docs
+# Special: HUMAN, Milestone, Blocked
+
+# Ticket Discipline
+Every ticket must have type and area labels. Every PR title must include the ticket ID. Use --parent for sub-tasks and bin/ticket relate for blocking.
+
+# Avoid
+
+Do not: Guessing file contents without reading them first
+Do not: Creating new abstractions for one-time operations
+Do not: Adding features, refactoring, or "improvements" beyond what was asked
+Do not: Over-engineering with unnecessary complexity
+Do not: Leaving console.log or debug statements in production code
+Do not: Ignoring existing error handling patterns
+Do not: Making assumptions about requirements without asking
+Do not: Committing secrets, API keys, or credentials
+Do not: Creating tickets without labels - every ticket needs type, risk, and area labels
+Do not: Opening PRs without a ticket reference in the title
+Do not: Creating related tickets without parent/child or blocking relationships
+
+# Available Commands
+
+# doctor: bin/vibe doctor
+# setup: bin/vibe setup
+# do: bin/vibe do <ticket-id>
+# ticket list: bin/ticket list [OPTIONS]
+# ticket get: bin/ticket get <ticket-id> [OPTIONS]
+# ticket create: bin/ticket create "<title>" [OPTIONS]
+# ticket update: bin/ticket update <ticket-id> [OPTIONS]
+# ticket close: bin/ticket close <ticket-id> [--cancel]
+# ticket comment: bin/ticket comment <ticket-id> "<message>"
+# ticket relate: bin/ticket relate <ticket-id> [OPTIONS]
+# ticket labels: bin/ticket labels [--json]
+# ticket projects: bin/ticket projects [OPTIONS]
+# ticket project: bin/ticket project <create|get> "<name>" [OPTIONS]
+# ticket users: bin/ticket users [--json]
+# ticket batch create: bin/ticket batch create --from <yaml-file> [--dry-run]
+# ticket create-human-followup: bin/ticket create-human-followup [--parent <ticket-id>] [--files <file>...]
+# pr: bin/vibe pr
+# figma analyze: bin/vibe figma analyze
+# generate-agent-instructions: bin/vibe generate-agent-instructions
+
+# Workflows
+# Starting Work on a Ticket:
+#   bin/vibe do PROJ-123
+#   bin/ticket get PROJ-123
+#   git add <files>
+#   git commit -m "PROJ-123: Brief description of changes"
+#   git push -u origin PROJ-123
+#   bin/vibe pr --title "PROJ-123: Add feature description"
+# Creating Related Tickets:
+#   bin/ticket create "Epic: User auth system" --description "Full authentication system with OAuth2." --label Feature --label Backend
+#   bin/ticket create "Add login endpoint" --description "POST /auth/login with JWT." --label Feature --label Backend --parent PROJ-100
+#   bin/ticket create "Add signup form" --description "React signup form component." --label Feature --label Frontend --parent PROJ-100
+#   bin/ticket relate PROJ-101 --blocks PROJ-102
+# Creating a Pull Request:
+#   git status
+#   git diff origin/main
+#   git push -u origin BRANCH-NAME
+#   bin/vibe pr
+# Handling CI Failures:
+#   gh pr checks <pr-number>
+#   gh run view <run-id> --log-failed
+#   git add <files>
+#   git commit -m "Fix CI failure: <description>"
+#   git push
+# Cleaning Up After Merge:
+#   git worktree remove <worktree-path>
+#   git branch -d PROJ-123
+#   bin/vibe doctor
