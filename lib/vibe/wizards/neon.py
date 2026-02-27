@@ -175,7 +175,7 @@ def run_neon_wizard(config: dict[str, Any]) -> bool:
                     user_pass_part = masked[:idx]
                     host_part = masked[idx:]
                     if ":" in user_pass_part:
-                        scheme_user = user_pass_part[:user_pass_part.rfind(":")]
+                        scheme_user = user_pass_part[: user_pass_part.rfind(":")]
                         masked = f"{scheme_user}:****{host_part}"
                 click.echo(f"  Connection string: {masked}")
         except (FileNotFoundError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:

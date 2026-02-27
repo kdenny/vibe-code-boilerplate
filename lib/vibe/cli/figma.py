@@ -536,7 +536,10 @@ def _create_tickets(tickets: list[dict[str, Any]]) -> None:
                 if ticket_id:
                     created_ids[i] = ticket_id
                 else:
-                    click.secho("  Warning: could not parse ticket ID from output, skipping blocking links for dependents", fg="yellow")
+                    click.secho(
+                        "  Warning: could not parse ticket ID from output, skipping blocking links for dependents",
+                        fg="yellow",
+                    )
             else:
                 click.secho(f"✗ Failed to create ticket {i}: {result.stderr}", fg="red")
         except (subprocess.CalledProcessError, OSError) as e:
