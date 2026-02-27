@@ -260,7 +260,7 @@ def run_dependency_graph_prompt(config: dict[str, Any]) -> None:
     if click.confirm("Open repository settings in your browser?", default=True):
         try:
             subprocess.run(
-                ["gh", "browser", url],
+                ["gh", "browse", url],
                 check=False,
                 capture_output=True,
             )

@@ -170,10 +170,13 @@ def run_neon_wizard(config: dict[str, Any]) -> bool:
                 # Mask password for display
                 masked = connection_string
                 if "@" in masked:
-                    parts = masked.split("@")
-                    user_pass = parts[0].split(":")
-                    if len(user_pass) > 1:
-                        masked = f"{user_pass[0]}:****@{parts[1]}"
+                    # Split on last @ to handle passwords with @ chars
+                    idx = masked.rfind("@")
+                    user_pass_part = masked[:idx]
+                    host_part = masked[idx:]
+                    if ":" in user_pass_part:
+                        scheme_user = user_pass_part[: user_pass_part.rfind(":")]
+                        masked = f"{scheme_user}:****{host_part}"
                 click.echo(f"  Connection string: {masked}")
         except (FileNotFoundError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
             click.echo(f"  Could not get connection string: {e}")

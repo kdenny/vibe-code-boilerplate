@@ -1,5 +1,6 @@
 """Secret allowlist management."""
 
+import fnmatch
 import hashlib
 import json
 from dataclasses import dataclass
@@ -103,7 +104,7 @@ def is_allowed_secret(
             return True, entry
 
         # Check pattern match
-        if entry.pattern and entry.pattern in secret_value:
+        if entry.pattern and fnmatch.fnmatch(secret_value, entry.pattern):
             # If file_path is specified in entry, it must match
             if entry.file_path and file_path and entry.file_path != file_path:
                 continue
