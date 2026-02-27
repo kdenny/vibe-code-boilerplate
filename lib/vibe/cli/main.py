@@ -189,7 +189,11 @@ def update(skip: bool, force: bool) -> None:
 
 @main.command()
 @click.option("--force", "-f", is_flag=True, help="Force reconfiguration")
-@click.option("--wizard", "-w", help="Run a specific wizard (github, tracker, branch, env, vercel, fly, supabase, neon, database, sentry, playwright)")
+@click.option(
+    "--wizard",
+    "-w",
+    help="Run a specific wizard (github, tracker, branch, env, vercel, fly, supabase, neon, database, sentry, playwright)",
+)
 @click.option("--quick", "-q", is_flag=True, help="Quick setup with sensible defaults, no prompts")
 def setup(force: bool, wizard: str | None, quick: bool) -> None:
     """Run the setup wizard to configure your project.
