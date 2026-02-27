@@ -279,16 +279,18 @@ class TestGitHubIssuesTrackerCreateTicket:
         # Second call: gh issue view returns the issue data
         view_result = MagicMock()
         view_result.returncode = 0
-        view_result.stdout = json.dumps({
-            "number": 50,
-            "title": "New feature",
-            "body": "Description",
-            "state": "OPEN",
-            "labels": [{"name": "Feature"}],
-            "url": "https://github.com/owner/repo/issues/50",
-            "assignees": [],
-            "milestone": None,
-        })
+        view_result.stdout = json.dumps(
+            {
+                "number": 50,
+                "title": "New feature",
+                "body": "Description",
+                "state": "OPEN",
+                "labels": [{"name": "Feature"}],
+                "url": "https://github.com/owner/repo/issues/50",
+                "assignees": [],
+                "milestone": None,
+            }
+        )
 
         with patch(
             "lib.vibe.trackers.github_issues.subprocess.run",
@@ -308,16 +310,18 @@ class TestGitHubIssuesTrackerCreateTicket:
 
         view_result = MagicMock()
         view_result.returncode = 0
-        view_result.stdout = json.dumps({
-            "number": 51,
-            "title": "Assigned ticket",
-            "body": "Desc",
-            "state": "OPEN",
-            "labels": [],
-            "url": "https://github.com/owner/repo/issues/51",
-            "assignees": [{"login": "dev1"}],
-            "milestone": None,
-        })
+        view_result.stdout = json.dumps(
+            {
+                "number": 51,
+                "title": "Assigned ticket",
+                "body": "Desc",
+                "state": "OPEN",
+                "labels": [],
+                "url": "https://github.com/owner/repo/issues/51",
+                "assignees": [{"login": "dev1"}],
+                "milestone": None,
+            }
+        )
 
         with patch(
             "lib.vibe.trackers.github_issues.subprocess.run",
@@ -353,16 +357,18 @@ class TestGitHubIssuesTrackerUpdateTicket:
 
         view_result = MagicMock()
         view_result.returncode = 0
-        view_result.stdout = json.dumps({
-            "number": 10,
-            "title": "Issue",
-            "body": "",
-            "state": "CLOSED",
-            "labels": [],
-            "url": "https://github.com/owner/repo/issues/10",
-            "assignees": [],
-            "milestone": None,
-        })
+        view_result.stdout = json.dumps(
+            {
+                "number": 10,
+                "title": "Issue",
+                "body": "",
+                "state": "CLOSED",
+                "labels": [],
+                "url": "https://github.com/owner/repo/issues/10",
+                "assignees": [],
+                "milestone": None,
+            }
+        )
 
         with patch(
             "lib.vibe.trackers.github_issues.subprocess.run",
@@ -381,16 +387,18 @@ class TestGitHubIssuesTrackerUpdateTicket:
 
         view_result = MagicMock()
         view_result.returncode = 0
-        view_result.stdout = json.dumps({
-            "number": 10,
-            "title": "New Title",
-            "body": "",
-            "state": "OPEN",
-            "labels": [],
-            "url": "https://github.com/owner/repo/issues/10",
-            "assignees": [],
-            "milestone": None,
-        })
+        view_result.stdout = json.dumps(
+            {
+                "number": 10,
+                "title": "New Title",
+                "body": "",
+                "state": "OPEN",
+                "labels": [],
+                "url": "https://github.com/owner/repo/issues/10",
+                "assignees": [],
+                "milestone": None,
+            }
+        )
 
         with patch(
             "lib.vibe.trackers.github_issues.subprocess.run",
@@ -411,16 +419,18 @@ class TestGitHubIssuesTrackerUpdateTicket:
 
         view_result = MagicMock()
         view_result.returncode = 0
-        view_result.stdout = json.dumps({
-            "number": 10,
-            "title": "Issue",
-            "body": "",
-            "state": "OPEN",
-            "labels": [{"name": "Bug"}],
-            "url": "https://github.com/owner/repo/issues/10",
-            "assignees": [],
-            "milestone": None,
-        })
+        view_result.stdout = json.dumps(
+            {
+                "number": 10,
+                "title": "Issue",
+                "body": "",
+                "state": "OPEN",
+                "labels": [{"name": "Bug"}],
+                "url": "https://github.com/owner/repo/issues/10",
+                "assignees": [],
+                "milestone": None,
+            }
+        )
 
         with patch(
             "lib.vibe.trackers.github_issues.subprocess.run",

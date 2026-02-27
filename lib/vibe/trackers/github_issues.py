@@ -55,7 +55,9 @@ class GitHubIssuesTracker(TrackerBase):
         if self._repo:
             return self._repo
         # Auto-detect from git remote
-        result = _gh(["repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"], check=False)
+        result = _gh(
+            ["repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"], check=False
+        )
         if result.returncode == 0 and result.stdout.strip():
             self._repo = result.stdout.strip()
             return self._repo
@@ -103,9 +105,15 @@ class GitHubIssuesTracker(TrackerBase):
         assignee: str | None = None,
     ) -> list[Ticket]:
         """List issues with optional filters."""
-        args = ["issue", "list", *self._repo_flag(), "--json",
-                "number,title,body,state,labels,url,assignees,milestone",
-                "--limit", str(limit)]
+        args = [
+            "issue",
+            "list",
+            *self._repo_flag(),
+            "--json",
+            "number,title,body,state,labels,url,assignees,milestone",
+            "--limit",
+            str(limit),
+        ]
 
         # Map status names to GitHub state
         if status:
@@ -141,8 +149,7 @@ class GitHubIssuesTracker(TrackerBase):
         assignee: str | None = None,
     ) -> Ticket:
         """Create a new issue."""
-        args = ["issue", "create", *self._repo_flag(),
-                "--title", title, "--body", description]
+        args = ["issue", "create", *self._repo_flag(), "--title", title, "--body", description]
 
         if labels:
             for label in labels:
@@ -223,7 +230,15 @@ class GitHubIssuesTracker(TrackerBase):
     def list_labels(self) -> list[dict[str, str]]:
         """List all labels in the repo."""
         result = _gh(
-            ["label", "list", *self._repo_flag(), "--json", "name,color,description", "--limit", "100"],
+            [
+                "label",
+                "list",
+                *self._repo_flag(),
+                "--json",
+                "name,color,description",
+                "--limit",
+                "100",
+            ],
             check=False,
         )
         if result.returncode != 0:
