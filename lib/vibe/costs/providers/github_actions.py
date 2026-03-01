@@ -97,7 +97,8 @@ class GitHubActionsCostProvider(CostProvider):
                 timeout=15,
             )
             if result.returncode == 0:
-                return json.loads(result.stdout)
+                data: dict = json.loads(result.stdout)
+                return data
 
             # Try user endpoint
             result = subprocess.run(
@@ -107,7 +108,8 @@ class GitHubActionsCostProvider(CostProvider):
                 timeout=15,
             )
             if result.returncode == 0:
-                return json.loads(result.stdout)
+                user_data: dict = json.loads(result.stdout)
+                return user_data
         except (subprocess.TimeoutExpired, FileNotFoundError):
             pass
         return {}

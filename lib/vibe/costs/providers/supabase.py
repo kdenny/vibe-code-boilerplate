@@ -43,7 +43,7 @@ class SupabaseCostProvider(CostProvider):
                 headers=self._headers(),
                 timeout=10,
             )
-            return resp.status_code == 200
+            return bool(resp.status_code == 200)
         except requests.RequestException:
             return False
 

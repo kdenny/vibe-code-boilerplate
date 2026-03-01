@@ -55,7 +55,7 @@ class NeonCostProvider(CostProvider):
                 params={"limit": 1},
                 timeout=10,
             )
-            return resp.status_code == 200
+            return bool(resp.status_code == 200)
         except requests.RequestException:
             return False
 

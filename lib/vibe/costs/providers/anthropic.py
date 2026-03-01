@@ -49,7 +49,7 @@ class AnthropicCostProvider(CostProvider):
                 timeout=10,
             )
             # 200 or 401 means the endpoint exists (401 = bad key but reachable)
-            return resp.status_code == 200
+            return bool(resp.status_code == 200)
         except requests.RequestException:
             return False
 
