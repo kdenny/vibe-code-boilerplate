@@ -1109,3 +1109,17 @@ class TestCycleCLI:
         assert result.exit_code == 0
         mock_tracker.remove_from_cycle.assert_called_once_with("TEST-1")
         assert "removed from cycle" in result.output
+
+    def test_update_rejects_cycle_and_clear_cycle(self) -> None:
+        """`update --cycle X --clear-cycle` is ambiguous and must fail fast."""
+        runner = CliRunner()
+
+        with patch("lib.vibe.cli.ticket.ensure_tracker_configured") as ensure:
+            result = runner.invoke(
+                main, ["update", "TEST-1", "--cycle", "current", "--clear-cycle"]
+            )
+
+        assert result.exit_code != 0
+        assert "mutually exclusive" in result.output
+        # Rejected before touching the tracker.
+        ensure.assert_not_called()

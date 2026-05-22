@@ -775,6 +775,13 @@ def update(
         bin/ticket update PROJ-456 --priority urgent --assignee me
         bin/ticket update PROJ-456 --cycle current
     """
+    if cycle and clear_cycle:
+        click.echo(
+            "Options --cycle and --clear-cycle are mutually exclusive.",
+            err=True,
+        )
+        sys.exit(1)
+
     tracker = ensure_tracker_configured()
 
     has_field_update = any(
@@ -800,7 +807,7 @@ def update(
         click.echo(
             "Specify at least one of: --status, --title, --description, --label, "
             "--blocked-by, --blocks, --remove-blocked-by, --remove-blocks, "
-            "--project, --parent, --priority, --assignee",
+            "--project, --parent, --priority, --assignee, --cycle, --clear-cycle",
             err=True,
         )
         sys.exit(1)
