@@ -7,7 +7,7 @@ from typing import Any
 
 import requests
 
-from lib.vibe.trackers.base import Project, Ticket, TrackerBase
+from lib.vibe.trackers.base import Cycle, Project, Ticket, TrackerBase
 from lib.vibe.utils.cache import get_cache
 from lib.vibe.utils.retry import with_retry
 
@@ -24,6 +24,21 @@ PRIORITY_MAP = {
     "low": 4,
 }
 PRIORITY_NAMES = {v: k for k, v in PRIORITY_MAP.items()}
+
+
+def _looks_like_uuid(value: str) -> bool:
+    """Heuristic: True if value is a standard 36-char UUID (8-4-4-4-12)."""
+    parts = value.split("-")
+    return len(value) == 36 and len(parts) == 5 and all(parts)
+
+
+def _cycle_label(cycle: dict[str, Any]) -> str:
+    """Human label for a cycle node: its name, else "Cycle <number>"."""
+    name = cycle.get("name")
+    if name:
+        return str(name)
+    number = cycle.get("number")
+    return f"Cycle {number}" if number is not None else "Cycle"
 
 
 class LinearTracker(TrackerBase):
@@ -123,6 +138,7 @@ class LinearTracker(TrackerBase):
                 priority
                 assignee {{ id name email }}
                 project {{ id name state }}
+                cycle {{ id number name }}
                 parent {{ id identifier title }}
                 relations(first: 50) {{
                     nodes {{
@@ -432,6 +448,9 @@ class LinearTracker(TrackerBase):
         priority: str | None = None,
         assignee: str | None = None,
         unassign: bool = False,
+        cycle: str | None = None,
+        cycle_id: str | None = None,
+        clear_cycle: bool = False,
     ) -> Ticket:
         """Update an existing ticket.
 
@@ -450,6 +469,9 @@ class LinearTracker(TrackerBase):
             priority: Priority level
             assignee: Assignee name or "me"
             unassign: If True, remove assignee
+            cycle: Cycle reference — number, UUID, or "current"/"active"
+            cycle_id: Cycle UUID (alternative to ``cycle``)
+            clear_cycle: If True, remove the ticket from its cycle
         """
         input_obj: dict[str, Any] = {}
         if title is not None:
@@ -537,6 +559,17 @@ class LinearTracker(TrackerBase):
                 if user_id:
                     input_obj["assigneeId"] = user_id
 
+        # Cycle support — resolve a number/UUID/"current" reference to a cycle ID.
+        if clear_cycle:
+            input_obj["cycleId"] = None
+        elif cycle_id:
+            input_obj["cycleId"] = cycle_id
+        elif cycle:
+            resolved_cycle_id = self._resolve_cycle_id(cycle)
+            if not resolved_cycle_id:
+                raise RuntimeError(f"Cycle not found: {cycle}")
+            input_obj["cycleId"] = resolved_cycle_id
+
         mutation = """
         mutation UpdateIssue($id: String!, $input: IssueUpdateInput!) {
             issueUpdate(id: $id, input: $input) {
@@ -552,6 +585,7 @@ class LinearTracker(TrackerBase):
                     priority
                     assignee { name }
                     project { id name state }
+                    cycle { id number name }
                     parent { identifier title }
                 }
             }
@@ -1006,6 +1040,7 @@ class LinearTracker(TrackerBase):
         assignee = issue.get("assignee") or {}
         project = issue.get("project") or {}
         parent = issue.get("parent") or {}
+        cycle = issue.get("cycle") or {}
 
         # Parse children if present
         children: list[Ticket] = []
@@ -1050,6 +1085,8 @@ class LinearTracker(TrackerBase):
             project_state=project.get("state"),
             parent_id=parent.get("identifier"),
             parent_title=parent.get("title"),
+            cycle=_cycle_label(cycle) if cycle else None,
+            cycle_id=cycle.get("id"),
             children=children,
             blocks=blocks,
             blocked_by=blocked_by,
@@ -1264,6 +1301,145 @@ class LinearTracker(TrackerBase):
             if p.name.lower() == project_name.lower():
                 return p.id
         return None
+
+    # -------------------------------------------------------------------------
+    # Cycle Management (sprints / iterations)
+    # -------------------------------------------------------------------------
+
+    def _resolve_team_id(self) -> str:
+        """Return the configured team UUID, raising if none is set."""
+        if not self._team_id:
+            raise RuntimeError(
+                "Cycles require a team. Configure a Linear team "
+                "(bin/vibe setup) or set LINEAR_TEAM_ID."
+            )
+        return self._team_id
+
+    def list_cycles(self, include_completed: bool = False) -> list[Cycle]:
+        """List the team's cycles, newest (highest number) first.
+
+        Args:
+            include_completed: If False (default), drop cycles that have a
+                completedAt timestamp.
+        """
+        team_id = self._resolve_team_id()
+        query = """
+        query TeamCycles($teamId: String!) {
+            team(id: $teamId) {
+                activeCycle { id }
+                cycles(first: 100) {
+                    nodes { id number name startsAt endsAt completedAt progress }
+                }
+            }
+        }
+        """
+        result = self._execute_query(query, {"teamId": team_id})
+        team = result.get("data", {}).get("team") or {}
+        active_id = (team.get("activeCycle") or {}).get("id")
+        nodes = (team.get("cycles") or {}).get("nodes", [])
+        cycles = [self._parse_cycle(n, active_id=active_id) for n in nodes]
+        if not include_completed:
+            cycles = [c for c in cycles if not c.completed_at]
+        cycles.sort(key=lambda c: c.number, reverse=True)
+        return cycles
+
+    def get_active_cycle(self) -> Cycle | None:
+        """Return the team's currently active cycle, or None if there isn't one."""
+        team_id = self._resolve_team_id()
+        query = """
+        query ActiveCycle($teamId: String!) {
+            team(id: $teamId) {
+                activeCycle { id number name startsAt endsAt completedAt progress }
+            }
+        }
+        """
+        result = self._execute_query(query, {"teamId": team_id})
+        node = (result.get("data", {}).get("team") or {}).get("activeCycle")
+        if not node:
+            return None
+        return self._parse_cycle(node, active_id=node.get("id"))
+
+    def get_cycle(self, ref: str, with_issues: bool = False) -> Cycle | None:
+        """Fetch a cycle by number, UUID, or "current"/"active".
+
+        Args:
+            ref: Cycle number (e.g. "3"), UUID, or "current"/"active".
+            with_issues: If True, include the cycle's issues (and issue_count).
+        """
+        cycle_id = self._resolve_cycle_id(ref)
+        if not cycle_id:
+            return None
+
+        issues_fragment = (
+            "issues(first: 250) { nodes { identifier title state { name } priority } }"
+            if with_issues
+            else ""
+        )
+        query = f"""
+        query GetCycle($id: String!) {{
+            cycle(id: $id) {{
+                id number name startsAt endsAt completedAt progress
+                {issues_fragment}
+            }}
+        }}
+        """
+        result = self._execute_query(query, {"id": cycle_id})
+        node = result.get("data", {}).get("cycle")
+        if not node:
+            return None
+        active = self.get_active_cycle()
+        return self._parse_cycle(node, active_id=active.id if active else None)
+
+    def _resolve_cycle_id(self, ref: str) -> str | None:
+        """Resolve a cycle reference (number / UUID / "current") to a cycle ID."""
+        ref = ref.strip()
+        if ref.lower() in ("current", "active"):
+            active = self.get_active_cycle()
+            return active.id if active else None
+        if _looks_like_uuid(ref):
+            return ref
+        # "Cycle 3" or "3" -> match by number; otherwise match by name.
+        token = ref[6:].strip() if ref.lower().startswith("cycle") else ref
+        cycles = self.list_cycles(include_completed=True)
+        if token.isdigit():
+            number = int(token)
+            for c in cycles:
+                if c.number == number:
+                    return c.id
+            return None
+        for c in cycles:
+            if c.name and c.name.lower() == ref.lower():
+                return c.id
+        return None
+
+    def add_to_cycle(self, ticket_id: str, ref: str = "current") -> Ticket:
+        """Add a ticket to a cycle (by number, UUID, or "current"/"active")."""
+        cycle_id = self._resolve_cycle_id(ref)
+        if not cycle_id:
+            raise RuntimeError(f"Cycle not found: {ref}")
+        return self.update_ticket(ticket_id, cycle_id=cycle_id)
+
+    def remove_from_cycle(self, ticket_id: str) -> Ticket:
+        """Remove a ticket from its cycle."""
+        return self.update_ticket(ticket_id, clear_cycle=True)
+
+    def _parse_cycle(self, node: dict, active_id: str | None = None) -> Cycle:
+        """Parse a Linear cycle node into a Cycle."""
+        issue_nodes = (node.get("issues") or {}).get("nodes")
+        issue_count = len(issue_nodes) if issue_nodes is not None else None
+        cycle_id = node.get("id", "")
+        return Cycle(
+            id=cycle_id,
+            number=node.get("number", 0),
+            name=node.get("name"),
+            starts_at=node.get("startsAt"),
+            ends_at=node.get("endsAt"),
+            completed_at=node.get("completedAt"),
+            progress=node.get("progress"),
+            is_active=bool(active_id) and cycle_id == active_id,
+            issue_count=issue_count,
+            raw=node,
+        )
 
     # -------------------------------------------------------------------------
     # User Management (for assignee support)

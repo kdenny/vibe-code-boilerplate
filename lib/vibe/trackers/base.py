@@ -18,6 +18,23 @@ class Project:
 
 
 @dataclass
+class Cycle:
+    """Represents a cycle (a.k.a. sprint / iteration) — a time-boxed set of
+    issues for a team, optionally named."""
+
+    id: str
+    number: int
+    raw: dict[str, Any]
+    name: str | None = None
+    starts_at: str | None = None  # ISO-8601 timestamp
+    ends_at: str | None = None  # ISO-8601 timestamp
+    completed_at: str | None = None  # ISO-8601, or None if not yet completed
+    progress: float | None = None  # 0.0–1.0 fraction of scope completed
+    is_active: bool = False  # True if this is the team's current cycle
+    issue_count: int | None = None  # None when not requested
+
+
+@dataclass
 class Ticket:
     """Represents a ticket from any tracker."""
 
@@ -36,6 +53,8 @@ class Ticket:
     project_state: str | None = None  # Project state (planned, started, completed, canceled)
     parent_id: str | None = None  # Parent ticket identifier
     parent_title: str | None = None  # Parent ticket title
+    cycle: str | None = None  # Cycle display label (name or "Cycle N")
+    cycle_id: str | None = None  # Cycle ID
     children: list["Ticket"] = field(default_factory=list)  # Sub-tasks
     blocks: list[str] = field(default_factory=list)  # Ticket IDs this blocks
     blocked_by: list[str] = field(default_factory=list)  # Ticket IDs blocking this
@@ -156,6 +175,41 @@ class TrackerBase(ABC):
         raise NotImplementedError(
             f"Removing relations is not supported by the {self.name} tracker."
         )
+
+    def list_cycles(self, include_completed: bool = False) -> list["Cycle"]:
+        """List the team's cycles, newest first.
+
+        Override in trackers that support cycles (sprints / iterations).
+        """
+        raise NotImplementedError(f"Cycles are not supported by the {self.name} tracker.")
+
+    def get_active_cycle(self) -> "Cycle | None":
+        """Return the team's currently active cycle, or None.
+
+        Override in trackers that support cycles.
+        """
+        raise NotImplementedError(f"Cycles are not supported by the {self.name} tracker.")
+
+    def get_cycle(self, ref: str, with_issues: bool = False) -> "Cycle | None":
+        """Fetch a single cycle by number, UUID, or "current"/"active".
+
+        Override in trackers that support cycles.
+        """
+        raise NotImplementedError(f"Cycles are not supported by the {self.name} tracker.")
+
+    def add_to_cycle(self, ticket_id: str, ref: str = "current") -> "Ticket":
+        """Add a ticket to a cycle (by number, UUID, or "current"/"active").
+
+        Override in trackers that support cycles.
+        """
+        raise NotImplementedError(f"Cycles are not supported by the {self.name} tracker.")
+
+    def remove_from_cycle(self, ticket_id: str) -> "Ticket":
+        """Remove a ticket from its cycle.
+
+        Override in trackers that support cycles.
+        """
+        raise NotImplementedError(f"Cycles are not supported by the {self.name} tracker.")
 
     @abstractmethod
     def validate_config(self) -> tuple[bool, list[str]]:

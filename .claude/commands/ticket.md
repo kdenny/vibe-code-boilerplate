@@ -53,6 +53,20 @@ Update an existing ticket.
 /ticket update PROJ-123 --label "High Risk"
 ```
 
+### cycle
+Manage cycles (time-boxed sprints/iterations of issues for the team).
+
+```
+/ticket cycle current           # Active cycle + its issues
+/ticket cycle list              # All cycles (--all includes completed)
+/ticket cycle get 3             # A cycle by number / UUID / "current"
+/ticket cycle add PROJ-123      # Add ticket(s) to the active cycle
+/ticket cycle add PROJ-1 PROJ-2 --to 3   # Add to a specific cycle
+/ticket cycle remove PROJ-123   # Remove ticket(s) from their cycle
+```
+
+You can also set a ticket's cycle inline: `bin/ticket update PROJ-123 --cycle current`.
+
 ### labels
 List available labels with their IDs.
 
@@ -84,4 +98,8 @@ bin/ticket create "Add login button" --description "Add login button to header n
 
 # Update status
 bin/ticket update PROJ-123 --status "Done"
+
+# Add the most important tickets to the active cycle (sprint)
+bin/ticket cycle current
+bin/ticket cycle add PROJ-123 PROJ-124
 ```

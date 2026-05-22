@@ -13,7 +13,7 @@ from lib.vibe.cli.ticket import (
     print_ticket,
     print_ticket_summary,
 )
-from lib.vibe.trackers.base import Ticket
+from lib.vibe.trackers.base import Cycle, Ticket
 
 
 class TestGetTracker:
@@ -996,3 +996,116 @@ class TestBatchAssignProject:
             )
 
         assert "appears in multiple projects" in result.output
+
+
+class TestCycleCLI:
+    """Tests for the `cycle` command group."""
+
+    def _cycle(self, number=3, name="Sprint 3", is_active=True, raw=None):
+        return Cycle(
+            id=f"cycle-{number}",
+            number=number,
+            name=name,
+            starts_at="2026-05-22T06:00:00.000Z",
+            ends_at="2026-05-23T06:00:00.000Z",
+            completed_at=None,
+            progress=0.5,
+            is_active=is_active,
+            issue_count=None,
+            raw=raw or {},
+        )
+
+    def test_cycle_list(self) -> None:
+        runner = CliRunner()
+        mock_tracker = MagicMock()
+        mock_tracker.list_cycles.return_value = [
+            self._cycle(3, "Sprint 3", True),
+            self._cycle(2, None, False),
+        ]
+
+        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+            result = runner.invoke(main, ["cycle", "list"])
+
+        assert result.exit_code == 0
+        assert "#3" in result.output
+        assert "Sprint 3" in result.output
+        assert "active" in result.output
+        mock_tracker.list_cycles.assert_called_once_with(include_completed=False)
+
+    def test_cycle_list_all(self) -> None:
+        runner = CliRunner()
+        mock_tracker = MagicMock()
+        mock_tracker.list_cycles.return_value = []
+
+        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+            result = runner.invoke(main, ["cycle", "list", "--all"])
+
+        assert result.exit_code == 0
+        mock_tracker.list_cycles.assert_called_once_with(include_completed=True)
+
+    def test_cycle_current_with_issues(self) -> None:
+        runner = CliRunner()
+        mock_tracker = MagicMock()
+        raw = {
+            "issues": {
+                "nodes": [
+                    {"identifier": "TEST-1", "title": "First", "state": {"name": "Todo"}},
+                ]
+            }
+        }
+        mock_tracker.get_cycle.return_value = self._cycle(raw=raw)
+
+        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+            result = runner.invoke(main, ["cycle", "current"])
+
+        assert result.exit_code == 0
+        assert "Cycle #3" in result.output
+        assert "TEST-1" in result.output
+        mock_tracker.get_cycle.assert_called_once_with("current", with_issues=True)
+
+    def test_cycle_add_multiple(self) -> None:
+        runner = CliRunner()
+        mock_tracker = MagicMock()
+        mock_tracker.add_to_cycle.return_value = Ticket(
+            id="TEST-1",
+            title="t",
+            description="",
+            status="Todo",
+            labels=[],
+            url="",
+            raw={},
+            cycle="Sprint 3",
+        )
+
+        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+            result = runner.invoke(main, ["cycle", "add", "TEST-1,TEST-2", "TEST-3"])
+
+        assert result.exit_code == 0
+        assert mock_tracker.add_to_cycle.call_count == 3
+        mock_tracker.add_to_cycle.assert_any_call("TEST-1", "current")
+        mock_tracker.add_to_cycle.assert_any_call("TEST-3", "current")
+        assert "Added 3 ticket(s)" in result.output
+
+    def test_cycle_add_to_specific_cycle(self) -> None:
+        runner = CliRunner()
+        mock_tracker = MagicMock()
+        mock_tracker.add_to_cycle.return_value = Ticket(
+            id="TEST-1", title="t", description="", status="Todo", labels=[], url="", raw={}
+        )
+
+        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+            result = runner.invoke(main, ["cycle", "add", "TEST-1", "--to", "3"])
+
+        assert result.exit_code == 0
+        mock_tracker.add_to_cycle.assert_called_once_with("TEST-1", "3")
+
+    def test_cycle_remove(self) -> None:
+        runner = CliRunner()
+        mock_tracker = MagicMock()
+
+        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+            result = runner.invoke(main, ["cycle", "remove", "TEST-1"])
+
+        assert result.exit_code == 0
+        mock_tracker.remove_from_cycle.assert_called_once_with("TEST-1")
+        assert "removed from cycle" in result.output

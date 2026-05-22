@@ -19,7 +19,7 @@ from lib.vibe.deployment_followup import (
     detect_deployment_platforms,
     get_default_human_followup_title,
 )
-from lib.vibe.trackers.base import Ticket
+from lib.vibe.trackers.base import Cycle, Ticket
 from lib.vibe.trackers.github_issues import GitHubIssuesTracker
 from lib.vibe.trackers.linear import LinearTracker
 from lib.vibe.trackers.shortcut import ShortcutTracker
@@ -739,6 +739,8 @@ def create_human_followup(
 )
 @click.option("--assignee", "-a", help="Assign to user (name or 'me')")
 @click.option("--unassign", is_flag=True, help="Remove assignee")
+@click.option("--cycle", help='Add to a cycle (number, UUID, or "current")')
+@click.option("--clear-cycle", is_flag=True, help="Remove the ticket from its cycle")
 def update(
     ticket_id: str,
     status: str | None,
@@ -756,6 +758,8 @@ def update(
     priority: str | None,
     assignee: str | None,
     unassign: bool,
+    cycle: str | None,
+    clear_cycle: bool,
 ) -> None:
     """Update a ticket (status, title, description, labels, relations, project, parent).
 
@@ -769,6 +773,7 @@ def update(
         bin/ticket update PROJ-456 --parent PROJ-100  # Make sub-task
         bin/ticket update PROJ-456 --no-parent  # Make standalone
         bin/ticket update PROJ-456 --priority urgent --assignee me
+        bin/ticket update PROJ-456 --cycle current
     """
     tracker = ensure_tracker_configured()
 
@@ -785,6 +790,8 @@ def update(
             priority,
             assignee,
             unassign,
+            cycle,
+            clear_cycle,
         ]
     )
     has_relation_update = any([blocked_by, blocks, remove_blocked_by, remove_blocks])
@@ -826,12 +833,18 @@ def update(
                 kwargs["assignee"] = assignee
             if "unassign" in params and unassign:
                 kwargs["unassign"] = unassign
+            if "cycle" in params and cycle:
+                kwargs["cycle"] = cycle
+            if "clear_cycle" in params and clear_cycle:
+                kwargs["clear_cycle"] = clear_cycle
 
             ticket = tracker.update_ticket(ticket_id, **kwargs)
             click.echo(f"Updated: {ticket.id}")
             click.echo(f"Status: {ticket.status}")
             if ticket.project:
                 click.echo(f"Project: {ticket.project}")
+            if ticket.cycle:
+                click.echo(f"Cycle: {ticket.cycle}")
             if ticket.parent_id:
                 click.echo(f"Parent: {ticket.parent_id}")
             if ticket.assignee:
@@ -1425,6 +1438,257 @@ def batch_assign_project(from_file: str, dry_run: bool) -> None:
         sys.exit(1)
 
 
+# -----------------------------------------------------------------------------
+# Cycle commands
+# -----------------------------------------------------------------------------
+
+
+def _flatten_ids(values: tuple[str, ...]) -> list[str]:
+    """Flatten comma-separated and repeated ticket IDs into a clean list."""
+    ids: list[str] = []
+    for raw in values:
+        ids.extend(part.strip() for part in raw.split(",") if part.strip())
+    return ids
+
+
+def _cycle_to_dict(c: Cycle) -> dict:
+    """Serialize a Cycle to a JSON-friendly dict."""
+    return {
+        "id": c.id,
+        "number": c.number,
+        "name": c.name,
+        "starts_at": c.starts_at,
+        "ends_at": c.ends_at,
+        "completed_at": c.completed_at,
+        "progress": c.progress,
+        "is_active": c.is_active,
+        "issue_count": c.issue_count,
+    }
+
+
+def _cycle_state(c: Cycle) -> str:
+    """Lifecycle label for a cycle: active, completed, or upcoming."""
+    if c.is_active:
+        return "active"
+    return "completed" if c.completed_at else "upcoming"
+
+
+def _fmt_cycle_date(ts: str | None) -> str:
+    """Render an ISO timestamp as a YYYY-MM-DD date (or '?')."""
+    return ts[:10] if ts else "?"
+
+
+def _cycle_issue_nodes(c: Cycle) -> list[dict]:
+    """Issue nodes attached to a cycle's raw payload (empty if not fetched)."""
+    nodes = (c.raw.get("issues") or {}).get("nodes", [])
+    return nodes if isinstance(nodes, list) else []
+
+
+def print_cycle_summary(c: Cycle) -> None:
+    """Print a one-line cycle summary."""
+    label = c.name or f"Cycle {c.number}"
+    pct = f" {round((c.progress or 0) * 100)}%" if c.progress is not None else ""
+    count = f" ({c.issue_count} issue(s))" if c.issue_count is not None else ""
+    dates = f"{_fmt_cycle_date(c.starts_at)} → {_fmt_cycle_date(c.ends_at)}"
+    click.echo(f"  #{c.number}  {label}  {dates}  [{_cycle_state(c)}]{pct}{count}")
+
+
+def print_cycle(c: Cycle) -> None:
+    """Print full cycle detail, including issues if they were fetched."""
+    label = c.name or f"Cycle {c.number}"
+    click.echo(f"\nCycle #{c.number}: {label}")
+    click.echo("-" * 60)
+    click.echo(f"State: {_cycle_state(c)}")
+    click.echo(f"Dates: {_fmt_cycle_date(c.starts_at)} → {_fmt_cycle_date(c.ends_at)}")
+    if c.progress is not None:
+        click.echo(f"Progress: {round(c.progress * 100)}%")
+    click.echo(f"ID: {c.id}")
+    issue_nodes = _cycle_issue_nodes(c)
+    if issue_nodes:
+        click.echo(f"\nIssues ({len(issue_nodes)}):")
+        for node in issue_nodes:
+            identifier = node.get("identifier", "")
+            if not identifier:
+                continue
+            state = (node.get("state") or {}).get("name", "")
+            click.echo(f"  - {identifier}: {node.get('title', '')} ({state})")
+    click.echo()
+
+
+@main.group()
+def cycle() -> None:
+    """Manage cycles (time-boxed sprints/iterations of issues for the team)."""
+    pass
+
+
+@cycle.command("list")
+@click.option("--all", "include_completed", is_flag=True, help="Include completed cycles")
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON")
+def cycle_list(include_completed: bool, as_json: bool) -> None:
+    """List the team's cycles, newest first.
+
+    Examples:
+
+        bin/ticket cycle list
+        bin/ticket cycle list --all   # include completed cycles
+    """
+    tracker = ensure_tracker_configured()
+
+    try:
+        with Spinner("Fetching cycles"):
+            cycles = tracker.list_cycles(include_completed=include_completed)
+    except (requests.RequestException, RuntimeError, NotImplementedError) as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+    if not cycles:
+        click.echo("No cycles found.")
+        return
+
+    if as_json:
+        import json
+
+        click.echo(json.dumps([_cycle_to_dict(c) for c in cycles], indent=2))
+        return
+
+    click.echo("\nCycles:")
+    click.echo("-" * 60)
+    for c in cycles:
+        print_cycle_summary(c)
+    click.echo(f"\n{len(cycles)} cycle(s) found.")
+
+
+@cycle.command("current")
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON")
+def cycle_current(as_json: bool) -> None:
+    """Show the active cycle and the issues in it."""
+    _show_cycle("current", as_json)
+
+
+@cycle.command("get")
+@click.argument("ref")
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON")
+def cycle_get(ref: str, as_json: bool) -> None:
+    """Show a cycle's detail and issues.
+
+    REF may be a cycle number, a UUID, or "current"/"active".
+
+    Examples:
+
+        bin/ticket cycle get 3
+        bin/ticket cycle get current
+    """
+    _show_cycle(ref, as_json)
+
+
+def _show_cycle(ref: str, as_json: bool) -> None:
+    """Fetch and print a cycle (with issues), shared by `current` and `get`."""
+    tracker = ensure_tracker_configured()
+
+    try:
+        with Spinner(f"Fetching cycle {ref}"):
+            c = tracker.get_cycle(ref, with_issues=True)
+    except (requests.RequestException, RuntimeError, NotImplementedError) as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+    if not c:
+        click.echo(f"No cycle found: {ref}")
+        sys.exit(1)
+
+    if as_json:
+        import json
+
+        data = _cycle_to_dict(c)
+        data["issues"] = [
+            {
+                "id": n.get("identifier", ""),
+                "title": n.get("title", ""),
+                "status": (n.get("state") or {}).get("name", ""),
+            }
+            for n in _cycle_issue_nodes(c)
+            if n.get("identifier")
+        ]
+        click.echo(json.dumps(data, indent=2))
+        return
+
+    print_cycle(c)
+
+
+@cycle.command("add")
+@click.argument("tickets", nargs=-1, required=True)
+@click.option(
+    "--to",
+    "-c",
+    "ref",
+    default="current",
+    help='Cycle to add to: number, UUID, or "current" (default: current)',
+)
+def cycle_add(tickets: tuple, ref: str) -> None:
+    """Add one or more tickets to a cycle (default: the active cycle).
+
+    Examples:
+
+        bin/ticket cycle add PROJ-25
+        bin/ticket cycle add PROJ-25 PROJ-33 PROJ-30
+        bin/ticket cycle add PROJ-25,PROJ-33 --to 3
+    """
+    tracker = ensure_tracker_configured()
+
+    if not hasattr(tracker, "add_to_cycle"):
+        click.echo("This tracker does not support cycles", err=True)
+        sys.exit(1)
+
+    success = 0
+    fail = 0
+    for ticket_id in _flatten_ids(tickets):
+        try:
+            ticket = tracker.add_to_cycle(ticket_id, ref)
+            click.echo(f"  ✓ {ticket_id} → {ticket.cycle or ref}")
+            success += 1
+        except (RuntimeError, NotImplementedError) as e:
+            click.echo(f"  ✗ {ticket_id}: {e}", err=True)
+            fail += 1
+
+    click.echo()
+    click.echo(f"Added {success} ticket(s) to cycle" + (f", {fail} failed" if fail else ""))
+    if fail:
+        sys.exit(1)
+
+
+@cycle.command("remove")
+@click.argument("tickets", nargs=-1, required=True)
+def cycle_remove(tickets: tuple) -> None:
+    """Remove one or more tickets from their cycle.
+
+    Examples:
+
+        bin/ticket cycle remove PROJ-25
+        bin/ticket cycle remove PROJ-25,PROJ-33
+    """
+    tracker = ensure_tracker_configured()
+
+    if not hasattr(tracker, "remove_from_cycle"):
+        click.echo("This tracker does not support cycles", err=True)
+        sys.exit(1)
+
+    success = 0
+    fail = 0
+    for ticket_id in _flatten_ids(tickets):
+        try:
+            tracker.remove_from_cycle(ticket_id)
+            click.echo(f"  ✓ {ticket_id} removed from cycle")
+            success += 1
+        except (RuntimeError, NotImplementedError) as e:
+            click.echo(f"  ✗ {ticket_id}: {e}", err=True)
+            fail += 1
+
+    click.echo()
+    click.echo(f"Removed {success} ticket(s) from cycle" + (f", {fail} failed" if fail else ""))
+    if fail:
+        sys.exit(1)
+
+
 def print_ticket(
     ticket: Ticket,
     show_children: bool = False,
@@ -1449,6 +1713,8 @@ def print_ticket(
         if ticket.project_state:
             project_str += f" ({ticket.project_state})"
         click.echo(f"Project: {project_str}")
+    if ticket.cycle:
+        click.echo(f"Cycle: {ticket.cycle}")
     if ticket.parent_id:
         parent_str = ticket.parent_id
         if ticket.parent_title:
