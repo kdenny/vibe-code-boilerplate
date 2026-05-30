@@ -49,10 +49,15 @@ more**. Do **not** grant merge rights or the ability to push to `main`.
    `kevin-earl-denny` account and select **only** the
    `kevin-earl-denny/vibe-code-boilerplate` repo (least privilege; do not grant
    "all repos").
-2. The repo's branch protection on `main` is the real backstop — confirm it
-   requires a PR + passing checks and **disallows direct pushes / force-pushes**
-   to `main` (see §5 verification). The token can create branches and PRs; it
-   cannot merge or push to `main`.
+2. The repo's branch protection on `main` is the real backstop — it must
+   require a PR + passing checks and **disallow direct pushes / force-pushes**
+   to `main` (see §5). The token can create branches and PRs; it must not be
+   able to merge or push to `main`.
+   > ⚠️ **Not yet enabled (deferred to move fast) — tracked in
+   > [VIBE-201](https://linear.app/2wrist/issue/VIBE-201).** Agents author PRs
+   > under the owner's full-access identity, so until VIBE-201 lands this
+   > boundary is **advisory** (enforced by `AGENTS.md`, not the server). VIBE-187
+   > AC2 stays open until protection is live.
 3. Record the date the token was granted here so rotation is auditable:
    - Granted: `<fill in>` · Granted by: `<fill in>` · Review/rotate by: `<+90d>`
 
@@ -151,6 +156,10 @@ Read CLAUDE.md first — it is the live contract; this is only a pointer to it.
 
 Before relying on the agent, prove the token genuinely cannot reach `main`.
 Confirm GitHub branch protection on `main`:
+
+> **Status:** currently returns `404 "Branch not protected"` — protection is
+> deferred to [VIBE-201](https://linear.app/2wrist/issue/VIBE-201). This is that
+> ticket's acceptance check; it will pass once protection is enabled.
 
 ```bash
 # Requires a maintainer token; read-only check of main's protection.
