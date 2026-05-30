@@ -32,9 +32,13 @@ def main() -> None:
     try:
         from lib.vibe.update_check import check_for_update, format_update_notice
 
-        update_info = check_for_update()
-        if update_info:
-            click.echo(format_update_notice(update_info), err=True)
+        # The notice is an interactive affordance ("run bin/vibe update"). Only
+        # show it when stderr is attached to a terminal, so it never leaks into
+        # pipes, CI, or --json output (CliRunner mixes stderr into result.output).
+        if sys.stderr.isatty():
+            update_info = check_for_update()
+            if update_info:
+                click.echo(format_update_notice(update_info), err=True)
     except Exception:  # noqa: BLE001
         pass  # Never let update check break the CLI
 
