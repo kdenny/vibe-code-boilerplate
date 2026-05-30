@@ -25,12 +25,18 @@ Findings that touch behavior were checked against the revamp contract in
 | Bucket | Items | This PR |
 |--------|-------|---------|
 | **Delete** | 3 confirmed-dead files | ✅ executed |
+| **PR-automation hardening** | 2 (exact ticket matching; stale-branch pruning) | ✅ executed |
 | **Extract** | 2 (cost-provider HTTP layer; tracker shared HTTP) | ⏸️ defer to existing VIBE-86 line |
-| **Consolidate** | 3 (test thinning; bin/ venv setup; fallback-workflow docs) | ◑ 1 demonstrated, rest tracked |
-| **Defer** | 4 (VIBE-22 bug; tracker-aware branch parse; stale-branch pruning; stale generated-file regeneration) | ⏸️ tracked / staged |
+| **Consolidate** | 2 (test thinning; fallback-workflow docs) | ◑ 1 demonstrated, rest tracked |
+| **Defer** | 1 (regenerate instruction files post-revamp) | ⏸️ revamp-exit checklist |
 
 Plus the **modular-testing infrastructure** the audit's test findings depend on:
 module-scoped CI (`lib/vibe/testscope.py` + `tests.yml`) and the policy recipe.
+
+> **Scope note:** we support **Linear only** now, so the "tracker-aware" parsing
+> concern collapses to Linear-aware exact matching (below). The `bin/` venv
+> bootstrap duplication is **dropped from this audit** — it's being handled in
+> `.direnv` once VIBE-176 merges.
 
 ---
 
@@ -58,6 +64,21 @@ regeneration.
   CLAUDE.md. Keep.
 
 ---
+
+## PR-AUTOMATION HARDENING — executed in this PR
+
+These are PR-automation edge cases (the ticket's fifth dimension) that produce
+"noisy or incorrect" PRs as remote agents scale. Both fixed in `lib/vibe/cli/main.py`
+with tests in `tests/test_duplicate_pr_prevention.py`.
+
+| Fix | Before | After |
+|-----|--------|-------|
+| **Exact ticket matching** (`_check_existing_prs_for_ticket`) | Substring match — `gh pr list --search VIBE-1` returns VIBE-12 / VIBE-100, and `"VIBE-1" in title` flagged them all as duplicates → false-positive abort prompts. | Word-boundary regex (`\bVIBE-1\b`, case-insensitive). VIBE-1 no longer matches VIBE-12; still matches `VIBE-1:` and `Fixes VIBE-1`. |
+| **Stale-branch pruning** (`_check_local_state_for_ticket_conflicts`) | Warned on *any* other recorded branch for the ticket, including ones abandoned weeks ago — noise at agent scale. | Records older than `_STALE_BRANCH_DAYS` (30) are treated as abandoned and ignored, using the existing `created_at` timestamp. Missing/unparseable timestamps fail safe (kept). |
+
+> **Overlap with [VIBE-22](https://linear.app/2wrist/issue/VIBE-22):** the exact-matching
+> fix *is* VIBE-22's scope ("fix exact ticket matching in open-PR duplicate detection").
+> Done here at the user's direction — **VIBE-22 can be closed as resolved by this PR.**
 
 ## EXTRACT — defer to the existing extraction line (VIBE-86 et al.)
 
@@ -124,13 +145,12 @@ cheap and enforced, and demonstrates the pattern once:
 `test_doctor.py`, `test_frontend.py`, `test_agents.py`, `test_git_worktrees.py`,
 `test_secrets_providers.py`.
 
-### C2 — `bin/` venv bootstrap duplication
+### C2 — `bin/` venv bootstrap duplication — DROPPED
 
 `bin/ticket`, `bin/costs`, `bin/secrets` each repeat ~20 lines of venv
-detection/activation/dispatch (only `bin/vibe` does the full setup). → Extract a
-shared `bin/`-sourced init snippet. Small, but it's CLI surface (needs a
-smoke-test matrix per CLI doctrine), so **track as a follow-up** rather than ride
-it into this audit PR.
+detection/activation/dispatch. This is **no longer an audit item**: bootstrap is
+moving to `.direnv` once **VIBE-176** merges, which removes the per-script venv
+plumbing entirely. No follow-up needed.
 
 ### C3 — Fallback-workflow guidance
 
@@ -145,10 +165,11 @@ native" preamble in both workflows (doc-only; **track as follow-up**).
 
 | Item | Detail | Tracking |
 |------|--------|----------|
-| **Inexact duplicate-PR ticket match** | `lib/vibe/cli/main.py:712` uses substring match (`ticket_id.upper() in title.upper()`), so `VIBE-1` matches `VIBE-12`/`VIBE-123` → false-positive duplicate warnings. Real bug; will matter more as agents scale. | **Already ticketed: [VIBE-22](https://linear.app/2wrist/issue/VIBE-22).** Not fixed here (1 ticket = 1 PR). |
-| **Tracker-aware branch parse** | `_extract_ticket_id` (`main.py:673`) assumes `[A-Z]+-\d+`; won't link lowercase Shortcut/GitHub branches. Fails gracefully (no link, no crash). | New follow-up ticket. |
-| **Stale-branch false positives** | Local-state duplicate check warns on abandoned branches regardless of age; noisy at agent scale. `record_ticket_branch` already stamps `created_at` — prune by age. | New follow-up ticket. |
 | **Regenerate instruction files** | After the revamp, re-enable `bin/vibe generate-agent-instructions` and regenerate `.cursor/rules` + copilot instructions from `agent_instructions/` with real project context. | Revamp-exit checklist. |
+
+> The duplicate-PR exact-match and stale-branch items that were originally here
+> are now **done in this PR** (see *PR-automation hardening* above). The
+> tracker-aware parsing concern is resolved by Linear-only exact matching.
 
 ---
 
