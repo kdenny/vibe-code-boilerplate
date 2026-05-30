@@ -11,6 +11,9 @@ from vibe.testscope import (
     discover_test_stems,
     select_test_targets,
 )
+from vibe.testscope import (
+    main as testscope_main,
+)
 
 # A representative slice of the real suite's stems. Kept explicit so the tests
 # don't depend on the live tests/ directory contents.
@@ -221,6 +224,14 @@ class TestScopeContract:
         # A docs/recipe-only PR (like parts of this one) maps to no pytest target
         # — the runner skips pytest entirely rather than running the full suite.
         assert select("recipes/environments/cloud-bootstrap.md") == []
+
+    def test_cli_discovers_repo_tests_from_package_root(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        assert testscope_main(["vibe/trackers/linear.py"]) == 0
+
+        captured = capsys.readouterr()
+        assert captured.out.strip() == "tests/test_trackers_linear.py tests/test_views.py"
 
 
 class TestMappingIntegrity:

@@ -232,7 +232,7 @@ def main(argv: list[str] | None = None) -> int:
     else:
         changed = sys.stdin.read().splitlines()
 
-    tests_dir = Path(__file__).resolve().parent.parent.parent / "tests"
+    tests_dir = Path(__file__).resolve().parent.parent / "tests"
     known = discover_test_stems(tests_dir) if tests_dir.is_dir() else set()
 
     targets = select_test_targets(changed, known)
