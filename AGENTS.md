@@ -12,7 +12,7 @@ Guidance for autonomous agents (including Cursor Cloud) working in this reposito
 
 ## Pull requests (agent default)
 
-- **Open PRs ready for review** (`draft: false`). Do **not** open draft PRs unless the user explicitly asks and the work is **stacked on another feature branch** that has not merged to `main` yet — those PRs must be labeled **`DNM`** until the parent lands, then rebase onto `main`, drop `DNM`, and mark ready.
+- **Open PRs ready for review** (`draft: false`), and **always base on `main`** — never on another feature branch. Open a draft only when the work **depends on a not-yet-merged PR**: base it on `main` anyway, label it **`DNM`**, note the dependency in both the PR and the ticket, and once the parent lands rebase onto `main`, drop `DNM`, and mark ready. A PR based on a feature branch is never a valid final state.
 - **Metadata:** title `VIBE-<n>: …`, one of **Low / Medium / High Risk**, and a description that satisfies the agent-PR contract in [`CLAUDE.md`](CLAUDE.md) (test proof, staged step when applicable, sync confirmation).
 - **CodeRabbit:** treat approval as the merge gate — run `bin/ci-local` locally first, fix anything CodeRabbit flags, and push again. Agents cannot click “approve” on CodeRabbit’s behalf; keep the PR green and address review comments until CodeRabbit approves or a human overrides.
 

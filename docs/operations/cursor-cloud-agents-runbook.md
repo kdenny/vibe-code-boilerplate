@@ -21,10 +21,14 @@ warm/cold contract in
 - **The program plan:** [`docs/architecture/VIBE-140-cloud-coding-environment.md`](../architecture/VIBE-140-cloud-coding-environment.md)
   (matched pair — repo doc + Linear project doc). §7 of that plan points here.
 
-> **Trust boundary (non-negotiable, from ADR-001 + VIBE-140 §7):** the agent
-> **never merges**. Every path ends at a reviewable PR into the existing gate
-> (PR-policy bot + CodeRabbit + human). The token is **branch-only**; secrets
-> live only in Cursor's store; spend is hard-capped; the kill switch is tested.
+> **Trust boundary (from ADR-001 + VIBE-140 §7):** the agent **never merges** —
+> every path ends at a reviewable PR into the existing gate (PR-policy bot +
+> CodeRabbit + human); secrets live only in Cursor's store; spend is hard-capped;
+> the kill switch is tested. This is **non-negotiable as operating policy**. The
+> **server-side** enforcement that makes the branch boundary impossible to cross
+> (branch protection so the branch-only token cannot reach `main`) is **deferred
+> to [VIBE-201](https://linear.app/2wrist/issue/VIBE-201)** — until it lands that
+> boundary is **advisory** (enforced by `AGENTS.md`, not the server; see §1, §5).
 
 ---
 
@@ -123,7 +127,7 @@ out of sync). The canonical text is below; paste it into Linear.
 Keep the existing per-project repo mapping. Append this project-agnostic block;
 it must not contain VIBE-specifics (it applies to DEAL/LIFT/PROMPT/etc. too):
 
-```
+```text
 Universal agent rules (all repos):
 - The repo's CLAUDE.md is the source of truth. Read it before acting; it overrides anything here.
 - One ticket = one branch = one PR, and the PR's base branch is always `main`. No stacked PRs.
@@ -135,7 +139,7 @@ Universal agent rules (all repos):
 
 ### 4b. VIBE team-level guidance (VIBE repo only)
 
-```
+```text
 You are working in the VIBE repo: github.com/kevin-earl-denny/vibe-code-boilerplate (tracker: Linear, VIBE-*).
 Read CLAUDE.md first — it is the live contract; this is only a pointer to it.
 

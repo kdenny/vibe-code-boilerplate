@@ -149,8 +149,11 @@ reviews:
       instructions: >-
         Cursor Cloud agent config — the CLOUD counterpart of the run/validation
         flow (VIBE-187; ops in docs/operations/cursor-cloud-agents-runbook.md).
-        environment.json MUST stay secret-free (ANTHROPIC_API_KEY / LINEAR_API_KEY
-        belong only in Cursor's secret store) and its install step MUST resolve to
+        environment.json MUST stay secret-free (no plaintext secrets in-repo), and
+        Cursor agents should use only required runtime secrets from Cursor's secret
+        store (e.g. LINEAR_API_KEY + Slack-related keys; explicitly exclude
+        ANTHROPIC_API_KEY — Cursor agents run on Cursor's model billing). Its
+        install step MUST resolve to
         the same pinned versions as the local path — install from requirements.lock
         via uv (pip fallback), never an unpinned `pip install`. Flag: any secret or
         token literal, an install that drifts from requirements.lock /
