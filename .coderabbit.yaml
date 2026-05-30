@@ -125,6 +125,14 @@ reviews:
         modified CLI. Flag thin wrappers without docs, silently swallowed errors,
         and missing inline --help. Do not approve CLI changes whose only test
         proof is a mocked CI test.
+    - path: ".envrc"
+      instructions: >-
+        Committed direnv config and part of the local run/validation flow. It
+        MUST stay secret-free (machine-specific secrets belong in .env.local /
+        .envrc.local, both gitignored) and must degrade gracefully when direnv
+        is absent. Any change to how local env loads, the venv activates, or
+        bin/ reaches PATH is a local-setup-flow change — confirm CLAUDE.md and
+        this file stay consistent per the sync rule.
     - path: "tests/**"
       instructions: >-
         Require tests at the right level: module-level unit tests for isolated

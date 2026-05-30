@@ -61,6 +61,7 @@ By participating in this project, you agree to abide by our [Code of Conduct](CO
 - Python 3.11+
 - Git
 - GitHub CLI (`gh`)
+- [direnv](https://direnv.net/docs/installation.html) (optional but recommended)
 
 ### Setup
 
@@ -75,6 +76,25 @@ bin/vibe setup
 # Verify
 bin/vibe doctor
 ```
+
+### direnv (recommended)
+
+This repo ships a committed [`.envrc`](.envrc). With `direnv` installed, `cd`ing
+into the project automatically:
+
+- loads `.env` / `.env.local` (your secrets live in `.env.local`, gitignored),
+- activates a project-local Python virtualenv (under `.direnv/`), and
+- puts `bin/` on `PATH` so `vibe`, `ci-local`, `ticket`, and `doctor` are
+  callable without the `bin/` prefix.
+
+```bash
+direnv allow            # one-time, in the project root
+pip install -e ".[dev]" # into the direnv-managed venv
+```
+
+direnv is optional — without it, `bin/*` and `lib/vibe/env.py` still load
+`.env.local` on their own; you just run commands via the `bin/` prefix and
+manage your own virtualenv. `bin/vibe doctor` reports direnv status either way.
 
 ### Running Tests
 
