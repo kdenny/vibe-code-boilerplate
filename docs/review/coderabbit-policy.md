@@ -12,10 +12,29 @@ revamp. It should give **decisive** approve / request-changes outcomes with stro
 repo context and minimal noise, and it must be live *before* the main
 restructuring work begins.
 
-## Be strict about (request changes)
+## Guardrail, not a roadblock (the verdict rule)
 
-These are real signal. CodeRabbit is configured — via `path_instructions`,
-`pre_merge_checks`, and `request_changes_workflow` — to block on them:
+CodeRabbit is a **guardrail, not a serious roadblock**. The default outcome is
+**approve**: once nothing blocking remains, it approves the PR even if non-blocking
+nitpicks are still open.
+
+A finding is **blocking** (request changes, fix before merge) **if and only if
+future PRs will build on top of the affected thing** — i.e. the cost compounds if
+it merges as-is. The reasoning: drift in a foundation propagates to every PR that
+lands on it; a throwaway nit does not. So we pay to fix foundations now and let
+one-off imperfections through.
+
+This rule lives in the config as the global `path: "**"` instruction in
+[`.coderabbit.yaml`](../../.coderabbit.yaml), and it is why `request_changes_workflow`
+stays `true` (so the blocking set still hard-blocks) while the description/contract
+`pre_merge_checks` were demoted from `error` to `warning` (format hygiene is a nudge,
+not a roadblock).
+
+## Block only what compounds (request changes)
+
+These are the **foundational** findings future PRs build on. CodeRabbit is
+configured — via the global `**` instruction, `path_instructions`, and
+`request_changes_workflow` — to block on them:
 
 | Area | What triggers request-changes |
 |------|-------------------------------|
@@ -24,8 +43,15 @@ These are real signal. CodeRabbit is configured — via `path_instructions`,
 | **Module boundaries** | Increased hidden coupling, reach-through into internals, new global state, or a module that can no longer run/test in isolation. |
 | **Migration posture** | Big-bang rewrites where staged extraction was viable. Large structural churn not justified by the target architecture. Behavior regressions in a refactor. |
 | **Local validation** | Broken or slowed local run/validation. Anything that makes `bin/ci-local` slower or less reliable. |
-| **PR metadata** | Title missing the `VIBE-<n>:` ticket ref. Description missing the staged step, test proof, isolation confirmation, or the sync confirmation. |
+| **PR metadata** | Title missing the `VIBE-<n>:` ticket ref (hard block — breaks ticket linkage). A PR based on a feature branch that isn't a documented draft+DNM bundle (never a valid final state). |
 | **Sync rule** | A structural / run-flow / agent-contract change that does not update `.coderabbit.yaml` (and CLAUDE.md) in the same PR. |
+
+> **Not blocking (warning only):** a thin or incomplete PR *description* — missing
+> the staged step, test-proof matrix, isolation, or sync confirmation. These are
+> format hygiene, not a defect future PRs inherit, so the contract `pre_merge_checks`
+> run at `warning`. The *substance* behind them (tests actually exist, modules
+> actually run in isolation, the sync edit is actually present) is still blocking,
+> enforced via `path_instructions` on `tests/**`, `lib/vibe/**`, and `CLAUDE.md`.
 
 ## Stay open / quiet about (author's judgment)
 
@@ -57,12 +83,19 @@ should explicitly defer (not guess) on these.
 
 - **`profile: chill`** — low style noise; strictness comes from `path_instructions`,
   not from a nitpicky global profile.
-- **`request_changes_workflow: true` + `abort_on_close: true`** — outcomes are
-  decisive and block the merge, rather than advisory.
+- **`request_changes_workflow: true` + `abort_on_close: true`** — kept on so the
+  *blocking* set (the compounding findings) still hard-blocks the merge. The
+  guardrail-not-roadblock behavior comes from narrowing *what* is blocking (the
+  global `**` instruction), not from making review advisory.
 - **`auto_review.auto_incremental_review: true`** — re-reviews each push so the
   agent loop stays tight; latency stays low.
-- **`pre_merge_checks` (title/description = error)** — hard gates that enforce the
-  agent-PR contract instead of hoping authors remember it.
+- **`pre_merge_checks` (title = error; description + Agent-PR contract = warning)**
+  — only the title (ticket linkage) and base-branch facts hard-block, because they
+  compound; description/contract completeness is a warning nudge, not a roadblock.
+- **`tone_instructions` ≤ 250 chars** — CodeRabbit silently falls back to the
+  default config if any field exceeds its schema `maxLength` (tone_instructions is
+  capped at 250). `tests/test_coderabbit_config.py` guards this so an over-limit
+  edit can't quietly disable the whole firewall.
 - **`assess_linked_issues` / `related_issues` / `related_prs`** — pulls repo and
   ticket context into every review so feedback is grounded.
 - **`path_filters`** — excludes `docs/archive/**`, lockfiles, `.venv`, and build

@@ -29,6 +29,9 @@ dev = [
     "pytest-cov>=7.1.0",
     "mypy>=1.20.1",
     "ruff>=0.1.0",
+    # Used by tests/test_coderabbit_config.py to validate .coderabbit.yaml against
+    # the schema's maxLength limits (an over-limit field silently disables the config).
+    "pyyaml>=6.0.3",
 ]
 # Optional: Better TOML parsing for fly.toml (falls back to simple parsing if not installed)
 fly = [
