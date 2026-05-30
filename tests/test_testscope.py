@@ -16,12 +16,14 @@ from lib.vibe.testscope import (
 # don't depend on the live tests/ directory contents.
 KNOWN = {
     "config",
+    "errors",
     "tools",
     "version",
     "update_check",
     "doctor",
     "label_sync",
     "cli_main_pr",
+    "cli_registry",
     "cli_ticket",
     "duplicate_pr_prevention",
     "trackers_linear",
@@ -41,6 +43,8 @@ KNOWN = {
     "git_worktrees",
     "frontend",
     "agents",
+    "integrations",
+    "integrations_guardrails",
     "retrofit",
 }
 
@@ -100,6 +104,12 @@ class TestPackageScoping:
         # additive (see TestIntegrationSeams).
         assert "tests/test_git_worktrees.py" in select("lib/vibe/git/worktrees.py")
 
+    def test_integrations_package_maps_to_guardrail_and_shape_suites(self) -> None:
+        assert select("lib/vibe/integrations/pr_autopilot/__init__.py") == [
+            "tests/test_integrations.py",
+            "tests/test_integrations_guardrails.py",
+        ]
+
 
 class TestTopLevelModuleScoping:
     def test_top_level_module_maps_by_convention(self) -> None:
@@ -114,8 +124,15 @@ class TestTopLevelModuleScoping:
 class TestExplicitCrossFileMappings:
     def test_cli_main_pulls_pr_and_duplicate_suites(self) -> None:
         assert select("lib/vibe/cli/main.py") == sorted(
-            ["tests/test_cli_main_pr.py", "tests/test_duplicate_pr_prevention.py"]
+            [
+                "tests/test_cli_main_pr.py",
+                "tests/test_cli_registry.py",
+                "tests/test_duplicate_pr_prevention.py",
+            ]
         )
+
+    def test_cli_registry_maps_to_registry_suite(self) -> None:
+        assert select("lib/vibe/cli/registry.py") == ["tests/test_cli_registry.py"]
 
     def test_linear_change_includes_views(self) -> None:
         assert select("lib/vibe/trackers/linear.py") == sorted(

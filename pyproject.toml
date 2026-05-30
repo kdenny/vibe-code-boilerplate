@@ -41,9 +41,13 @@ fly = [
 batch = [
     "pyyaml>=6.0.3",
 ]
+pr-autopilot = []
 
 [project.scripts]
 vibe = "lib.vibe.cli.main:main"
+
+[project.entry-points."vibe.integrations"]
+pr-autopilot = "lib.vibe.integrations.pr_autopilot:integration"
 
 [tool.setuptools.dynamic]
 version = {file = "VERSION"}

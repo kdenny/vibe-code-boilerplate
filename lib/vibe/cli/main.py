@@ -4,6 +4,7 @@ import os
 import re
 import subprocess as _subprocess
 import sys
+from collections.abc import Iterable
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -12,8 +13,15 @@ import requests
 
 from lib.vibe.cli.costs import main as costs_group
 from lib.vibe.cli.figma import figma
+from lib.vibe.cli.registry import (
+    Integration,
+    IntegrationVerb,
+    get_registry,
+    load_entry_point_integrations,
+)
 from lib.vibe.cli.secrets import main as secrets_group
 from lib.vibe.doctor import print_results, run_doctor
+from lib.vibe.errors import IntegrationError, MissingExtraError
 from lib.vibe.trackers.base import TrackerBase
 from lib.vibe.version import bump_version, get_version, write_version
 from lib.vibe.wizards.setup import run_individual_wizard, run_setup
@@ -37,6 +45,43 @@ def main() -> None:
             click.echo(format_update_notice(update_info), err=True)
     except Exception:  # noqa: BLE001
         pass  # Never let update check break the CLI
+
+
+def register_integration_commands(
+    root: click.Group,
+    integrations: Iterable[Integration] | None = None,
+) -> None:
+    """Register integration CLI groups under the root command."""
+
+    for integration in integrations or get_registry().all():
+        root.add_command(_integration_group(integration), integration.cli_name)
+
+
+def _integration_group(integration: Integration) -> click.Group:
+    group = click.Group(
+        name=integration.cli_name,
+        help=integration.description or f"{integration.cli_name} integration commands.",
+    )
+    for integration_verb in integration.verbs:
+        group.add_command(_integration_command(integration, integration_verb), integration_verb.cli_name)
+    return group
+
+
+def _integration_command(
+    integration: Integration,
+    integration_verb: IntegrationVerb,
+) -> click.Command:
+    @click.command(name=integration_verb.cli_name, help=integration_verb.help)
+    def command() -> None:
+        try:
+            integration.ensure_extra_available()
+            result = integration_verb.handler()
+        except (MissingExtraError, IntegrationError) as exc:
+            raise click.ClickException(str(exc)) from exc
+        if result is not None:
+            click.echo(result)
+
+    return command
 
 
 @main.command("version")
@@ -1558,6 +1603,9 @@ main.add_command(figma)
 
 # Register costs command group
 main.add_command(costs_group, "costs")
+
+load_entry_point_integrations()
+register_integration_commands(main)
 
 
 if __name__ == "__main__":

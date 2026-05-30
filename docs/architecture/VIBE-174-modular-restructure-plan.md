@@ -47,6 +47,7 @@ lib/vibe/            # the package
   trackers/          # Linear / Shortcut / GitHub-issues (+ base)
   costs/             # cost model + providers/* (8, dynamically loaded)
   secrets/           # allowlist + providers/* (3, dynamically loaded)
+  integrations/      # publishable integration registry consumers (VIBE-86 seam)
   wizards/           # setup + per-integration wizards
   git/               # branches, worktrees
   ui/                # reusable terminal UI components
@@ -258,7 +259,8 @@ to *not* be a big-bang. Steps are independent unless noted.
 | 5 | **Cover the next seams** | add `wizards.setup ↔ *` and `cli ↔ trackers` integration suites | each seam runs real collaborators, boundary-only mocks | ⏭️ |
 | 6 | **Fix the worktree/state base_path asymmetry** (F5) | thread `base_path` through `cleanup_worktree` | a cleanup-from-elsewhere integration test passes | ⏭️ |
 | 7 | **Per-module test re-leveling** | apply the thinning targets from the VIBE-137 audit *as each module is rewritten* | per `modular-testing.md`; no separate gutting PR | ⏭️ ongoing |
-| — | **Module extraction → package** | provider packages first | owned by **VIBE-86 line**, not this ticket | 🔗 VIBE-86 |
+| 8 | **Integration registration seam** | `lib/vibe/cli/registry.py`, `lib/vibe/integrations/`, packaging docs, guardrail tests | integration declares config/verbs/entrypoints/extra; missing extra is actionable; app-code imports fail guardrail | ✅ VIBE-86 |
+| — | **Module extraction → package** | provider packages first; PR Autopilot engine lands behind the VIBE-86 seam | owned by **VIBE-128/VIBE-85 follow-ups**, not this structural plan | 🔗 |
 
 > **Non-destructive discipline:** no step relocates working code without a test
 > proving behavior is preserved. Steps 2–6 are each small enough to review in
@@ -278,7 +280,9 @@ install. The structure choices above are chosen to move toward that:
    that run in isolation *and* prove its seams, so DEAL can trust it.
 3. **Validation contract (§3)** → `bin/ci-local` + module-scoped CI is the
    reusable "does this change pass?" gate the autopilot leans on.
-4. **VIBE-86 extraction line** → physically packages the providers/tooling.
+4. **VIBE-86 integration seam** → the live registry, reference
+   `pr_autopilot` skeleton, extra-gated CLI dispatch, and app-code import
+   guardrail give VIBE-128 a package boundary to plug into.
 
 The packaging spec and milestone live in VIBE-83/88 and the
 [packaged-vibe publish milestone](https://linear.app/2wrist/issue/VIBE-83). This
@@ -305,8 +309,8 @@ plan is the *structural enabler*; it does not itself publish the package.
 
 - **Non-goal: relocating working code.** The repo is already modular; churn
   without a behavior-preserving proof is explicitly out of scope.
-- **Non-goal: module extraction/packaging.** Owned by VIBE-86; this plan enables
-  it but doesn't do it.
+- **Non-goal: PR Autopilot engine extraction.** VIBE-86 provides the seam; the
+  actual engine remains owned by VIBE-128 and release packaging by VIBE-85.
 - **Risk: testscope churn vs VIBE-137.** This PR is branched off VIBE-137 (in
   review). The `testscope.py` edits are additive (new `INTEGRATION_SEAMS` + new
   branches in `select_test_targets`) to minimize rebase conflict if 137 changes.

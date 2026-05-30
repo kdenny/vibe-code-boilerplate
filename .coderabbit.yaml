@@ -165,6 +165,15 @@ reviews:
         and structural churn not justified by the modular target architecture in
         CLAUDE.md. Require that behavior is preserved (non-destructive) and that
         the change is a staged extraction, not a big-bang rewrite.
+    - path: "lib/vibe/integrations/**"
+      instructions: >-
+        Publishable integration modules (VIBE-86 seam). Each integration exposes
+        only its typed config class and `integration` registration object, declares
+        CLI verbs/entrypoints/extras through lib.vibe.cli, and must not import
+        downstream app/repo-local code (app, src, lift, deal, etc.) or assume a
+        specific checkout layout. Flag missing __all__, optional provider imports
+        that happen at module import time instead of behind the extra gate, and
+        any change not covered by the guardrail tests.
     - path: "bin/**"
       instructions: >-
         CLI wrappers. Confirm the PR description documents a per-subcommand
