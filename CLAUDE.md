@@ -155,7 +155,7 @@ its rewrite.
 
 | Command | Guarantee |
 |---------|-----------|
-| `bin/ci-local` | All locally-runnable checks (ruff check + format, mypy on `lib/vibe/`, full pytest, gitleaks, project hooks). Exit 0 ⇒ safe to push. Missing tools **skip**, never fail. |
+| `bin/ci-local` | All locally-runnable checks (ruff check + format, mypy on `lib/vibe/`, full pytest, gitleaks, project hooks). Exit 0 ⇒ safe to push. Resolves ruff/mypy/pytest from the project venv (`.venv`/`.direnv`) even when it isn't on `PATH`. A missing **core linter** (ruff/mypy) still skips non-fatally — but warns **loudly** (`⚠ … SKIPPED`, "not a clean pass"), never silently, so it can't masquerade as a pass. |
 | `bin/ci-local --fast` | Same, minus slow frontend tests — for tight inner loops. |
 | `bin/ci-local --scope [paths]` | Pytest scoped to changed modules (auto-diff vs `origin/main`, or the explicit paths). Same `testscope.py` selector as CI; the cloud agent's QA path. Lint/secret scans still run whole-tree. |
 | `python -m lib.vibe.testscope <paths>` | Prints exactly which suites CI will run (`ALL` / paths / empty). |
@@ -345,7 +345,11 @@ contract.
   error (agent's fault → memory file; CLI's fault → Urgent ticket + DX channel).
 - **Read before editing; match existing patterns; keep changes minimal;** don't
   commit secrets; don't skip CI.
-- **Run `bin/ci-local` before pushing.**
+- **Run `bin/ci-local` before pushing** (`--fast` for the inner loop). Activate
+  the local gate once per clone with `git config core.hooksPath .githooks` so the
+  `pre-push` hook runs ruff + mypy automatically; `.cursor/environment.json` does
+  this for cloud agents. Never push past a `⚠ … SKIPPED` warning — a core linter
+  didn't run and CI will catch what you couldn't.
 - **Linear priority is a field, not a label** (Urgent/High/Medium/Low). Don't use
   P0–P3 labels. **Linear is the only supported tracker** during the revamp.
 

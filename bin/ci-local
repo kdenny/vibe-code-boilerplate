@@ -43,6 +43,22 @@ REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 
 cd "$REPO_ROOT"
 
+# ── Resolve project venv tools without requiring shell activation ─────────────
+# The tools (ruff/mypy/pytest) are pinned in requirements.lock and installed
+# into a project-local venv (.venv via uv, or .direnv/ via direnv layout). A
+# cloud/agent shell often has neither activated, so a bare `command -v mypy`
+# fails and the check silently skips — that is precisely how no-any-return
+# errors reached CI green-locally. Put the venv's bin first on PATH if present
+# so the checks actually run; this is a no-op when nothing is installed there.
+for _venv_bin in "$REPO_ROOT/.venv/bin" "$REPO_ROOT/.direnv"/python*/bin; do
+  if [[ -d "$_venv_bin" ]]; then
+    PATH="$_venv_bin:$PATH"
+    break
+  fi
+done
+unset _venv_bin
+export PATH
+
 # ── Args ──────────────────────────────────────────────────────────────────────
 FAST=false
 SCOPE=false
@@ -100,10 +116,12 @@ fi
 PASS="${GREEN}✓${RESET}"
 FAIL="${RED}✗${RESET}"
 SKIP="${YELLOW}–${RESET}"
+WARN="${YELLOW}${BOLD}⚠${RESET}"
 
 # ── Tracking ─────────────────────────────────────────────────────────────────
 FAILURES=()
 SKIPS=()
+WARNINGS=()
 
 run_check() {
   local name="$1"
@@ -122,6 +140,18 @@ skip_check() {
   local reason="$2"
   echo -e "\n$SKIP $name — $reason"
   SKIPS+=("$name")
+}
+
+# Like skip_check, but LOUD: for a core linter (ruff/mypy) that is missing.
+# Still non-blocking (honors the "missing tools skip, never fail" contract),
+# but a missing core linter must never be mistaken for a passing check —
+# that exact silent skip is how mypy/ruff failures reached CI green-locally.
+warn_skip() {
+  local name="$1"
+  local reason="$2"
+  echo -e "\n$WARN ${YELLOW}${BOLD}$name SKIPPED — $reason${RESET}"
+  echo -e "  ${YELLOW}This check did NOT run. CI will still enforce it; install the tool to catch failures locally first.${RESET}"
+  WARNINGS+=("$name — $reason")
 }
 
 # ── Python: detection + dep install ──────────────────────────────────────────
@@ -155,16 +185,20 @@ if [[ "$HAS_PYTHON_PROJECT" == "true" ]]; then
     run_check "ruff check" ruff check . --output-format=concise
     run_check "ruff format" ruff format . --check --diff
   else
-    skip_check "ruff" "not installed (pip install ruff)"
+    warn_skip "ruff" "not installed (pip install ruff, or activate the project venv)"
   fi
 
-  if command -v mypy >/dev/null 2>&1 && [[ -d "$REPO_ROOT/lib/vibe" ]]; then
-    # Mirrors the lint.yml workflow: mypy lib/vibe/
-    # Projects with a different layout can add their own mypy invocation
-    # via .githooks/ci-local.d/<name>.sh
-    run_check "mypy" mypy lib/vibe/
-  else
-    skip_check "mypy" "not installed, or no lib/vibe/ dir to check"
+  if [[ -d "$REPO_ROOT/lib/vibe" ]]; then
+    if command -v mypy >/dev/null 2>&1; then
+      # Mirrors the lint.yml workflow: mypy lib/vibe/
+      # Projects with a different layout can add their own mypy invocation
+      # via .githooks/ci-local.d/<name>.sh
+      run_check "mypy" mypy lib/vibe/
+    else
+      # LOUD: a missing mypy is exactly how no-any-return errors reached CI
+      # green-locally (tools installed in .venv but not on the shell PATH).
+      warn_skip "mypy" "not installed (pip install mypy, or activate the project venv)"
+    fi
   fi
 fi
 
@@ -279,8 +313,19 @@ fi
 # ── Summary ──────────────────────────────────────────────────────────────────
 echo ""
 echo "────────────────────────────────────────"
+# A core linter that did not run is surfaced loudly even when everything else
+# passed — a silent skip is how lint/mypy failures reach CI green-locally.
+if [[ ${#WARNINGS[@]} -gt 0 ]]; then
+  echo -e "${YELLOW}${BOLD}⚠ ${#WARNINGS[@]} core check(s) DID NOT RUN — CI will still enforce them:${RESET}"
+  for w in "${WARNINGS[@]}"; do
+    echo -e "  $WARN $w"
+  done
+  echo ""
+fi
 if [[ ${#FAILURES[@]} -eq 0 ]]; then
-  if [[ ${#SKIPS[@]} -gt 0 ]]; then
+  if [[ ${#WARNINGS[@]} -gt 0 ]]; then
+    echo -e "${GREEN}${BOLD}No checks failed${RESET}, ${YELLOW}${BOLD}but ${#WARNINGS[@]} core check(s) were skipped${RESET} — not a clean pass."
+  elif [[ ${#SKIPS[@]} -gt 0 ]]; then
     echo -e "${GREEN}${BOLD}All checks passed.${RESET} ${YELLOW}(${#SKIPS[@]} skipped)${RESET}"
   else
     echo -e "${GREEN}${BOLD}All checks passed.${RESET}"

@@ -49,7 +49,15 @@ test -d .venv || uv venv .venv
 UV_PROJECT_ENVIRONMENT=.venv uv pip sync requirements.lock
 UV_PROJECT_ENVIRONMENT=.venv uv pip install -e . --no-deps
 export PATH="$PWD/.venv/bin:$PATH"
+git config core.hooksPath .githooks   # activate the pre-push lint/mypy gate
 ```
+
+**Why `core.hooksPath`:** the `.githooks/pre-push` hook runs ruff + mypy before a
+push reaches CI. It only fires once `core.hooksPath` points at `.githooks` —
+`.cursor/environment.json` sets this automatically; set it by hand on a manual
+clone. `bin/ci-local` and the hook both auto-resolve tools from `.venv/`/`.direnv/`
+even when the venv is not on `PATH`, so a missing-from-`PATH` mypy can no longer
+silently skip — it either runs or warns **loudly**.
 
 Fallback (no uv): `pip install -r requirements.lock` then `pip install -e . --no-deps`.
 
@@ -60,8 +68,15 @@ Fallback (no uv): `pip install -r requirements.lock` then `pip install -e . --no
 | Goal | Command |
 |------|---------|
 | Full local CI (source of truth) | `unset LINEAR_API_KEY` then `bin/ci-local` |
+| **Before every push** (lint + mypy) | `bin/ci-local --fast` |
 | Fast warm loop (module-scoped) | `bin/ci-local --scope lib/vibe/<module>.py` |
 | Predict CI pytest scope | `PYTHONPATH=. python3 -m lib.vibe.testscope <paths>` |
+
+**Run `bin/ci-local --fast` before you push.** It runs ruff + mypy + scoped
+tests in seconds and is the same gate the `.githooks/pre-push` hook enforces. If
+either prints a loud `⚠ … SKIPPED` warning, a core linter did **not** run
+(usually the venv isn't installed) — CI will still fail you; install the tools
+and re-run. Never push past a skip warning.
 
 **`LINEAR_API_KEY`:** Cloud VMs often inject this secret. One unit test (`test_authenticate_no_api_key`) expects no key — **unset `LINEAR_API_KEY` before `bin/ci-local`** unless you are doing live Linear work.
 

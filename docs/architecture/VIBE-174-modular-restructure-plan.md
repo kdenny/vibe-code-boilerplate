@@ -162,7 +162,7 @@ fast safety net. An agent must be able to trust one command.
 
 | Command | Guarantee | Speed lever |
 |---------|-----------|-------------|
-| `bin/ci-local` | Runs every locally-runnable check (ruff check + format, mypy on `lib/vibe/`, full pytest, gitleaks, project hooks). Exit 0 ⇒ safe to push. | `--fast` skips frontend tests; missing tools **skip** (yellow `–`), never fail |
+| `bin/ci-local` | Runs every locally-runnable check (ruff check + format, mypy on `lib/vibe/`, full pytest, gitleaks, project hooks). Exit 0 ⇒ safe to push. Resolves ruff/mypy/pytest from the project venv (`.venv`/`.direnv`) even when it's off `PATH`. | `--fast` skips frontend tests; non-core tools **skip** (yellow `–`); a missing **core linter** (ruff/mypy) warns **loudly** (`⚠ … SKIPPED`, "not a clean pass") — never silent, never fatal |
 | `bin/ci-local --fast` | Same, minus slow frontend tests | for tight inner loops |
 | `PYTHONPATH=. python -m lib.vibe.testscope <paths>` | Prints exactly which suites CI will run for a change (`ALL` / paths / empty) | lets an agent predict CI scope before pushing |
 | `bin/<cli> --help` + per-subcommand live smoke test | CLI behavior proof (CLI doctrine) | live runs only; documented matrix in the PR |

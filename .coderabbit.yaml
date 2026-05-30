@@ -189,6 +189,17 @@ reviews:
         is absent. Any change to how local env loads, the venv activates, or
         bin/ reaches PATH is a local-setup-flow change — confirm CLAUDE.md and
         this file stay consistent per the sync rule.
+    - path: ".githooks/**"
+      instructions: >-
+        Local validation gate (pre-commit, pre-push) — part of the run/validation
+        flow. The pre-push hook runs ruff + mypy before a push reaches CI and only
+        fires when core.hooksPath points at .githooks (set by .cursor/environment.json
+        for cloud agents; manually per clone otherwise). It MUST resolve tooling
+        from the project venv (.venv/.direnv) even when the venv is not on PATH, and
+        MUST be LOUD about a missing core linter (ruff/mypy) — a silent skip is how
+        lint/mypy failures reach CI green-locally. Missing tools may stay
+        non-blocking, but never silent. Keep behavior consistent with bin/ci-local
+        and confirm CLAUDE.md/AGENTS.md stay in sync per the sync rule.
     - path: ".cursor/**"
       instructions: >-
         Cursor Cloud agent config — the CLOUD counterpart of the run/validation
@@ -199,7 +210,9 @@ reviews:
         ANTHROPIC_API_KEY — Cursor agents run on Cursor's model billing). Its
         install step MUST resolve to
         the same pinned versions as the local path — install from requirements.lock
-        via uv (pip fallback), never an unpinned `pip install`. Flag: any secret or
+        via uv (pip fallback), never an unpinned `pip install`, and MUST activate
+        the local lint gate (git config core.hooksPath .githooks) so the pre-push
+        hook fires. Flag: any secret or
         token literal, an install that drifts from requirements.lock /
         recipes/environments/cloud-bootstrap.md, or anything implying the agent can
         merge or push to main (the token is branch-only; merge is human-gated).

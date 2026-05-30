@@ -21,6 +21,19 @@ REPO_ROOT="$(git rev-parse --show-toplevel)"
 
 cd "$REPO_ROOT"
 
+# ── Resolve project venv tools without requiring shell activation ─────────────
+# Same rationale as bin/ci-local: in a cloud/agent shell the venv is often not
+# activated, so put its bin first on PATH if present. Lets mypy (which we call
+# bare, not via `uv run`) resolve to the project's pinned version.
+for _venv_bin in "$REPO_ROOT/.venv/bin" "$REPO_ROOT/.direnv"/python*/bin; do
+  if [[ -d "$_venv_bin" ]]; then
+    PATH="$_venv_bin:$PATH"
+    break
+  fi
+done
+unset _venv_bin
+export PATH
+
 # ── Runner detection ─────────────────────────────────────────────────────────
 # Prefer uv run (project standard); fall back to system tools.
 if command -v uv >/dev/null 2>&1; then
@@ -32,8 +45,12 @@ else
 fi
 
 # Non-blocking guards: missing tools cause a notice + exit 0, not failure.
+# LOUD on a missing core linter: a silent skip is exactly how mypy/ruff
+# failures reached CI green-locally (tools installed in the venv but not on the
+# shell PATH). Still non-blocking, but it must never look like a clean push.
 if ! $RUFF --version >/dev/null 2>&1; then
-  echo "$HOOK ruff not available — skipping pre-push checks. Run 'pip install ruff' or 'uv sync'."
+  echo "$HOOK ⚠ ruff NOT available — pre-push lint DID NOT RUN."
+  echo "$HOOK   CI still enforces it. Activate the project venv or run 'pip install ruff' / 'uv sync'."
   exit 0
 fi
 
@@ -60,6 +77,10 @@ run_check "ruff format" $RUFF format . --check --diff --quiet
 # ── 2. mypy (if lib/vibe/ exists) ────────────────────────────────────────────
 # Mirrors the lint.yml workflow. Projects with a different layout can add
 # their own mypy invocation via .githooks/pre-push.d/<name>.sh
+if [[ -d "$REPO_ROOT/lib/vibe" ]] && ! command -v mypy >/dev/null 2>&1; then
+  echo "$HOOK ⚠ mypy NOT available — type checking DID NOT RUN (CI still enforces it)."
+  echo "$HOOK   Activate the project venv or run 'pip install mypy' to catch type errors locally."
+fi
 if command -v mypy >/dev/null 2>&1 && [[ -d "$REPO_ROOT/lib/vibe" ]]; then
   echo "$HOOK mypy..."
   run_check "mypy" mypy lib/vibe/
