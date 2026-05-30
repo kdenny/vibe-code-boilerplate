@@ -80,15 +80,24 @@ reviews:
         The title must start with a ticket reference in the form VIBE-<number>
         followed by a colon and an imperative summary.
     description:
+      # The built-in description check only takes `mode` (no `requirements`
+      # field — that key would be silently ignored). The agent-PR contract is
+      # enforced via the custom_checks entry below instead.
       mode: "error"
-      requirements: >-
-        The description must state: (1) what changed and why, (2) the staged,
-        non-destructive migration step this represents, (3) test proof with the
-        exact local commands run and their results, and (4) confirmation that
-        affected modules remain independently runnable. For CLI changes, include
-        the per-subcommand smoke-test matrix.
     issue_assessment:
       mode: "warning"
+    # Custom checks are the schema-supported way to enforce arbitrary,
+    # deterministic description requirements. This encodes the agent-PR contract.
+    custom_checks:
+      - name: "Agent-PR contract"
+        mode: "error"
+        instructions: >-
+          The description must state: (1) what changed and why, (2) the staged,
+          non-destructive migration step this represents, (3) test proof with the
+          exact local commands run and their results, and (4) confirmation that
+          affected modules remain independently runnable. For CLI changes, it must
+          include the per-subcommand smoke-test matrix. Request changes if any of
+          these four sections is missing.
 
   # Exclude generated, vendored, and archived material from review.
   path_filters:
