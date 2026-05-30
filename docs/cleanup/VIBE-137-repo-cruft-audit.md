@@ -74,7 +74,7 @@ with tests in `tests/test_duplicate_pr_prevention.py`.
 | Fix | Before | After |
 |-----|--------|-------|
 | **Exact ticket matching** (`_check_existing_prs_for_ticket`) | Substring match — `gh pr list --search VIBE-1` returns VIBE-12 / VIBE-100, and `"VIBE-1" in title` flagged them all as duplicates → false-positive abort prompts. | Word-boundary regex (`\bVIBE-1\b`, case-insensitive). VIBE-1 no longer matches VIBE-12; still matches `VIBE-1:` and `Fixes VIBE-1`. |
-| **Stale-branch pruning** (`_check_local_state_for_ticket_conflicts`) | Warned on *any* other recorded branch for the ticket, including ones abandoned weeks ago — noise at agent scale. | Records older than `_STALE_BRANCH_DAYS` (30) are treated as abandoned and ignored, using the existing `created_at` timestamp. Missing/unparseable timestamps fail safe (kept). |
+| **Stale-branch pruning** (`_check_local_state_for_ticket_conflicts`) | Warned on *any* other recorded branch for the ticket, including ones abandoned weeks ago — noise at agent scale. | Records older than `_STALE_BRANCH_DAYS` (30) are treated as abandoned and ignored, using the existing `created_at` timestamp. Missing/unparseable timestamps fail-safe (kept). |
 
 > **Overlap with [VIBE-22](https://linear.app/2wrist/issue/VIBE-22):** the exact-matching
 > fix *is* VIBE-22's scope ("fix exact ticket matching in open-PR duplicate detection").

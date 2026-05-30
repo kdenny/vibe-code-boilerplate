@@ -232,6 +232,12 @@ class TestBranchRecordIsStale:
     def test_unparseable_created_at_is_not_stale(self) -> None:
         assert _branch_record_is_stale({"created_at": "not-a-date"}) is False
 
+    def test_tz_aware_created_at_is_not_stale(self) -> None:
+        # An offset-aware created_at can't be subtracted from the offset-naive
+        # datetime.now() — that raises TypeError. Fail safe (keep) rather than
+        # blow up bin/vibe pr.
+        assert _branch_record_is_stale({"created_at": "2026-01-01T00:00:00+00:00"}) is False
+
     def test_now_override_is_respected(self) -> None:
         created = "2026-01-01T00:00:00"
         # 10 days later -> not stale; 40 days later -> stale.

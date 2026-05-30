@@ -728,18 +728,20 @@ _STALE_BRANCH_DAYS = 30
 def _branch_record_is_stale(entry: dict[str, str], *, now: datetime | None = None) -> bool:
     """True if a recorded branch is older than ``_STALE_BRANCH_DAYS``.
 
-    A missing or unparseable ``created_at`` is treated as **not stale** — we'd
-    rather over-warn than silently drop a real conflict.
+    A missing, unparseable, or tz-mismatched ``created_at`` is treated as **not
+    stale** — we'd rather over-warn than silently drop a real conflict. (A
+    tz-aware ``created_at`` would make the subtraction below raise ``TypeError``
+    against the offset-naive ``datetime.now()``; we fail safe on that too.)
     """
     created_raw = entry.get("created_at")
     if not created_raw:
         return False
     try:
         created = datetime.fromisoformat(created_raw)
-    except ValueError:
+        reference = now or datetime.now()
+        return (reference - created) > timedelta(days=_STALE_BRANCH_DAYS)
+    except (ValueError, TypeError):
         return False
-    reference = now or datetime.now()
-    return (reference - created) > timedelta(days=_STALE_BRANCH_DAYS)
 
 
 def _check_local_state_for_ticket_conflicts(

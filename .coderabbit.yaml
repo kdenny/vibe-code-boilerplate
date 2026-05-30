@@ -19,12 +19,13 @@
 language: "en-US"
 
 # Tone is the global voice for every comment. Keep it decisive and fast.
-# NOTE: CodeRabbit caps tone_instructions at 250 characters — keep it terse.
+# NOTE: CodeRabbit caps tone_instructions at 250 chars; over that the WHOLE
+# config silently falls back to defaults. Keep this terse and under the limit.
 tone_instructions: >-
-  Be decisive and concise. Lead with an approve or request-changes verdict, then
-  only what matters; skip subjective style. Flag architectural drift, weak or
-  missing tests, hidden coupling, broken local run paths, and any way to make the
-  loop faster.
+  Be decisive and concise: lead with an approve or request-changes verdict,
+  then only what matters. Skip subjective style. Always flag architectural
+  drift, weak tests, hidden coupling, broken local-run paths, and any way to
+  make the agent loop faster.
 
 early_access: false
 

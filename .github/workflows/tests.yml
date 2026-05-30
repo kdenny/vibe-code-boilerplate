@@ -23,6 +23,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
+          # This job only diffs and tests — it never pushes — so don't persist
+          # the token into .git/config (closes the artipacked exposure).
+          persist-credentials: false
           # Full history so PR runs can diff against the base commit to scope
           # which module tests to run (see "Select pytest scope" below).
           fetch-depth: 0
@@ -108,7 +111,9 @@ jobs:
           BASE="${{ github.event.pull_request.base.sha }}"
           HEAD="${{ github.event.pull_request.head.sha }}"
           echo "Diffing $BASE...$HEAD"
-          CHANGED="$(git diff --name-only "$BASE" "$HEAD")"
+          # Three-dot: changes on this branch since the merge base, so files
+          # touched only on main (behind-main PRs) don't spuriously force ALL.
+          CHANGED="$(git diff --name-only "$BASE...$HEAD")"
           echo "Changed files:"
           echo "$CHANGED" | sed 's/^/  /'
           TARGETS="$(printf '%s\n' "$CHANGED" | PYTHONPATH=. python -m lib.vibe.testscope)"

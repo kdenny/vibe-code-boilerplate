@@ -56,9 +56,10 @@ module, **re-level its tests in the same PR**:
 | Trigger | What runs |
 |---------|-----------|
 | Push to `main` | **Full suite** (the safety net before release) |
-| Change to a shared/core file (`config.py`, `conftest.py`, `pyproject.toml`, `utils/`, the workflow, the selector) | **Full suite** (blast radius is everything) |
-| PR touching one module | **Only that module's** `tests/test_*.py` |
-| Unmapped `lib/vibe/` path | **Full suite** (fail safe — a forgotten mapping costs time, never coverage) |
+| Change to a shared/core file — exactly the `SHARED_PREFIXES` list in `testscope.py`: `pyproject.toml`, `tests/conftest.py`, `tests/__init__.py`, `lib/vibe/__init__.py`, `config.py`, `config_schema.py`, `env.py`, `utils/`, the selector (`testscope.py`), the workflow | **Full suite** (blast radius is everything) |
+| PR touching one mapped module | **Only that module's** `tests/test_*.py` |
+| Unmapped `lib/vibe/` **package** (`lib/vibe/<pkg>/…` with no convention-matching tests) | **Full suite** (fail-safe — a forgotten mapping costs time, never coverage) |
+| Unmapped top-level `lib/vibe/<name>.py` with no `tests/test_<name>.py` | **No pytest** (nothing to scope to; `main` is the backstop) |
 | Docs / recipes / `bin/` only | **No pytest** (`bin/` wrappers are proven by the live smoke-test matrix) |
 
 The tradeoff is deliberate: PR runs are scoped for fast feedback; a cross-module
