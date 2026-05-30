@@ -13,7 +13,7 @@
 
 ---
 
-## Two standing rules (read these first)
+## Three standing rules (read these first)
 
 1. **Sync rule — review config tracks the architecture.** Any substantial change
    to repo structure, module boundaries, the local run/validation flow, or the
