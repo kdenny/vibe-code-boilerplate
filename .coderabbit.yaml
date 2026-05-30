@@ -19,13 +19,12 @@
 language: "en-US"
 
 # Tone is the global voice for every comment. Keep it decisive and fast.
+# NOTE: CodeRabbit caps tone_instructions at 250 characters — keep it terse.
 tone_instructions: >-
-  Be decisive and concise. Prefer a clear approve or request-changes verdict
-  over hedged commentary. Optimize feedback for an agent author in a fast loop:
-  lead with the verdict, then the few things that actually matter. Stay quiet on
-  subjective style. Always flag architectural drift, missing/weak tests, hidden
-  coupling, and broken local run paths. If you see any way to make local setup,
-  validation, or the agent loop faster, say so explicitly.
+  Be decisive and concise. Lead with an approve or request-changes verdict, then
+  only what matters; skip subjective style. Flag architectural drift, weak or
+  missing tests, hidden coupling, broken local run paths, and any way to make the
+  loop faster.
 
 early_access: false
 

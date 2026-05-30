@@ -7,16 +7,19 @@ from lib.vibe.env import check_direnv_status, setup_direnv
 
 
 def _git(root: Path, *args: str) -> None:
+    """Run a git command in ``root``, raising on failure."""
     subprocess.run(["git", *args], cwd=str(root), check=True, capture_output=True)
 
 
 def _init_repo(root: Path) -> None:
+    """Initialize a quiet git repo with a test identity in ``root``."""
     _git(root, "init", "-q")
     _git(root, "config", "user.email", "test@example.com")
     _git(root, "config", "user.name", "Test")
 
 
 def test_setup_direnv_creates_envrc_and_ignores_it_when_untracked(tmp_path: Path) -> None:
+    """An untracked .envrc is created and gitignored (downstream default)."""
     (tmp_path / ".gitignore").write_text("# existing\n", encoding="utf-8")
 
     result = setup_direnv(tmp_path)
@@ -30,6 +33,7 @@ def test_setup_direnv_creates_envrc_and_ignores_it_when_untracked(tmp_path: Path
 
 
 def test_setup_direnv_does_not_reignore_committed_envrc(tmp_path: Path) -> None:
+    """A deliberately committed .envrc is left untouched and not re-ignored."""
     # Simulate a repo (like VIBE itself) that commits its .envrc.
     _init_repo(tmp_path)
     (tmp_path / ".envrc").write_text("layout python3\n", encoding="utf-8")
@@ -48,6 +52,7 @@ def test_setup_direnv_does_not_reignore_committed_envrc(tmp_path: Path) -> None:
 
 
 def test_setup_direnv_is_idempotent_on_gitignore(tmp_path: Path) -> None:
+    """Re-running setup never appends duplicate .gitignore entries."""
     (tmp_path / ".gitignore").write_text(".envrc\n.direnv/\n", encoding="utf-8")
 
     result = setup_direnv(tmp_path)
@@ -60,6 +65,7 @@ def test_setup_direnv_is_idempotent_on_gitignore(tmp_path: Path) -> None:
 
 
 def test_check_direnv_status_reports_envrc_presence(tmp_path: Path) -> None:
+    """check_direnv_status reports .envrc presence and install status."""
     assert check_direnv_status(tmp_path)["envrc_exists"] is False
 
     (tmp_path / ".envrc").write_text("dotenv_if_exists .env.local\n", encoding="utf-8")
