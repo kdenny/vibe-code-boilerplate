@@ -80,7 +80,9 @@ def register_integration_commands(
 ) -> None:
     """Register integration CLI groups under the root command."""
 
-    for integration in integrations or get_registry().all():
+    if integrations is None:
+        integrations = get_registry().all()
+    for integration in integrations:
         root.add_command(_integration_group(integration), integration.cli_name)
 
 
@@ -1664,8 +1666,23 @@ main.add_command(figma)
 # Register costs command group
 main.add_command(costs_group, "costs")
 
-load_entry_point_integrations()
-register_integration_commands(main)
+
+def _bootstrap_integrations() -> None:
+    """Load and wire entry-point integrations at startup.
+
+    A broken or incompatible third-party integration must never brick the core
+    CLI: any integration that fails to load is reported on stderr and skipped,
+    while integrations that loaded successfully before the failure are still
+    wired in by ``register_integration_commands``.
+    """
+    try:
+        load_entry_point_integrations()
+    except Exception as exc:  # noqa: BLE001 - one bad integration must not kill the CLI
+        click.echo(f"vibe: skipping a broken integration entry point: {exc}", err=True)
+    register_integration_commands(main)
+
+
+_bootstrap_integrations()
 
 
 if __name__ == "__main__":
