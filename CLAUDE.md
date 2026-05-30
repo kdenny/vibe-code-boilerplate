@@ -134,7 +134,11 @@ Full policy: [`recipes/testing/modular-testing.md`](recipes/testing/modular-test
 
 **Local is the source of truth.** `bin/ci-local` runs the full suite; CI scoping
 is the fast safety net, not the primary verification. Predict CI scope with
-`PYTHONPATH=. python -m lib.vibe.testscope <changed paths>`.
+`PYTHONPATH=. python -m lib.vibe.testscope <changed paths>`, or run the scoped
+suite locally with `bin/ci-local --scope` (same selector as CI — one source of
+truth). That scoped path is what the cloud agent's QA loop calls; see
+[`recipes/environments/cloud-bootstrap.md`](recipes/environments/cloud-bootstrap.md)
+for the cold/warm bootstrap budget and the cached, locked install.
 
 When you rewrite a module, **re-level its tests in the same PR** (keep public-
 behavior tests as the contract; drop internals-pinning tests; collapse duplicates
@@ -149,11 +153,16 @@ its rewrite.
 |---------|-----------|
 | `bin/ci-local` | All locally-runnable checks (ruff check + format, mypy on `lib/vibe/`, full pytest, gitleaks, project hooks). Exit 0 ⇒ safe to push. Missing tools **skip**, never fail. |
 | `bin/ci-local --fast` | Same, minus slow frontend tests — for tight inner loops. |
+| `bin/ci-local --scope [paths]` | Pytest scoped to changed modules (auto-diff vs `origin/main`, or the explicit paths). Same `testscope.py` selector as CI; the cloud agent's QA path. Lint/secret scans still run whole-tree. |
 | `python -m lib.vibe.testscope <paths>` | Prints exactly which suites CI will run (`ALL` / paths / empty). |
 | `bin/<cli> --help` + live smoke test | CLI behavior proof (live runs only). |
 
-Minimal bootstrap: Python ≥3.11, `pip install -e ".[dev]"`. No service account or
-network needed to validate a change locally.
+Minimal bootstrap: Python ≥3.11, then install the pinned, cacheable closure —
+`uv pip sync requirements.lock && uv pip install -e . --no-deps` (or, without uv,
+`pip install -r requirements.lock && pip install -e . --no-deps`). No service
+account or network beyond the package index needed to validate a change locally.
+Regenerate the lock after a `pyproject.toml` deps change:
+`uv pip compile pyproject.toml --extra dev --generate-hashes -o requirements.lock`.
 
 ---
 

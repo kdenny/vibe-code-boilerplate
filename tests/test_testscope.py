@@ -175,6 +175,33 @@ class TestIntegrationSeams:
         assert targets.count(self.SEAM) == 1
 
 
+class TestScopeContract:
+    """The promise VIBE-186 wires into `bin/ci-local --scope` and tests.yml:
+    QA cost scales with blast radius. These assert the *property* (a one-module
+    change runs a strict subset; a contract change runs everything), so a future
+    edit to the mapping can't silently break the scaling guarantee."""
+
+    def test_single_module_change_runs_strict_subset(self) -> None:
+        # The worked example used in recipes/testing/modular-testing.md and the
+        # PR: touching one module selects only its suites, never the whole tree.
+        full = {f"tests/test_{stem}.py" for stem in KNOWN}
+        targets = select("lib/vibe/trackers/linear.py")
+        assert targets != RUN_ALL
+        assert set(targets) < full  # proper subset
+        assert set(targets) == {"tests/test_trackers_linear.py", "tests/test_views.py"}
+
+    def test_contract_file_change_runs_full_tree(self) -> None:
+        # Cross-cutting / contract changes must still trigger full validation —
+        # the rule the runner relies on to stay safe (documented in the recipe).
+        assert select("lib/vibe/config.py") == RUN_ALL
+        assert select(".github/workflows/tests.yml") == RUN_ALL
+
+    def test_docs_only_change_runs_no_python_tests(self) -> None:
+        # A docs/recipe-only PR (like parts of this one) maps to no pytest target
+        # — the runner skips pytest entirely rather than running the full suite.
+        assert select("recipes/environments/cloud-bootstrap.md") == []
+
+
 class TestMappingIntegrity:
     def test_every_mapped_stem_exists_in_repo(self) -> None:
         """SOURCE_TEST_MAP must not reference test files that don't exist."""

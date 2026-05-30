@@ -165,14 +165,30 @@ reviews:
         alongside, that the change keeps the fail-safe (unmapped lib/vibe/ paths ->
         full suite), and that every INTEGRATION_SEAMS entry points at an existing
         suite with >=2 participants under lib/vibe/.
+    - path: "pyproject.toml"
+      instructions: >-
+        The dependency source of truth, and part of the cacheable bootstrap
+        contract (VIBE-185, recipes/environments/cloud-bootstrap.md). Any change
+        to [project.dependencies] or [project.optional-dependencies] MUST be
+        matched by a regenerated requirements.lock in the same PR
+        (`uv pip compile pyproject.toml --extra dev --generate-hashes -o
+        requirements.lock`) so the pinned/hashed install stays in sync and the
+        dependency cache key (hash of requirements.lock) is valid. Flag a deps
+        change that doesn't update the lock, and any new dependency that isn't
+        clearly justified. pyproject is also in SHARED_PREFIXES — confirm the PR
+        author expects it to trigger the full test suite.
     - path: ".github/workflows/**"
       instructions: >-
         CI must stay fast and local-first. CI is scoped per-module on PRs via
         lib/vibe/testscope.py (full suite on main and shared-file changes); flag
         any change that could let a PR skip tests for a module it actually
-        touched. Flag pinning/permission regressions, secrets in plaintext, and
-        any attempt to make CLI tests in CI the primary verification (local live
-        tests are the source of truth). Surface any opportunity to make CI faster.
+        touched. The Python install is the cached, locked uv path (sync from
+        requirements.lock, cache keyed on its hash) with a pip fallback — keep
+        both paths resolving to the same pinned versions; flag a change that
+        breaks the cache key or drops the lock. Flag pinning/permission
+        regressions, secrets in plaintext, and any attempt to make CLI tests in
+        CI the primary verification (local live tests are the source of truth).
+        Surface any opportunity to make CI faster.
     - path: "agent_instructions/**"
       instructions: >-
         Source of truth for agent instructions. If these change, confirm CLAUDE.md

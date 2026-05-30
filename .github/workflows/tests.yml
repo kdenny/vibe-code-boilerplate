@@ -89,8 +89,29 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Python dependencies
-        if: steps.detect.outputs.has_pytest == 'true'
+      # Fast, cached installs (VIBE-185). When a pinned requirements.lock is
+      # present, install with uv and cache uv's global download cache keyed on
+      # the lock hash — cache key = hash(requirements.lock) (setup-uv also keys
+      # on runner OS + uv version). uv is markedly faster than pip cold and
+      # near-instant warm. Projects without a lock fall through to the pip path.
+      - name: Set up uv
+        if: steps.detect.outputs.has_pytest == 'true' && hashFiles('requirements.lock') != ''
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: requirements.lock
+
+      - name: Install Python dependencies (uv, locked)
+        if: steps.detect.outputs.has_pytest == 'true' && hashFiles('requirements.lock') != ''
+        run: |
+          # --system installs into the setup-python interpreter. sync pins the
+          # env to exactly the locked closure; the editable project (no deps,
+          # already locked) is added on top.
+          uv pip sync --system requirements.lock
+          uv pip install --system -e . --no-deps
+
+      - name: Install Python dependencies (pip fallback)
+        if: steps.detect.outputs.has_pytest == 'true' && hashFiles('requirements.lock') == ''
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev]" 2>/dev/null || pip install pytest pytest-cov

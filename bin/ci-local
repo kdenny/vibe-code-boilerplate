@@ -15,9 +15,18 @@
 #   - CodeQL (GitHub-hosted)
 #
 # Usage:
-#   bin/ci-local              # run all checks
+#   bin/ci-local              # run all checks (full pytest suite)
 #   bin/ci-local --fast       # skip slow checks (frontend tests)
+#   bin/ci-local --scope      # scope pytest to modules changed vs origin/main
+#   bin/ci-local --scope <paths...>  # scope pytest to the given changed paths
 #   bin/ci-local --help       # show this help
+#
+# --scope makes the LOCAL pytest run match the module-scoped CI: it pipes the
+# changed files through lib/vibe/testscope.py (the single source of truth, the
+# same selector .github/workflows/tests.yml uses) and runs only the affected
+# suites. A shared/core change still expands to the full suite; nothing changed
+# means pytest is skipped. Lint/secret scans always run on the whole tree.
+# Default (no --scope) runs the full suite — local stays the source of truth.
 #
 # Each check is non-blocking on missing dependencies — missing tools cause
 # a SKIP (yellow –), not a failure (red ✗). The hook surfaces what didn't
@@ -36,17 +45,43 @@ cd "$REPO_ROOT"
 
 # ── Args ──────────────────────────────────────────────────────────────────────
 FAST=false
-for arg in "$@"; do
-  case "$arg" in
+SCOPE=false
+SCOPE_PATHS=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
     --fast)
       FAST=true
+      shift
+      ;;
+    --scope)
+      SCOPE=true
+      shift
       ;;
     --help|-h)
-      head -32 "$0" | tail -28 | sed 's/^#//' | sed 's/^ //'
+      head -37 "$0" | tail -33 | sed 's/^#//' | sed 's/^ //'
       exit 0
+      ;;
+    --)
+      shift
+      SCOPE_PATHS+=("$@")
+      break
+      ;;
+    -*)
+      echo "ci-local: unknown option '$1' (try --help)" >&2
+      exit 2
+      ;;
+    *)
+      # A bare path argument is an explicit changed-file list; it implies --scope.
+      SCOPE_PATHS+=("$1")
+      shift
       ;;
   esac
 done
+
+# Explicit paths imply scoped mode even without the --scope flag.
+if [[ ${#SCOPE_PATHS[@]} -gt 0 ]]; then
+  SCOPE=true
+fi
 
 # ── Colours ──────────────────────────────────────────────────────────────────
 if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
@@ -130,11 +165,60 @@ if [[ "$HAS_PYTHON_PROJECT" == "true" ]]; then
   fi
 fi
 
+# ── Scope resolution (module-scoped pytest — shared with tests.yml) ───────────
+# Echoes the testscope.py verdict for the changed set: "ALL" (full suite), a
+# space-separated list of tests/test_*.py paths, or empty (no Python tests
+# affected). lib/vibe/testscope.py is the single source of truth — the same
+# selector .github/workflows/tests.yml invokes — so local --scope and CI never
+# disagree. Returns non-zero only when the selector can't run, so the caller
+# falls back to the full suite (fail safe, not fast).
+resolve_scope_targets() {
+  local testscope="$REPO_ROOT/lib/vibe/testscope.py"
+  [[ -f "$testscope" ]] || return 1
+
+  local changed
+  if [[ ${#SCOPE_PATHS[@]} -gt 0 ]]; then
+    # Explicit changed-file list (the runner passes the diff it already has).
+    changed="$(printf '%s\n' "${SCOPE_PATHS[@]}")"
+  else
+    # Auto-detect: files changed on this branch since it forked from origin/main
+    # (three-dot, so files touched only on main don't spuriously force ALL),
+    # plus any uncommitted working-tree + staged edits so a local scoped run
+    # reflects what you're about to push. Mirrors tests.yml's diff base.
+    local base="origin/main"
+    git rev-parse --verify --quiet "$base" >/dev/null 2>&1 || base="main"
+    git rev-parse --verify --quiet "$base" >/dev/null 2>&1 || return 1
+    changed="$(git diff --name-only "${base}...HEAD" 2>/dev/null)"
+    changed+=$'\n'"$(git diff --name-only HEAD 2>/dev/null)"
+    changed+=$'\n'"$(git diff --name-only --cached 2>/dev/null)"
+  fi
+
+  printf '%s\n' "$changed" | PYTHONPATH="$REPO_ROOT" "$PYTHON_BIN" -m lib.vibe.testscope
+}
+
 # ── 4. Python tests: pytest ──────────────────────────────────────────────────
 if [[ "$HAS_PYTHON_PROJECT" == "true" ]]; then
   if command -v pytest >/dev/null 2>&1; then
     if [[ -d "$REPO_ROOT/tests" ]] || grep -qE "^\[tool\.pytest" "$REPO_ROOT/pyproject.toml" 2>/dev/null; then
-      run_check "pytest" pytest --tb=short -q
+      if [[ "$SCOPE" == "true" ]]; then
+        TARGETS="$(resolve_scope_targets)"
+        scope_rc=$?
+        if [[ $scope_rc -ne 0 ]]; then
+          echo -e "\n${YELLOW}scope: selector unavailable — running the full suite.${RESET}"
+          run_check "pytest" pytest --tb=short -q
+        elif [[ "$TARGETS" == "ALL" ]]; then
+          echo -e "\n${BOLD}scope:${RESET} shared/core change → full suite"
+          run_check "pytest (full — shared change)" pytest --tb=short -q
+        elif [[ -z "${TARGETS// }" ]]; then
+          skip_check "pytest" "no changed files map to a Python suite (scoped run)"
+        else
+          echo -e "\n${BOLD}scope:${RESET} $TARGETS"
+          # shellcheck disable=SC2086 — TARGETS is a space-separated path list.
+          run_check "pytest (scoped)" pytest --tb=short -q $TARGETS
+        fi
+      else
+        run_check "pytest" pytest --tb=short -q
+      fi
     else
       skip_check "pytest" "no tests/ dir or [tool.pytest*] config"
     fi
