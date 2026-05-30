@@ -228,18 +228,24 @@ reviews:
       instructions: >-
         Review/scoping contracts. docs/review/agent-ready-rubric.md is the
         canonical definition of the agent-ready / needs-scoping / wall / gate
-        labels and the dependency-hygiene rules. If a PR changes how tickets are
-        labeled or scoped, or changes the agent-PR contract, confirm it stays
-        consistent with this rubric and with CLAUDE.md. Flag a ticket called
-        agent-ready that still leaves an open design decision to the agent, or a
-        consumer ticket missing a blocked-by edge to a not-yet-built contract.
+        labels and the dependency-hygiene rules.
         docs/review/triage-intelligence.md is the operating model on top of the
         rubric (taxonomy, the Linear Triage Intelligence guidance text, the safe
         auto-apply vs advisory boundary, and the board-quality -> CLAUDE.md
-        feedback loop). If a PR changes triage behavior, the guidance text, or
-        which board changes are safe to auto-apply, confirm it stays consistent
-        with the rubric and CLAUDE.md, and that no change is destructive by
-        default (promise-bearing labels stay advisory).
+        feedback loop).
+        docs/review/external-service-milestone-pattern.md is the canonical
+        milestone + ticket-graph shape for any milestone that integrates an
+        external provider (provider lanes, the repo-stored docs index, the
+        doc-drift -> HUMAN issue contract). If a PR changes how tickets are
+        labeled or scoped, how external-service milestones are constructed,
+        triage behavior, the guidance text, which board changes are safe to
+        auto-apply, or the agent-PR contract, confirm it stays consistent with
+        these docs and with CLAUDE.md, and that no change is destructive by
+        default (promise-bearing labels stay advisory). Flag a ticket called
+        agent-ready that still leaves an open design decision to the agent, a
+        consumer ticket missing a blocked-by edge to a not-yet-built contract,
+        or an external-service milestone whose provider lanes or doc-drift
+        handling diverge from the pattern.
 
 chat:
   auto_reply: true

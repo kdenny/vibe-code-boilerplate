@@ -1,0 +1,5 @@
+{
+  "$schema": "./provider-docs-index.schema.json",
+  "_comment": "Repo-stored provider docs index. The Index tickets in each external-service milestone populate this; the doc-drift automation reads it. Format + drift contract: docs/review/external-service-milestone-pattern.md. Seeded empty — providers are added per Index ticket, not in VIBE-141.",
+  "providers": {}
+}
