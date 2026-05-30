@@ -19,6 +19,7 @@ Start working on a ticket by creating a dedicated git worktree and branch.
 2. Creates a worktree at `../<repo>-worktrees/<ticket-id>/`
 3. Creates a branch named after the ticket
 4. Updates `.vibe/local_state.json` to track the worktree
+5. Moves the ticket to **In Progress** in Linear so the board reflects that work has started (best-effort — if the tracker call fails it warns and continues; if no Linear tracker is configured it skips this step silently; it never blocks worktree creation)
 
 ## Instructions
 

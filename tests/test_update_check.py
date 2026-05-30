@@ -14,6 +14,17 @@ from lib.vibe.update_check import (
 )
 
 
+@pytest.fixture(autouse=True)
+def _enable_update_check(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Re-enable the update check for this module.
+
+    The global ``_hermetic_env`` fixture sets ``VIBE_NO_UPDATE_CHECK=1`` so CLI
+    tests don't emit the update banner. These tests exercise the update-check
+    logic directly, so they must run with the short-circuit disabled.
+    """
+    monkeypatch.delenv("VIBE_NO_UPDATE_CHECK", raising=False)
+
+
 class TestCompareVersions:
     @pytest.mark.parametrize(
         ("local", "remote", "expected"),

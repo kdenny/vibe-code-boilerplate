@@ -318,6 +318,31 @@ def sync_labels(dry_run: bool, as_json: bool) -> None:
         click.echo("Labels already up to date.")
 
 
+def _mark_ticket_in_progress(ticket_id: str, config: dict) -> None:
+    """Best-effort: move the ticket into the tracker's active state on start.
+
+    Called by ``do`` right after the worktree is created so the board reflects
+    that the ticket is underway. Linear only — when no Linear tracker is
+    configured this is skipped silently. For a configured Linear tracker,
+    failures (offline, missing permission, ticket not found, no started-type
+    state) are warned and swallowed; they never block worktree creation.
+    """
+    if config.get("tracker", {}).get("type") != "linear":
+        return
+    try:
+        from lib.vibe.trackers.linear import LinearTracker
+
+        tracker = LinearTracker(team_id=config.get("tracker", {}).get("config", {}).get("team_id"))
+        state_name = tracker.start_ticket(ticket_id)
+        click.echo(f"Marked {ticket_id} as {state_name}.")
+    except Exception:  # noqa: BLE001
+        # Best-effort — local work must never block on a tracker hiccup.
+        click.echo(
+            f"Note: Could not mark {ticket_id} In Progress (continuing anyway).",
+            err=True,
+        )
+
+
 @main.command()
 @click.argument("ticket_id")
 def do(ticket_id: str) -> None:
@@ -383,6 +408,9 @@ def do(ticket_id: str) -> None:
     except (subprocess.CalledProcessError, OSError, RuntimeError) as e:
         click.echo(f"Failed to create worktree: {e}", err=True)
         sys.exit(1)
+
+    # Work has started — reflect that on the board (best-effort, never fatal).
+    _mark_ticket_in_progress(ticket_id, config)
 
 
 @main.command()

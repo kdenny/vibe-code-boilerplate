@@ -319,6 +319,11 @@ contract.
 - **Work on a fresh worktree.** "Do ticket VIBE-123" = `bin/vibe do VIBE-123`;
   do the work in the worktree, open a PR when done. Never work in the main
   checkout.
+- **Mark a ticket In Progress when you start it.** `bin/vibe do` does this
+  automatically (best-effort — it warns and continues if the tracker is down). If
+  you pick up work some other way, set it yourself:
+  `bin/ticket update <id> --status "In Progress"`. The board is an agent
+  execution queue; an in-flight ticket must say so or agents collide on it.
 - **Every PR references its ticket** in the title (`VIBE-123: ...`) and carries a
   **risk label** (Low/Medium/High) plus type and area labels.
 - **PRs target `main` — always.** A PR's base branch is `main`, never another

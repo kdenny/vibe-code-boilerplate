@@ -10,6 +10,10 @@ Guidance for autonomous agents (including Cursor Cloud) working in this reposito
 > the run/validation flow, or the agent-PR contract updates **both** in the same
 > PR. When in doubt, CLAUDE.md wins.
 
+## Starting a ticket
+
+- **Mark the ticket In Progress the moment you start it.** `bin/vibe do <ticket>` does this automatically (it moves the ticket into the team's active workflow state). If you begin work some other way — picking up an existing worktree, or a path that didn't run `do` — set it yourself: `bin/ticket update <ticket> --status "In Progress"`. The board is an agent execution queue; a ticket that's being worked must *say* so, or two agents collide on it.
+
 ## Pull requests (agent default)
 
 - **Open PRs ready for review** (`draft: false`), and **always base on `main`** — never on another feature branch. Open a draft only when the work **depends on a not-yet-merged PR**: base it on `main` anyway, label it **`DNM`**, note the dependency in both the PR and the ticket, and once the parent lands rebase onto `main`, drop `DNM`, and mark ready. A PR based on a feature branch is never a valid final state.
