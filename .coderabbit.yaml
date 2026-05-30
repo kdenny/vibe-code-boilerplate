@@ -271,6 +271,19 @@ reviews:
         rubric, and docs/architecture/VIBE-140-cloud-coding-environment.md. Flag
         any guidance to auto-merge, to target a non-main base for real (vs a draft
         to main), or to force-push anything other than a feature branch.
+    - path: "docs/packaging/**"
+      instructions: >-
+        Packaged Vibe v0 contracts (Publish Package milestone). package-contract.md
+        (VIBE-84) is the source of truth for the public import surface, the
+        vibe.integrations.<name> taxonomy, the core/integration boundary, the .vibe/
+        artifact format, the CLI verb tree, extras semantics, and the v0 stability
+        promise. distribution.md (VIBE-87) is the source of truth for the private
+        distribution path and the downstream update/pinning/rollback contract.
+        These are spec docs that ship no feature code; downstream tickets
+        (VIBE-85/86/88/89/128/179) implement against them. Flag drift between these
+        contracts and the live package surface, a downstream PR that contradicts a
+        named stable surface without bumping it, or a secret value written into a
+        committed .vibe/ example (must always be a reference like "gh:NAME").
     - path: "recipes/**"
       instructions: >-
         Documentation recipes. Low risk; keep review light. Flag only broken
