@@ -191,6 +191,9 @@ right architecture isn't clear from the ticket. See the HUMAN-ticket guidance in
 Review policy details and a worked PR example:
 - [`docs/review/agent-ready-rubric.md`](docs/review/agent-ready-rubric.md) — **the
   `agent-ready`/`needs-scoping`/`wall`/`gate` label contract and dependency-hygiene rules**
+- [`docs/review/triage-intelligence.md`](docs/review/triage-intelligence.md) — **the
+  triage operating model on top of the rubric: taxonomy, the Linear Triage
+  Intelligence guidance text, and the board-quality → CLAUDE.md feedback loop**
 - [`docs/review/coderabbit-policy.md`](docs/review/coderabbit-policy.md)
 - [`docs/review/agent-pr-example.md`](docs/review/agent-pr-example.md)
 

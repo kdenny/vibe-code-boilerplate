@@ -205,6 +205,13 @@ reviews:
         consistent with this rubric and with CLAUDE.md. Flag a ticket called
         agent-ready that still leaves an open design decision to the agent, or a
         consumer ticket missing a blocked-by edge to a not-yet-built contract.
+        docs/review/triage-intelligence.md is the operating model on top of the
+        rubric (taxonomy, the Linear Triage Intelligence guidance text, the safe
+        auto-apply vs advisory boundary, and the board-quality -> CLAUDE.md
+        feedback loop). If a PR changes triage behavior, the guidance text, or
+        which board changes are safe to auto-apply, confirm it stays consistent
+        with the rubric and CLAUDE.md, and that no change is destructive by
+        default (promise-bearing labels stay advisory).
 
 chat:
   auto_reply: true
