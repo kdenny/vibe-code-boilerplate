@@ -29,9 +29,13 @@
    [`.coderabbit.yaml`](.coderabbit.yaml) **and** the plan doc
    ([`docs/architecture/VIBE-174-modular-restructure-plan.md`](docs/architecture/VIBE-174-modular-restructure-plan.md))
    **in the same PR**. CLAUDE.md, `.coderabbit.yaml`, and the plan are a matched
-   set; the plan also has a paired Linear summary. A PR that shifts the
-   architecture without syncing them is incomplete, and CodeRabbit is configured
-   to request changes on it.
+   set; the plan also has a paired Linear summary. **[`AGENTS.md`](AGENTS.md) is
+   the agent-facing operational mirror of this contract** (what a Cursor/cloud
+   agent reads from the checkout) — CLAUDE.md stays canonical, but a change to the
+   PR policy, the run/validation flow, or the agent-PR contract must keep
+   `AGENTS.md` consistent in the same PR. A PR that shifts the architecture
+   without syncing these is incomplete, and CodeRabbit is configured to request
+   changes on it.
 
 2. **Speed rule — always surface ways to go faster.** This project is optimized
    for speed: fast local setup, fast local validation, tight agent loops. If you

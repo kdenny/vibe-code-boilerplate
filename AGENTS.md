@@ -2,6 +2,14 @@
 
 Guidance for autonomous agents (including Cursor Cloud) working in this repository.
 
+> **Relationship to CLAUDE.md (read this).** [`CLAUDE.md`](CLAUDE.md) is the
+> **canonical contract** (the rules, the why, the architecture). This file is its
+> **agent-facing operational mirror** — the fast, do-this-now quickstart an agent
+> reads from the checkout. The two are a matched set under CLAUDE.md standing rule
+> #1: this file must never contradict CLAUDE.md, and a change to the PR policy,
+> the run/validation flow, or the agent-PR contract updates **both** in the same
+> PR. When in doubt, CLAUDE.md wins.
+
 ## Pull requests (agent default)
 
 - **Open PRs ready for review** (`draft: false`). Do **not** open draft PRs unless the user explicitly asks and the work is **stacked on another feature branch** that has not merged to `main` yet — those PRs must be labeled **`DNM`** until the parent lands, then rebase onto `main`, drop `DNM`, and mark ready.
@@ -9,6 +17,13 @@ Guidance for autonomous agents (including Cursor Cloud) working in this reposito
 - **CodeRabbit:** treat approval as the merge gate — run `bin/ci-local` locally first, fix anything CodeRabbit flags, and push again. Agents cannot click “approve” on CodeRabbit’s behalf; keep the PR green and address review comments until CodeRabbit approves or a human overrides.
 
 ## Cursor Cloud specific instructions
+
+> **Setup is automated.** [`.cursor/environment.json`](.cursor/environment.json)
+> runs the install below on every Cloud-agent boot, and the human-side controls
+> (branch-only token, secret store, spend cap, kill switch, no-auto-merge gate)
+> are documented in
+> [`docs/operations/cursor-cloud-agents-runbook.md`](docs/operations/cursor-cloud-agents-runbook.md).
+> The manual steps here are the same commands, for reference / non-Cursor agents.
 
 ### What this repo is
 
@@ -18,17 +33,18 @@ Canonical bootstrap contract: [`recipes/environments/cloud-bootstrap.md`](recipe
 
 ### Dependency install (preferred)
 
-Python **≥ 3.11** required. Use the pinned lockfile and **uv** when available:
+Python **≥ 3.11** required. Use the pinned lockfile and **uv** when available
+(this mirrors the `install` step in `.cursor/environment.json`):
 
 ```bash
 # One-time on a fresh VM if uv is missing:
-curl -LsSf https://astral.sh/uv/install.sh | sh
+command -v uv >/dev/null 2>&1 || curl -LsSf https://astral.sh/uv/install.sh | sh
 export PATH="$HOME/.local/bin:$PATH"
 
-uv venv .venv
+test -d .venv || uv venv .venv
 UV_PROJECT_ENVIRONMENT=.venv uv pip sync requirements.lock
 UV_PROJECT_ENVIRONMENT=.venv uv pip install -e . --no-deps
-export PATH="/workspace/.venv/bin:$PATH"
+export PATH="$PWD/.venv/bin:$PATH"
 ```
 
 Fallback (no uv): `pip install -r requirements.lock` then `pip install -e . --no-deps`.
