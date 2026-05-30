@@ -242,7 +242,12 @@ reviews:
         instructions or guidance that contradicts the current revamp posture.
     - path: "docs/review/**"
       instructions: >-
-        Review/scoping contracts. docs/review/agent-ready-rubric.md is the
+        Review/scoping contracts. docs/review/board-context-brief.md is the
+        substance layer above the rubric and triage model: the board's locked
+        project truths, the recurring discipline-failure patterns, and the open
+        contradictions an agent must inherit before pulling a ticket. It records
+        what is true about the work and must not restate the rubric or the triage
+        model. docs/review/agent-ready-rubric.md is the
         canonical definition of the agent-ready / needs-scoping / wall / gate
         labels and the dependency-hygiene rules.
         docs/review/triage-intelligence.md is the operating model on top of the
