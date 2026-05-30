@@ -191,6 +191,9 @@ right architecture isn't clear from the ticket. See the HUMAN-ticket guidance in
 Review policy details and a worked PR example:
 - [`docs/review/agent-ready-rubric.md`](docs/review/agent-ready-rubric.md) — **the
   `agent-ready`/`needs-scoping`/`wall`/`gate` label contract and dependency-hygiene rules**
+- [`docs/review/triage-intelligence.md`](docs/review/triage-intelligence.md) — **the
+  triage operating model on top of the rubric: taxonomy, the Linear Triage
+  Intelligence guidance text, and the board-quality → CLAUDE.md feedback loop**
 - [`docs/review/coderabbit-policy.md`](docs/review/coderabbit-policy.md)
 - [`docs/review/agent-pr-example.md`](docs/review/agent-pr-example.md)
 
@@ -268,6 +271,14 @@ milestone (**VIBE-83/88**), not by structural PRs. See the plan doc §7.
   checkout.
 - **Every PR references its ticket** in the title (`VIBE-123: ...`) and carries a
   **risk label** (Low/Medium/High) plus type and area labels.
+- **PRs target `main` — always.** A PR's base branch is `main`, never another
+  feature branch. If the work is bundled on top of a not-yet-merged PR (it depends
+  on code from an earlier ticket), open it as a **draft** with the **`DNM`** (do
+  not merge) label, and state — in **both** the PR description **and the ticket** —
+  that it depends on the earlier ticket's work and must wait for that PR to merge
+  first. When the parent merges: rebase onto `main` (dropping the already-merged
+  commits), retarget the base to `main`, drop `DNM`, and un-draft. A PR based on a
+  feature branch is never a valid *final* state.
 - **Rebase, never merge** main into a feature branch. Force-push only feature
   branches, never main.
 - **CLI doctrine** (`agent_instructions/CLI.md`): smoke-test every subcommand

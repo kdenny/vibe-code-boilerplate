@@ -99,6 +99,16 @@ reviews:
           affected modules remain independently runnable. For CLI changes, it must
           include the per-subcommand smoke-test matrix. Request changes if any of
           these four sections is missing.
+      - name: "PR base branch"
+        mode: "error"
+        instructions: >-
+          PRs must target the main branch. If this PR's base is a feature branch
+          (it is bundled on top of another not-yet-merged PR's work), request
+          changes UNLESS the PR is a draft, carries the DNM label, and BOTH its
+          description AND the linked ticket clearly state which earlier ticket/PR it
+          depends on and that it must wait for that PR to merge first. A PR based on
+          a feature branch is never a valid final, mergeable state — once the parent
+          merges it must be rebased onto main and retargeted.
 
   # Exclude generated, vendored, and archived material from review.
   path_filters:
@@ -181,9 +191,13 @@ reviews:
       instructions: >-
         The target-state revamp contract. Any change to module boundaries, the
         local run/validation flow, the testing strategy, or the agent-PR contract
-        here MUST be matched by a corresponding update to .coderabbit.yaml and the
-        plan doc (docs/architecture/VIBE-174-modular-restructure-plan.md) in the
-        same PR, and vice versa.
+        here MUST be matched by a corresponding update to .coderabbit.yaml in the
+        same PR, and vice versa — CLAUDE.md and this file are the canonical matched
+        pair (the Sync rule). Changes that touch the target structure, module
+        boundaries, the staged migration sequence, or the validation contract MUST
+        ADDITIONALLY update the plan doc
+        (docs/architecture/VIBE-174-modular-restructure-plan.md); agent-PR-contract
+        or review-policy changes that don't touch the plan's domain need not.
     - path: "docs/architecture/**"
       instructions: >-
         The modular-restructure plan (paired with a Linear summary on VIBE-174).
@@ -205,6 +219,13 @@ reviews:
         consistent with this rubric and with CLAUDE.md. Flag a ticket called
         agent-ready that still leaves an open design decision to the agent, or a
         consumer ticket missing a blocked-by edge to a not-yet-built contract.
+        docs/review/triage-intelligence.md is the operating model on top of the
+        rubric (taxonomy, the Linear Triage Intelligence guidance text, the safe
+        auto-apply vs advisory boundary, and the board-quality -> CLAUDE.md
+        feedback loop). If a PR changes triage behavior, the guidance text, or
+        which board changes are safe to auto-apply, confirm it stays consistent
+        with the rubric and CLAUDE.md, and that no change is destructive by
+        default (promise-bearing labels stay advisory).
 
 chat:
   auto_reply: true
