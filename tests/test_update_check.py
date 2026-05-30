@@ -237,14 +237,17 @@ class TestUpdateNoticeGating:
 
         from click.testing import CliRunner
 
-        from lib.vibe.cli.main import main
+        from lib.vibe.cli import main as main_mod
 
         mock_tracker = MagicMock()
         mock_tracker.list_labels.return_value = [{"name": "Bug", "id": "1"}]
+        fake_sys = MagicMock()
+        fake_sys.stderr.isatty.return_value = True
 
         runner = CliRunner()
         with (
-            patch("lib.vibe.update_check.check_for_update", return_value=self.UPDATE),
+            patch.object(main_mod, "sys", fake_sys),
+            patch("lib.vibe.update_check.check_for_update", return_value=self.UPDATE) as mock_check,
             patch(
                 "lib.vibe.config.load_config",
                 return_value={
@@ -260,9 +263,10 @@ class TestUpdateNoticeGating:
             patch("lib.vibe.label_sync.save_config"),
             patch.dict("os.environ", {"LINEAR_API_KEY": "test-key"}),
         ):
-            result = runner.invoke(main, ["sync-labels", "--json"])
+            result = runner.invoke(main_mod.main, ["sync-labels", "--json"])
 
         assert result.exit_code == 0
+        mock_check.assert_not_called()
         # Must parse cleanly even though an update is "available".
         payload = json.loads(result.output)
         assert "labels" in payload
