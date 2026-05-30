@@ -196,6 +196,15 @@ reviews:
       instructions: >-
         Documentation recipes. Low risk; keep review light. Flag only broken
         instructions or guidance that contradicts the current revamp posture.
+    - path: "docs/review/**"
+      instructions: >-
+        Review/scoping contracts. docs/review/agent-ready-rubric.md is the
+        canonical definition of the agent-ready / needs-scoping / wall / gate
+        labels and the dependency-hygiene rules. If a PR changes how tickets are
+        labeled or scoped, or changes the agent-PR contract, confirm it stays
+        consistent with this rubric and with CLAUDE.md. Flag a ticket called
+        agent-ready that still leaves an open design decision to the agent, or a
+        consumer ticket missing a blocked-by edge to a not-yet-built contract.
 
 chat:
   auto_reply: true
