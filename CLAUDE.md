@@ -52,7 +52,14 @@
    `agent-ready` means *no open design decision is left to the agent* (it may
    still be blocked); a hidden dependency on a not-yet-built contract is the most
    common way a ticket is falsely `agent-ready` — wire the `blocked-by` edge or
-   demote to `needs-scoping` with the open questions written out.
+   demote to `needs-scoping` with the open questions written out. A
+   `needs-scoping → agent-ready` re-promotion that **cites a foundational artifact**
+   (a doc section, a `.vibe/*.schema.json`, a pattern file) is only honest once
+   that file actually exists on disk **and** its producing ticket is Done — verify
+   it before trusting the label. For the durable project truths, locked decisions,
+   and the failure patterns behind these checks, read
+   [`docs/review/board-context-brief.md`](docs/review/board-context-brief.md)
+   before pulling a ticket.
 
 ---
 
@@ -210,6 +217,9 @@ right architecture isn't clear from the ticket. See the HUMAN-ticket guidance in
 [`docs/archive/CLAUDE.boilerplate.md`](docs/archive/CLAUDE.boilerplate.md).
 
 Review policy details and a worked PR example:
+- [`docs/review/board-context-brief.md`](docs/review/board-context-brief.md) — **the
+  substance layer: the board's locked project truths, the recurring discipline-failure
+  patterns an agent trips on, and the open contradictions to resolve — read before pulling a ticket**
 - [`docs/review/agent-ready-rubric.md`](docs/review/agent-ready-rubric.md) — **the
   `agent-ready`/`needs-scoping`/`wall`/`gate` label contract and dependency-hygiene rules**
 - [`docs/review/triage-intelligence.md`](docs/review/triage-intelligence.md) — **the
