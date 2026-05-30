@@ -1362,3 +1362,99 @@ class TestLinearTrackerAddRelation:
             tracker.add_relation("TEST-1", "TEST-2", "blocks")
 
         mock_create_relation.assert_called_once_with("TEST-1", "TEST-2", "blocks")
+
+
+class TestLinearTrackerStartedStateName:
+    """Tests for _get_started_state_name (resolve the active column by type)."""
+
+    @staticmethod
+    def _states_response(nodes: list[dict]) -> dict:
+        return {"data": {"team": {"states": {"nodes": nodes}}}}
+
+    def test_prefers_in_progress_name(self) -> None:
+        tracker = LinearTracker(api_key="test-fake-key")
+        nodes = [
+            {"name": "Started", "type": "started", "position": 1},
+            {"name": "In Progress", "type": "started", "position": 2},
+        ]
+        with patch.object(tracker, "_execute_query", return_value=self._states_response(nodes)):
+            assert tracker._get_started_state_name("team123") == "In Progress"
+
+    def test_falls_back_to_lowest_position_started_state(self) -> None:
+        tracker = LinearTracker(api_key="test-fake-key")
+        nodes = [
+            {"name": "In Review", "type": "started", "position": 3},
+            {"name": "Doing", "type": "started", "position": 1},
+        ]
+        with patch.object(tracker, "_execute_query", return_value=self._states_response(nodes)):
+            assert tracker._get_started_state_name("team123") == "Doing"
+
+    def test_returns_none_when_no_started_state(self) -> None:
+        tracker = LinearTracker(api_key="test-fake-key")
+        nodes = [
+            {"name": "Todo", "type": "unstarted", "position": 0},
+            {"name": "Done", "type": "completed", "position": 9},
+        ]
+        with patch.object(tracker, "_execute_query", return_value=self._states_response(nodes)):
+            assert tracker._get_started_state_name("team123") is None
+
+    def test_returns_none_on_query_error(self) -> None:
+        tracker = LinearTracker(api_key="test-fake-key")
+        with patch.object(tracker, "_execute_query", side_effect=requests.RequestException("boom")):
+            assert tracker._get_started_state_name("team123") is None
+
+
+class TestLinearTrackerStartTicket:
+    """Tests for start_ticket orchestration (collaborators mocked)."""
+
+    @staticmethod
+    def _ticket(team_id: str | None = "team123") -> MagicMock:
+        ticket = MagicMock()
+        ticket.raw = {"id": "uuid-1", "team": ({"id": team_id} if team_id else None)}
+        return ticket
+
+    def test_resolves_started_state_and_updates(self) -> None:
+        tracker = LinearTracker(api_key="test-fake-key")
+        with (
+            patch.object(tracker, "get_ticket", return_value=self._ticket()),
+            patch.object(tracker, "_get_started_state_name", return_value="In Progress"),
+            patch.object(tracker, "update_ticket") as mock_update,
+        ):
+            result = tracker.start_ticket("TEST-1")
+
+        assert result == "In Progress"
+        mock_update.assert_called_once_with("TEST-1", status="In Progress")
+
+    def test_falls_back_to_team_id_when_issue_has_no_team(self) -> None:
+        tracker = LinearTracker(api_key="test-fake-key", team_id="default-team")
+        with (
+            patch.object(tracker, "get_ticket", return_value=self._ticket(team_id=None)),
+            patch.object(
+                tracker, "_get_started_state_name", return_value="In Progress"
+            ) as mock_resolve,
+            patch.object(tracker, "update_ticket"),
+        ):
+            tracker.start_ticket("TEST-1")
+
+        mock_resolve.assert_called_once_with("default-team")
+
+    def test_raises_when_ticket_not_found(self) -> None:
+        tracker = LinearTracker(api_key="test-fake-key")
+        with patch.object(tracker, "get_ticket", return_value=None):
+            with pytest.raises(RuntimeError, match="Ticket not found"):
+                tracker.start_ticket("TEST-1")
+
+    def test_raises_when_no_team(self) -> None:
+        tracker = LinearTracker(api_key="test-fake-key")  # no fallback team_id
+        with patch.object(tracker, "get_ticket", return_value=self._ticket(team_id=None)):
+            with pytest.raises(RuntimeError, match="no team"):
+                tracker.start_ticket("TEST-1")
+
+    def test_raises_when_no_started_state(self) -> None:
+        tracker = LinearTracker(api_key="test-fake-key")
+        with (
+            patch.object(tracker, "get_ticket", return_value=self._ticket()),
+            patch.object(tracker, "_get_started_state_name", return_value=None),
+        ):
+            with pytest.raises(RuntimeError, match="started"):
+                tracker.start_ticket("TEST-1")

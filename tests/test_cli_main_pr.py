@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
-from lib.vibe.cli.main import _autolink_pr_to_ticket
+from lib.vibe.cli.main import _autolink_pr_to_ticket, _mark_ticket_in_progress
 
 
 class TestAutolinkPrToTicket:
@@ -78,3 +78,42 @@ class TestAutolinkPrToTicket:
         config: dict = {}
         _autolink_pr_to_ticket("PROJ-123", "https://github.com/org/repo/pull/48", config)
         # Should return without error when config has no tracker section
+
+
+class TestMarkTicketInProgress:
+    """Tests for the _mark_ticket_in_progress helper used by `do`."""
+
+    def test_marks_linear_ticket_in_progress(self) -> None:
+        config = {"tracker": {"type": "linear", "config": {"team_id": "team_abc"}}}
+        mock_tracker = MagicMock()
+        mock_tracker.start_ticket.return_value = "In Progress"
+
+        with patch("lib.vibe.trackers.linear.LinearTracker", return_value=mock_tracker):
+            _mark_ticket_in_progress("PROJ-123", config)
+
+        mock_tracker.start_ticket.assert_called_once_with("PROJ-123")
+
+    def test_skips_non_linear_tracker(self) -> None:
+        config = {"tracker": {"type": "github", "config": {}}}
+        # No LinearTracker should be constructed; just verify no crash.
+        with patch("lib.vibe.trackers.linear.LinearTracker") as mock_cls:
+            _mark_ticket_in_progress("PROJ-123", config)
+        mock_cls.assert_not_called()
+
+    def test_skips_when_no_tracker_configured(self) -> None:
+        config: dict = {"tracker": {"type": None, "config": {}}}
+        _mark_ticket_in_progress("PROJ-123", config)
+        # Should return without attempting anything
+
+    def test_empty_config_is_safe(self) -> None:
+        _mark_ticket_in_progress("PROJ-123", {})
+        # Should not raise when config has no tracker section
+
+    def test_tracker_error_is_swallowed(self) -> None:
+        config = {"tracker": {"type": "linear", "config": {"team_id": "team_abc"}}}
+        mock_tracker = MagicMock()
+        mock_tracker.start_ticket.side_effect = RuntimeError("API error")
+
+        with patch("lib.vibe.trackers.linear.LinearTracker", return_value=mock_tracker):
+            # Best-effort — must not raise so worktree creation continues.
+            _mark_ticket_in_progress("PROJ-123", config)

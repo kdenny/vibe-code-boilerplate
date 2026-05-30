@@ -829,6 +829,68 @@ class LinearTracker(TrackerBase):
         except (requests.RequestException, RuntimeError):
             return None
 
+    def _get_started_state_name(self, team_id: str) -> str | None:
+        """Return the name of the team's primary ``started``-type workflow state.
+
+        Resolves by Linear state *type* rather than a hardcoded name so it works
+        whatever a workspace calls its active column. Prefers a state literally
+        named "In Progress"; otherwise the started-type state with the lowest
+        position. Returns ``None`` if the team has no started-type state.
+        """
+        query = """
+        query StartedState($teamId: String!) {
+            team(id: $teamId) {
+                states {
+                    nodes {
+                        name
+                        type
+                        position
+                    }
+                }
+            }
+        }
+        """
+        try:
+            result = self._execute_query(query, {"teamId": team_id})
+            nodes = result.get("data", {}).get("team", {}).get("states", {}).get("nodes", [])
+        except (requests.RequestException, RuntimeError):
+            return None
+
+        started = [n for n in nodes if n.get("type") == "started" and n.get("name")]
+        if not started:
+            return None
+        for node in started:
+            if node["name"].lower() == "in progress":
+                name: str = node["name"]
+                return name
+        started.sort(key=lambda n: n.get("position", 0))
+        first_name: str = started[0]["name"]
+        return first_name
+
+    def start_ticket(self, ticket_id: str) -> str:
+        """Move a ticket into the team's active (``started``-type) workflow state.
+
+        Used when work begins on a ticket so the board reflects that it is
+        underway. Resolves the target state by type (falling back to a state
+        named "In Progress"), applies it via :meth:`update_ticket`, and returns
+        the name of the state set. Setting the state a ticket is already in is a
+        harmless no-op on Linear's side.
+
+        Raises ``RuntimeError`` if the ticket, its team, or a started-type state
+        cannot be resolved; callers treating this as best-effort should catch it.
+        """
+        issue = self.get_ticket(ticket_id)
+        if not issue:
+            raise RuntimeError(f"Ticket not found: {ticket_id}")
+        team_id = (issue.raw.get("team") or {}).get("id") or self._team_id
+        if not team_id:
+            raise RuntimeError("Cannot resolve started state: issue has no team")
+        state_name = self._get_started_state_name(team_id)
+        if not state_name:
+            raise RuntimeError("No 'started'-type workflow state for this team")
+        self.update_ticket(ticket_id, status=state_name)
+        return state_name
+
     def create_relation(
         self,
         blocker_id: str,
