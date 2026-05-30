@@ -18,6 +18,28 @@ from lib.vibe.trackers.base import TrackerBase
 from lib.vibe.version import bump_version, get_version, write_version
 from lib.vibe.wizards.setup import run_individual_wizard, run_setup
 
+_MACHINE_OUTPUT_FLAGS = frozenset({"--json", "--json-output"})
+
+
+class _VibeGroup(click.Group):
+    """Click group that preserves raw args for startup policy decisions."""
+
+    def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:
+        ctx.meta["vibe_raw_args"] = tuple(args)
+        parsed: list[str] = super().parse_args(ctx, args)
+        return parsed
+
+
+def _machine_output_requested(ctx: click.Context | None) -> bool:
+    """Return True when the invocation requests machine-readable output."""
+    raw_args: tuple[str, ...] = ()
+    if ctx is not None:
+        raw_args = ctx.meta.get("vibe_raw_args", ())
+    if not raw_args:
+        raw_args = tuple(sys.argv[1:])
+    return any(arg in _MACHINE_OUTPUT_FLAGS for arg in raw_args)
+
+
 # Auto-load .env files at startup (unless disabled)
 if os.environ.get("VIBE_NO_DOTENV") != "1":
     from lib.vibe.env import auto_load_env
@@ -25,7 +47,7 @@ if os.environ.get("VIBE_NO_DOTENV") != "1":
     auto_load_env(verbose=os.environ.get("VIBE_VERBOSE") == "1")
 
 
-@click.group()
+@click.group(cls=_VibeGroup)
 @click.version_option(version=get_version(), prog_name="vibe")
 def main() -> None:
     """Vibe Code Boilerplate - AI-assisted development workflows."""
@@ -33,9 +55,10 @@ def main() -> None:
         from lib.vibe.update_check import check_for_update, format_update_notice
 
         # The notice is an interactive affordance ("run bin/vibe update"). Only
-        # show it when stderr is attached to a terminal, so it never leaks into
-        # pipes, CI, or --json output (CliRunner mixes stderr into result.output).
-        if sys.stderr.isatty():
+        # show it for interactive human output, so it never leaks into pipes, CI,
+        # or machine-readable output (CliRunner mixes stderr into result.output).
+        ctx = click.get_current_context(silent=True)
+        if sys.stderr.isatty() and not _machine_output_requested(ctx):
             update_info = check_for_update()
             if update_info:
                 click.echo(format_update_notice(update_info), err=True)
