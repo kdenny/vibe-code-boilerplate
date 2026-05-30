@@ -55,7 +55,7 @@ for the selection rules and when a full-tree run is still required.
 
 Restore/save the dependency cache on this key:
 
-```
+```text
 hash(requirements.lock) + python-version + runner-os
 ```
 
