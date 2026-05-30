@@ -197,6 +197,18 @@ Review policy details and a worked PR example:
 - [`docs/review/coderabbit-policy.md`](docs/review/coderabbit-policy.md)
 - [`docs/review/agent-pr-example.md`](docs/review/agent-pr-example.md)
 
+Cloud execution of this contract (the agent that *runs* the loop, not just the
+rules):
+- [`docs/architecture/VIBE-140-cloud-coding-environment.md`](docs/architecture/VIBE-140-cloud-coding-environment.md)
+  — **the cloud coding environment program** (Cursor Cloud bridge → self-hosted
+  Claude Code runner on Fly.io; matched-pair Linear projects)
+- [`.claude/commands/pr-autopilot.md`](.claude/commands/pr-autopilot.md) +
+  [`recipes/workflows/pr-autopilot.md`](recipes/workflows/pr-autopilot.md) — **the
+  PR-autopilot loop** the runner executes after opening a PR (wait for CodeRabbit
+  + CI, fix CI/conflicts, work ahead on blockers as draft PRs to `main`, escalate
+  to Slack, hold open ≤90 min until merged; runner-path commits/PRs are
+  de-attributed)
+
 ---
 
 ## Walls & gates (milestone discipline)
@@ -261,6 +273,13 @@ package DEAL can install:
 
 Physical extraction/packaging is owned by the **VIBE-86 line** and the publish
 milestone (**VIBE-83/88**), not by structural PRs. See the plan doc §7.
+
+The **runtime** that exercises this capability — a remote, Slack/Linear-triggered
+agent that opens PRs into the gate and drives them to merge — is the
+[cloud coding environment program](docs/architecture/VIBE-140-cloud-coding-environment.md)
+(VIBE-140; Cursor Cloud bridge today, self-hosted Claude Code on Fly.io next). The
+PR-autopilot loop it runs is what DEAL ultimately installs alongside the packaged
+contract.
 
 ---
 

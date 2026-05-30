@@ -7,10 +7,11 @@
 #
 # SYNC RULE: Any substantial change to repo structure, module boundaries, the
 # local run/validation flow, the testing strategy, or the agent-PR contract MUST
-# be reflected here in the same PR. CLAUDE.md, this file, and the plan doc
-# (docs/architecture/VIBE-174-modular-restructure-plan.md, which has a paired
-# Linear summary) are a matched set — if one moves, the others move. CodeRabbit
-# should request changes on PRs that shift the architecture without updating them.
+# be reflected here in the same PR. CLAUDE.md, this file, and the plan docs under
+# docs/architecture/ (each paired with a Linear summary/project doc —
+# VIBE-174-modular-restructure-plan.md and VIBE-140-cloud-coding-environment.md)
+# are a matched set — if one moves, the others move. CodeRabbit should request
+# changes on PRs that shift the architecture without updating them.
 #
 # SPEED RULE: This project is optimized for speed. If a reviewer or agent ever
 # sees a way to make setup faster, validation faster, or the agent loop tighter,
@@ -200,12 +201,25 @@ reviews:
         or review-policy changes that don't touch the plan's domain need not.
     - path: "docs/architecture/**"
       instructions: >-
-        The modular-restructure plan (paired with a Linear summary on VIBE-174).
-        It is the source of truth for the target structure, the staged migration
-        sequence, and the validation contract. If it changes, confirm CLAUDE.md
-        and .coderabbit.yaml stay consistent, and that the staged sequence still
+        The architecture plan docs, each paired with a Linear summary/project doc
+        (VIBE-174-modular-restructure-plan.md; VIBE-140-cloud-coding-environment.md
+        — the cloud coding environment program). They are the source of truth for
+        the target structure, the staged sequence, and the validation/agent-PR
+        contract. If one changes, confirm CLAUDE.md, .coderabbit.yaml, and the
+        paired Linear doc stay consistent, and that the staged sequence still
         reflects non-destructive, one-step-at-a-time migration. Flag drift between
-        this plan and the live structure.
+        a plan and the live structure.
+    - path: ".claude/commands/**"
+      instructions: >-
+        Agent skills/commands — part of the agent-PR contract surface.
+        pr-autopilot.md defines how a cloud runner drives an opened PR to merge
+        (wait for CodeRabbit + CI, fix CI/conflicts by rebase-on-main, work ahead
+        on blockers as draft PRs to main, escalate to Slack, hold open <=90 min,
+        de-attribute on the runner path only). If a command changes agent
+        behavior, confirm it stays consistent with CLAUDE.md, the agent-ready
+        rubric, and docs/architecture/VIBE-140-cloud-coding-environment.md. Flag
+        any guidance to auto-merge, to target a non-main base for real (vs a draft
+        to main), or to force-push anything other than a feature branch.
     - path: "recipes/**"
       instructions: >-
         Documentation recipes. Low risk; keep review light. Flag only broken
