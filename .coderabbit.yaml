@@ -1,0 +1,165 @@
+# yaml-language-server: $schema=https://coderabbit.ai/schemas/coderabbit-config.json
+#
+# CodeRabbit configuration for the VIBE repo revamp.
+# ---------------------------------------------------------------------------
+# Goal: high-signal, decisive review (approve vs request-changes), low chatter.
+# This file is the standing "review firewall" for the non-destructive revamp.
+#
+# SYNC RULE: Any substantial change to repo structure, module boundaries, the
+# local run/validation flow, or the agent-PR contract MUST be reflected here in
+# the same PR. CLAUDE.md and this file are a matched pair — if one moves, the
+# other moves. CodeRabbit should request changes on PRs that shift the
+# architecture without updating this config (and CLAUDE.md).
+#
+# SPEED RULE: This project is optimized for speed. If a reviewer or agent ever
+# sees a way to make setup faster, validation faster, or the agent loop tighter,
+# surface it in the review — even when the PR is otherwise approvable.
+# ---------------------------------------------------------------------------
+
+language: "en-US"
+
+# Tone is the global voice for every comment. Keep it decisive and fast.
+tone_instructions: >-
+  Be decisive and concise. Prefer a clear approve or request-changes verdict
+  over hedged commentary. Optimize feedback for an agent author in a fast loop:
+  lead with the verdict, then the few things that actually matter. Stay quiet on
+  subjective style. Always flag architectural drift, missing/weak tests, hidden
+  coupling, and broken local run paths. If you see any way to make local setup,
+  validation, or the agent loop faster, say so explicitly.
+
+early_access: false
+
+reviews:
+  # 'chill' keeps low-value style nitpicking down. Strictness is reintroduced
+  # surgically via path_instructions and pre_merge_checks below, so signal stays
+  # high without drowning the PR in style chatter.
+  profile: "chill"
+
+  # Decisive outcomes: CodeRabbit blocks the PR when it requests changes.
+  request_changes_workflow: true
+  abort_on_close: true
+
+  high_level_summary: true
+  high_level_summary_instructions: >-
+    Summarize what changed and why in 3-5 bullets max. Call out any change to
+    module boundaries, local run/validation flow, or the agent-PR contract.
+  changed_files_summary: true
+  review_status: true
+  estimate_code_review_effort: true
+  collapse_walkthrough: true
+
+  # Repo context: tie reviews back to the Linear ticket and related work.
+  assess_linked_issues: true
+  related_issues: true
+  related_prs: true
+  suggested_labels: true
+  auto_apply_labels: false
+
+  # Noise reducers.
+  poem: false
+  sequence_diagrams: false
+  in_progress_fortune: false
+
+  auto_review:
+    enabled: true
+    # Incremental re-review on every push keeps the agent loop tight.
+    auto_incremental_review: true
+    drafts: false
+    base_branches:
+      - "main"
+    ignore_title_keywords:
+      - "wip"
+      - "skip-review"
+
+  # Hard gates. These are what make review decisive instead of advisory.
+  pre_merge_checks:
+    title:
+      mode: "error"
+      # Every PR must reference its ticket, e.g. "VIBE-123: ...".
+      requirements: >-
+        The title must start with a ticket reference in the form VIBE-<number>
+        followed by a colon and an imperative summary.
+    description:
+      # The built-in description check only takes `mode` (no `requirements`
+      # field — that key would be silently ignored). The agent-PR contract is
+      # enforced via the custom_checks entry below instead.
+      mode: "error"
+    issue_assessment:
+      mode: "warning"
+    # Custom checks are the schema-supported way to enforce arbitrary,
+    # deterministic description requirements. This encodes the agent-PR contract.
+    custom_checks:
+      - name: "Agent-PR contract"
+        mode: "error"
+        instructions: >-
+          The description must state: (1) what changed and why, (2) the staged,
+          non-destructive migration step this represents, (3) test proof with the
+          exact local commands run and their results, and (4) confirmation that
+          affected modules remain independently runnable. For CLI changes, it must
+          include the per-subcommand smoke-test matrix. Request changes if any of
+          these four sections is missing.
+
+  # Exclude generated, vendored, and archived material from review.
+  path_filters:
+    - "!**/*.lock"
+    - "!**/.venv/**"
+    - "!**/node_modules/**"
+    - "!**/dist/**"
+    - "!**/build/**"
+    - "!docs/archive/**"
+
+  # Path-specific review guidance. This is where architectural strictness lives.
+  path_instructions:
+    - path: "lib/vibe/**"
+      instructions: >-
+        Core Python package. Enforce clear module seams and explicit interfaces
+        over hidden coupling. Flag: cross-module reach-through, new global state,
+        functions that can only run inside the full app rather than in isolation,
+        and structural churn not justified by the modular target architecture in
+        CLAUDE.md. Require that behavior is preserved (non-destructive) and that
+        the change is a staged extraction, not a big-bang rewrite.
+    - path: "bin/**"
+      instructions: >-
+        CLI wrappers. Confirm the PR description documents a per-subcommand
+        live smoke-test matrix (pass/fail/deferred) for every command of the
+        modified CLI. Flag thin wrappers without docs, silently swallowed errors,
+        and missing inline --help. Do not approve CLI changes whose only test
+        proof is a mocked CI test.
+    - path: "tests/**"
+      instructions: >-
+        Require tests at the right level: module-level unit tests for isolated
+        changes, and combinatorial/integration tests only where modules are
+        intentionally designed to compose. Flag changes to behavior that ship
+        without a corresponding test, and flag tests that mock so much they no
+        longer exercise the real path.
+    - path: ".github/workflows/**"
+      instructions: >-
+        CI must stay fast and local-first. Flag pinning/permission regressions,
+        secrets in plaintext, and any attempt to make CLI tests in CI the primary
+        verification (local live tests are the source of truth). Surface any
+        opportunity to make CI faster.
+    - path: "agent_instructions/**"
+      instructions: >-
+        Source of truth for agent instructions. If these change, confirm CLAUDE.md
+        and this .coderabbit.yaml stay consistent with them.
+    - path: "CLAUDE.md"
+      instructions: >-
+        The provisional revamp contract. Any change to module boundaries, local
+        run/validation flow, or the agent-PR contract here MUST be matched by a
+        corresponding update to .coderabbit.yaml in the same PR, and vice versa.
+    - path: "recipes/**"
+      instructions: >-
+        Documentation recipes. Low risk; keep review light. Flag only broken
+        instructions or guidance that contradicts the current revamp posture.
+
+chat:
+  auto_reply: true
+  integrations:
+    linear:
+      usage: "enabled"
+
+knowledge_base:
+  learnings:
+    scope: "auto"
+  issues:
+    scope: "auto"
