@@ -176,12 +176,20 @@ description:
    run/validation flow, testing strategy, or the agent-PR contract — OR an
    explicit note that none of those were affected.
 
-**CodeRabbit should request changes when:** behavior changes ship without tests;
-CLI changes lack a live smoke-test matrix; coupling increases or module seams
-blur (reach-through, new globals); an integration test mocks the collaborator
-instead of the boundary; a structural change skips the sync rule; local
-run/validation is broken or slowed; or the PR is a big-bang rewrite where staged
-extraction was viable.
+**CodeRabbit is a guardrail, not a roadblock.** It defaults to **approve**: once
+nothing blocking remains, it approves even with open non-blocking nitpicks. A
+finding **blocks only if future PRs will build on top of it** (the cost compounds
+if it merges as-is) — fix those before merge. Concretely, **CodeRabbit should
+request changes when:** behavior changes ship without tests; CLI changes lack a
+live smoke-test matrix; coupling increases or module seams blur (reach-through,
+new globals); an integration test mocks the collaborator instead of the boundary;
+a structural change skips the sync rule; local run/validation is broken or slowed;
+or the PR is a big-bang rewrite where staged extraction was viable. Everything
+else — one-off internals, style, naming, micro-opts, out-of-scope cleanup — is a
+non-blocking nitpick: surface it, file a follow-up if worth keeping, approve
+anyway. (A thin PR *description* is a warning, not a block; the substance behind
+the contract — tests, isolation, the sync edit — is what blocks.) Full criteria:
+[`docs/review/coderabbit-policy.md`](docs/review/coderabbit-policy.md).
 
 **A human should still intervene for:** subjective product/UX/branding calls,
 secret values, external-account actions, and anything ambiguous enough that the
