@@ -145,6 +145,17 @@ reviews:
         is absent. Any change to how local env loads, the venv activates, or
         bin/ reaches PATH is a local-setup-flow change — confirm CLAUDE.md and
         this file stay consistent per the sync rule.
+    - path: ".cursor/**"
+      instructions: >-
+        Cursor Cloud agent config — the CLOUD counterpart of the run/validation
+        flow (VIBE-187; ops in docs/operations/cursor-cloud-agents-runbook.md).
+        environment.json MUST stay secret-free (ANTHROPIC_API_KEY / LINEAR_API_KEY
+        belong only in Cursor's secret store) and its install step MUST resolve to
+        the same pinned versions as the local path — install from requirements.lock
+        via uv (pip fallback), never an unpinned `pip install`. Flag: any secret or
+        token literal, an install that drifts from requirements.lock /
+        recipes/environments/cloud-bootstrap.md, or anything implying the agent can
+        merge or push to main (the token is branch-only; merge is human-gated).
     - path: "tests/**"
       instructions: >-
         Require tests at the right level per recipes/testing/modular-testing.md:

@@ -255,7 +255,11 @@ hardening step reveals a faster path, surface it.
   MAX +20% spiky billing and encodes per-useful-PR cost as a rollback trigger);
   per-run + aggregate tracking via VIBE-198 (reusing `bin/costs`).
 - **Kill switch:** documented + tested for both engines (Cursor: disable/halt;
-  Fly: `fly scale count 0`).
+  Fly: `fly scale count 0`). The Cursor (Phase-1) controls — branch-only token,
+  secret store, spend cap, kill switch, and the Linear agent-guidance blocks —
+  are operationalized in
+  [`docs/operations/cursor-cloud-agents-runbook.md`](../operations/cursor-cloud-agents-runbook.md)
+  (VIBE-187).
 - **Reviewer overload is the binding constraint** (ADR-001): a max in-flight PR
   cap protects the solo reviewer. More PRs than one human can review is negative
   value — VIBE-195 enforces the cap.
