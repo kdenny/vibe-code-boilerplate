@@ -15,8 +15,8 @@ provisioned so the server-side handler (VIBE-192) and the Fly runner (VIBE-190/1
 have an exact contract to build against.
 
 - **Parent goal:** VIBE-140 (cloud coding environment) — see the canonical plan
-  `docs/architecture/VIBE-140-cloud-coding-environment.md` (lands with the VIBE-140
-  branch) and ADR-001 (`docs/decisions/ADR-001-cloud-coding-agent-selection.md`).
+  `docs/architecture/VIBE-140-cloud-coding-environment.md` and ADR-001
+  (`docs/decisions/ADR-001-cloud-coding-agent-selection.md`).
 - **Server-side follow-ups:** VIBE-192 (Slack trigger + progress thread — the
   handler the `/vibe` Request URL points at), VIBE-190 (provision the Fly machine),
   VIBE-191 (the headless runner). **This ticket creates the app; those wire the
