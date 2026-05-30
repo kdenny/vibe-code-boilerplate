@@ -26,6 +26,16 @@ The mapping is convention-led: ``lib/vibe/<pkg>/`` is covered by every
 ``lib/vibe/<name>.py`` is covered by ``tests/test_<name>.py``. The explicit
 entries below only exist where that convention does not hold (e.g. the views
 feature lives in ``trackers/linear.py`` but is tested in ``test_views.py``).
+
+Two test *levels* exist (see ``recipes/testing/modular-testing.md``):
+
+- **Unit** — one module in isolation, ``tests/test_<module>.py``. Selected by
+  the convention + :data:`SOURCE_TEST_MAP` above.
+- **Integration** — a real compose *seam* between modules, under
+  ``tests/integration/``. Selected by :data:`INTEGRATION_SEAMS`: a change to
+  *any* participant of a seam runs that seam's suite, on top of the
+  participants' own unit tests. Seams are added only where modules are designed
+  to compose in the product — not for every pair that merely imports another.
 """
 
 from __future__ import annotations
@@ -86,6 +96,25 @@ SOURCE_TEST_MAP: dict[str, tuple[str, ...]] = {
     "lib/vibe/frontend/": ("frontend",),
 }
 
+# Integration / combinatorial seams: a real compose path between modules,
+# tested under ``tests/integration/``. A change to ANY participant runs the
+# seam's suite (in addition to the participants' own unit suites), because the
+# bug a seam test catches lives in the *interaction*, which either side can
+# break. Keys are integration test paths; values are participant source
+# prefixes — an exact file, or a whole package when the key ends in "/".
+#
+# Add a seam ONLY where the modules are designed to compose in the product. Do
+# not add one for every import edge — that re-couples the suite. ``test_testscope``
+# asserts each suite file exists and each participant lives under ``lib/vibe/``.
+INTEGRATION_SEAMS: dict[str, tuple[str, ...]] = {
+    # create_worktree / cleanup_worktree drive the real state module to
+    # register and deregister worktrees on disk.
+    "tests/integration/test_worktree_state.py": (
+        "lib/vibe/git/worktrees.py",
+        "lib/vibe/state.py",
+    ),
+}
+
 
 def _tests_for_source(path: str, known_stems: set[str]) -> set[str] | None:
     """Map one changed source path to test stems.
@@ -141,9 +170,11 @@ def select_test_targets(
     """Decide which pytest targets to run for a set of changed files.
 
     Returns either :data:`RUN_ALL` (run the whole suite) or a sorted list of
-    ``tests/test_*.py`` paths. An empty list means no Python tests are affected.
+    ``tests/test_*.py`` and ``tests/integration/test_*.py`` paths. An empty list
+    means no Python tests are affected.
     """
     selected: set[str] = set()
+    selected_paths: set[str] = set()
 
     for raw in changed_files:
         path = raw.strip()
@@ -153,7 +184,20 @@ def select_test_targets(
         if any(path == p or path.startswith(p) for p in SHARED_PREFIXES):
             return RUN_ALL
 
-        # A changed test file always runs itself.
+        # Integration seams: a change to any participant runs the seam's suite.
+        for seam_path, participants in INTEGRATION_SEAMS.items():
+            if any(
+                path == part or (part.endswith("/") and path.startswith(part))
+                for part in participants
+            ):
+                selected_paths.add(seam_path)
+
+        # A changed integration test always runs itself.
+        if path.startswith("tests/integration/test_") and path.endswith(".py"):
+            selected_paths.add(path)
+            continue
+
+        # A changed unit test file always runs itself.
         if path.startswith("tests/test_") and path.endswith(".py"):
             stem = path[len("tests/test_") : -len(".py")]
             if stem in known_stems:
@@ -165,7 +209,8 @@ def select_test_targets(
             return RUN_ALL
         selected.update(result)
 
-    return sorted(f"tests/test_{stem}.py" for stem in selected)
+    unit_paths = {f"tests/test_{stem}.py" for stem in selected}
+    return sorted(unit_paths | selected_paths)
 
 
 def main(argv: list[str] | None = None) -> int:

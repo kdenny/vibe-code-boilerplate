@@ -1,26 +1,37 @@
-# CLAUDE.md — VIBE Repo (Provisional, Revamp Period)
+# CLAUDE.md — VIBE Repo (Target-State Contract, Revamp Period)
 
-> **Status: PROVISIONAL.** This repo is being actively restructured. This file is
-> the shared contract between agents and reviewers **for the duration of the
-> revamp**. It is intentionally leaner than the pre-revamp instructions, which are
-> archived verbatim at [`docs/archive/CLAUDE.boilerplate.md`](docs/archive/CLAUDE.boilerplate.md)
-> — consult that file for the full operational detail on tickets, worktrees,
-> labels, deployment wizards, and recipes. Nothing there was deleted; it was moved.
+> **Status: TARGET-STATE CONTRACT.** This repo is being restructured into a
+> modular, local-first toolkit on the critical path to packaging **PR Autopilot**
+> for **DEAL**. This file describes the **architecture we are building toward**
+> and is the live contract between agents and reviewers during the revamp.
 >
-> This file is **hand-authored for the revamp** and is the live source of agent
-> instruction during this period. Do not regenerate it from `agent_instructions/`
-> until the revamp completes and this provisional notice is removed.
+> **Built vs Target.** Most of the structure below already exists (the package is
+> modular and acyclic; module-scoped CI and the two-level test strategy are live).
+> Items not yet fully in place are marked **🎯 Target** — treat them as the
+> direction every PR should move toward, never away from. The detailed,
+> agent-ready sequencing lives in
+> [`docs/architecture/VIBE-174-modular-restructure-plan.md`](docs/architecture/VIBE-174-modular-restructure-plan.md).
+>
+> The pre-revamp boilerplate instructions are archived verbatim at
+> [`docs/archive/CLAUDE.boilerplate.md`](docs/archive/CLAUDE.boilerplate.md) —
+> the full operational detail on tickets, worktrees, labels, deployment wizards,
+> and recipes. Nothing was deleted; it was moved. This file is **hand-authored
+> for the revamp**; do not regenerate it from `agent_instructions/` until the
+> revamp completes and this notice is removed.
 
 ---
 
 ## Two standing rules (read these first)
 
-1. **Sync rule — review config tracks the architecture.** Any substantial change
-   to repo structure, module boundaries, the local run/validation flow, or the
-   agent-PR contract MUST update [`.coderabbit.yaml`](.coderabbit.yaml) **in the
-   same PR**. CLAUDE.md and `.coderabbit.yaml` are a matched pair. A PR that shifts
-   the architecture without updating the review config is incomplete, and
-   CodeRabbit is configured to request changes on it.
+1. **Sync rule — the contract tracks the architecture.** Any substantial change
+   to repo structure, module boundaries, the local run/validation flow, the
+   testing strategy, or the agent-PR contract MUST update
+   [`.coderabbit.yaml`](.coderabbit.yaml) **and** the plan doc
+   ([`docs/architecture/VIBE-174-modular-restructure-plan.md`](docs/architecture/VIBE-174-modular-restructure-plan.md))
+   **in the same PR**. CLAUDE.md, `.coderabbit.yaml`, and the plan are a matched
+   set; the plan also has a paired Linear summary. A PR that shifts the
+   architecture without syncing them is incomplete, and CodeRabbit is configured
+   to request changes on it.
 
 2. **Speed rule — always surface ways to go faster.** This project is optimized
    for speed: fast local setup, fast local validation, tight agent loops. If you
@@ -34,69 +45,133 @@
 ## What this repo is
 
 VIBE is a language-agnostic workflow-automation toolkit (Python `bin/*` CLIs +
-`lib/vibe/` package) that runs *alongside* a project to manage tickets, worktrees,
-PR policy, and integrations. The current effort is a **non-destructive revamp**:
-improve the structure into clean modular packages without breaking working
-behavior, on the critical path toward packaging the review/PR-autopilot capability
-for downstream adoption in **DEAL**.
+the `lib/vibe/` package) that runs *alongside* a project to manage tickets,
+worktrees, PR policy, and integrations. The current effort is a **non-destructive
+revamp**: formalize and enforce the module seams that already exist — explicit
+public surfaces, declared dependencies, isolated + seam-level tests — on the
+critical path toward packaging the **PR Autopilot** capability for downstream
+adoption in **DEAL**.
+
+The repo is already a clean, acyclic, modular package. The revamp is about making
+its boundaries **explicit and enforced**, not relocating files.
+
+---
+
+## Target shape (the module contract)
+
+Every `lib/vibe/<module>` — a package or a top-level `.py` — is held to a
+**module contract**:
+
+1. **Explicit public surface.** A package declares `__all__` in its `__init__.py`;
+   that list *is* its API. Import from the package
+   (`from lib.vibe.trackers import LinearTracker`), never a deep submodule. 🎯
+   *Target: a check enforces `__all__` on every package — see plan step 2.*
+2. **Declared dependencies.** Import only the core tier (`config`, `config_schema`,
+   `env`, `state`, `utils/`) and the **public surfaces** of declared
+   collaborators. No reach-through into another package's internals; no new
+   global state.
+3. **One unit suite.** `lib/vibe/<name>.py → tests/test_<name>.py`;
+   `lib/vibe/<pkg>/ → tests/test_<pkg>_*.py`. Enforced by `lib/vibe/testscope.py`.
+4. **Runs and tests in isolation.** A module imports and its unit suite runs
+   without standing up the whole app.
+5. **Declared compose seams.** Where a module is *designed* to compose with
+   another, that seam has an integration suite registered in `INTEGRATION_SEAMS`
+   (`lib/vibe/testscope.py`).
+
+The toolkit stays **fast to set up and validate**: minimal bootstrap, `bin/ci-local`
+as the one-command local check, module-scoped CI as the fast safety net.
 
 ---
 
 ## Migration posture: non-destructive, staged
 
-The revamp preserves working behavior while structure improves. Every change must
-respect these:
-
-- **Preserve behavior.** Working commands keep working. Refactors are behavior-
-  preserving unless the ticket explicitly says otherwise.
-- **Stage, don't big-bang.** Prefer incremental extraction (move one seam at a
-  time, keep it green) over sweeping rewrites. A PR that churns large surface area
-  without a staged justification should be split.
-- **Keep modules independently runnable and testable.** A module you touch should
+- **Preserve behavior.** Working commands keep working. Refactors are
+  behavior-preserving unless the ticket explicitly says otherwise.
+- **Stage, don't big-bang.** Prefer incremental extraction (one seam at a time,
+  kept green) over sweeping rewrites. A PR that churns large surface area without
+  a staged justification should be split. (The plan doc sequences the steps.)
+- **Keep modules independently runnable and testable.** A module you touch must
   still run and be tested in isolation, not only inside the full app.
-- **Integrate through explicit interfaces.** Compose modules via clear contracts,
+- **Integrate through explicit interfaces.** Compose modules via public surfaces,
   not hidden coupling, shared globals, or reach-through into internals.
-- **Prove local validation stays fast and reliable.** New structure and tests must
-  demonstrate that local run + validation remain quick and trustworthy.
+- **Prove local validation stays fast and reliable.** New structure and tests
+  must show that local run + validation remain quick and trustworthy.
 
-## Target shape (where the revamp is heading)
+---
 
-- **Modular package boundaries** — clear seams, explicit contracts, low hidden
-  coupling.
-- **Quick local run + validation** — minimal bootstrap steps; `bin/ci-local`
-  remains the one-command local check and must stay fast.
-- **Tests at the right level** — module-level unit tests per module, plus
-  **combinatorial / integration suites only where modules are designed to
-  compose.** Don't add integration tests for modules that aren't meant to interact.
-  The policy and the module↔test mapping live in
-  [`recipes/testing/modular-testing.md`](recipes/testing/modular-testing.md). PR
-  CI is **module-scoped** (`lib/vibe/testscope.py`): a PR runs only the changed
-  modules' tests; `main` and shared-file changes run the full suite.
-- **Clean critical path to packaged PR Autopilot in DEAL** — structure choices
-  should move us toward shipping this capability downstream, not away from it.
+## Testing strategy (two levels)
+
+Full policy: [`recipes/testing/modular-testing.md`](recipes/testing/modular-testing.md).
+
+- **Unit** — `tests/test_<module>.py`. One module in isolation; test public
+  behavior not internals; mock at the I/O **boundary**; parametrize near-identical
+  cases.
+- **Integration** — `tests/integration/test_<seam>.py`. A real compose **seam**
+  between modules; run the real collaborators, mock **only** the true boundary
+  (network/subprocess/fs). Add a seam **only** where modules are designed to
+  compose in the product (≥2 participants); never synthesize interactions.
+
+**Module-scoped CI** (`lib/vibe/testscope.py` + `.github/workflows/tests.yml`):
+
+| Trigger | What runs |
+|---------|-----------|
+| Push to `main` | **Full suite** (the safety net before release) |
+| Shared/core file changed (`SHARED_PREFIXES`: `config`, `config_schema`, `env`, `utils/`, `conftest`, `pyproject`, the selector, the workflow) | **Full suite** (blast radius is everything) |
+| PR touching one module | **Only that module's** `tests/test_*.py` |
+| PR touching either side of a compose seam | the unit suite **plus** the seam's `tests/integration/test_*.py` |
+| Unmapped `lib/vibe/` path | **Full suite** (fail safe — a forgotten mapping costs time, never coverage) |
+| Docs / recipes / `bin/` only | **No pytest** (`bin/` wrappers are proven by the live smoke-test matrix) |
+
+**Local is the source of truth.** `bin/ci-local` runs the full suite; CI scoping
+is the fast safety net, not the primary verification. Predict CI scope with
+`PYTHONPATH=. python -m lib.vibe.testscope <changed paths>`.
+
+When you rewrite a module, **re-level its tests in the same PR** (keep public-
+behavior tests as the contract; drop internals-pinning tests; collapse duplicates
+into parametrized cases). Don't gut a module's tests in a separate PR ahead of
+its rewrite.
+
+---
+
+## The validation contract (what an agent can rely on)
+
+| Command | Guarantee |
+|---------|-----------|
+| `bin/ci-local` | All locally-runnable checks (ruff check + format, mypy on `lib/vibe/`, full pytest, gitleaks, project hooks). Exit 0 ⇒ safe to push. Missing tools **skip**, never fail. |
+| `bin/ci-local --fast` | Same, minus slow frontend tests — for tight inner loops. |
+| `python -m lib.vibe.testscope <paths>` | Prints exactly which suites CI will run (`ALL` / paths / empty). |
+| `bin/<cli> --help` + live smoke test | CLI behavior proof (live runs only). |
+
+Minimal bootstrap: Python ≥3.11, `pip install -e ".[dev]"`. No service account or
+network needed to validate a change locally.
 
 ---
 
 ## Agent-authored PR contract (revamp period)
 
-Every PR opened by a coding agent during the revamp must state, in its description:
+Every PR opened by a coding agent during the revamp must state, in its
+description:
 
 1. **What changed and why** — 3-5 bullets.
-2. **The staged step** — which non-destructive migration step this is, and what is
-   intentionally left for later.
+2. **The staged step** — which non-destructive migration step this is (reference
+   the plan doc's sequence), and what is intentionally left for later.
 3. **Test proof** — the exact local commands run and their results. CLI changes
    include a per-subcommand live smoke-test matrix (✅ pass / ❌ fail / ⏸️ deferred);
    ⏸️ requires a follow-up ticket.
 4. **Isolation confirmation** — that modules you touched still run and test in
-   isolation.
-5. **Sync confirmation** — that `.coderabbit.yaml` (and this file) were updated if
-   the change touched structure, run/validation flow, or the agent-PR contract,
-   OR an explicit note that none of those were affected.
+   isolation, and that new cross-module tests live in `tests/integration/` only
+   at real seams.
+5. **Sync confirmation** — that `.coderabbit.yaml`, this file, and the plan doc
+   (+ its Linear summary) were updated if the change touched structure,
+   run/validation flow, testing strategy, or the agent-PR contract — OR an
+   explicit note that none of those were affected.
 
 **CodeRabbit should request changes when:** behavior changes ship without tests;
-CLI changes lack a live smoke-test matrix; coupling increases or module seams blur;
-a structural change skips the sync rule; local run/validation is broken or slowed;
-or the PR is a big-bang rewrite where staged extraction was viable.
+CLI changes lack a live smoke-test matrix; coupling increases or module seams
+blur (reach-through, new globals); an integration test mocks the collaborator
+instead of the boundary; a structural change skips the sync rule; local
+run/validation is broken or slowed; or the PR is a big-bang rewrite where staged
+extraction was viable.
 
 **A human should still intervene for:** subjective product/UX/branding calls,
 secret values, external-account actions, and anything ambiguous enough that the
@@ -156,13 +231,29 @@ ticket.
 
 ---
 
+## Critical path to packaged PR Autopilot in DEAL
+
+The revamp's structure choices exist to make the **PR-autopilot capability**
+(agent-PR contract + review firewall + module-scoped validation) extractable as a
+package DEAL can install:
+
+1. **Module contract** → packages have explicit surfaces and declared deps, so
+   autopilot-relevant modules can be lifted without the whole repo.
+2. **Two-level testing** → an extracted package ships with suites that run in
+   isolation *and* prove its seams.
+3. **Validation contract** → `bin/ci-local` + module-scoped CI is the reusable
+   "does this change pass?" gate the autopilot leans on.
+
+Physical extraction/packaging is owned by the **VIBE-86 line** and the publish
+milestone (**VIBE-83/88**), not by structural PRs. See the plan doc §7.
+
+---
+
 ## Operating rules (condensed — full detail in the archive)
 
-These remain in force during the revamp. The archived boilerplate doc has the
-complete versions; the essentials:
-
-- **Work on a fresh worktree.** "Do ticket VIBE-123" = `bin/vibe do VIBE-123`,
-  do the work in the worktree, open a PR when done. Never work in the main checkout.
+- **Work on a fresh worktree.** "Do ticket VIBE-123" = `bin/vibe do VIBE-123`;
+  do the work in the worktree, open a PR when done. Never work in the main
+  checkout.
 - **Every PR references its ticket** in the title (`VIBE-123: ...`) and carries a
   **risk label** (Low/Medium/High) plus type and area labels.
 - **Rebase, never merge** main into a feature branch. Force-push only feature
@@ -174,7 +265,7 @@ complete versions; the essentials:
   commit secrets; don't skip CI.
 - **Run `bin/ci-local` before pushing.**
 - **Linear priority is a field, not a label** (Urgent/High/Medium/Low). Don't use
-  P0–P3 labels.
+  P0–P3 labels. **Linear is the only supported tracker** during the revamp.
 
 For the exhaustive command reference, label tables, recipe index, and integration
 wizard list, see [`docs/archive/CLAUDE.boilerplate.md`](docs/archive/CLAUDE.boilerplate.md).
