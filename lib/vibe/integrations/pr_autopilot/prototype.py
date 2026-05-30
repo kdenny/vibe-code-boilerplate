@@ -183,8 +183,8 @@ def _run_provider_tool(command: tuple[str, ...]) -> ToolResult:
         return ToolResult(
             command=command,
             returncode=124,
-            stdout=exc.stdout or "",
-            stderr=exc.stderr or "command timed out",
+            stdout=_as_text(exc.stdout),
+            stderr=_as_text(exc.stderr) or "command timed out",
         )
     return ToolResult(
         command=command,
@@ -242,9 +242,9 @@ def _remote_origin_slug() -> tuple[str, str] | None:
     if remote.startswith("git@") and ":" in remote:
         remote = remote.split(":", 1)[1]
     elif "://" in remote:
-        remote = remote.rstrip("/").rsplit("/", 2)
-        if len(remote) >= 2:
-            return remote[-2], remote[-1]
+        remote_parts = remote.rstrip("/").rsplit("/", 2)
+        if len(remote_parts) >= 2:
+            return remote_parts[-2], remote_parts[-1]
         return None
     parts = remote.rsplit("/", 1)
     if len(parts) == 2:
@@ -338,6 +338,14 @@ def _toml_value(value: Any) -> str:
     return json.dumps(str(value))
 
 
+def _as_text(value: str | bytes | None) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode(errors="replace")
+    return value
+
+
 def _format_configure_report(
     changed: list[str],
     repo_probe: ToolResult,
@@ -359,7 +367,9 @@ def _format_configure_report(
         lines.append(f"  secret check: {ANTHROPIC_SECRET_NAME} exists in GitHub Actions.")
     elif secret_present is False:
         lines.append("Human handoff:")
-        lines.append(f"  Ask for the Anthropic key, then run: gh secret set {ANTHROPIC_SECRET_NAME}")
+        lines.append(
+            f"  Ask for the Anthropic key, then run: gh secret set {ANTHROPIC_SECRET_NAME}"
+        )
     else:
         lines.append("Human handoff:")
         lines.append("  Verify GitHub CLI auth, then rerun: bin/vibe pr-autopilot status")
