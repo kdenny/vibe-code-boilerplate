@@ -70,7 +70,8 @@ SHARED_PREFIXES: tuple[str, ...] = (
 # part after ``tests/test_`` and before ``.py``.
 SOURCE_TEST_MAP: dict[str, tuple[str, ...]] = {
     # cli/main.py hosts the PR + duplicate-detection flows.
-    "lib/vibe/cli/main.py": ("cli_main_pr", "duplicate_pr_prevention"),
+    "lib/vibe/cli/main.py": ("cli_main_pr", "cli_registry", "duplicate_pr_prevention"),
+    "lib/vibe/cli/registry.py": ("cli_registry",),
     "lib/vibe/state.py": ("duplicate_pr_prevention",),
     # cli/ticket.py drives the --view/--unblocked surface tested in test_views.
     "lib/vibe/cli/ticket.py": ("cli_ticket", "views"),

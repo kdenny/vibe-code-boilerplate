@@ -31,6 +31,12 @@ step:
 The rename + layout move is **VIBE-85/VIBE-86 work**, sequenced behind this spec.
 This doc is the contract they migrate *toward*; it does not perform the migration.
 
+> **VIBE-86 implementation note:** the registration seam now exists in the current
+> package as `lib.vibe.cli.{Integration, verb, register}` and
+> `lib.vibe.integrations.*`, with entry points in the `vibe.integrations` group.
+> VIBE-182 re-homes these paths to `vibe.*`; the names, CLI slug rules, extras
+> semantics, and decoupling guardrails are already the v0 target shape.
+
 ---
 
 ## 1. Import surface
@@ -204,6 +210,9 @@ integration = Integration(
   **`check`** declares how this integration reconciles against reality for
   `vibe status` (§5.3); **`extra`** ties the integration to its optional-dependency
   group so core can produce the actionable "install `vibe[...]`" error (§6).
+- **`extra_module` (implementation detail)** names the importable runtime module
+  used to prove the optional dependency is actually available. The PR Autopilot
+  skeleton uses `vibe_pr_autopilot` until VIBE-128 supplies the real engine.
 - **One-way coupling.** The integration imports `Integration`/`verb` from core; core
   never imports the integration module by name. Discovery is the only edge.
 
@@ -337,6 +346,9 @@ the full surface of `vibe[pr-autopilot]` stated only in this contract's terms:
 
 This is the contract VIBE-128/129 build against, VIBE-86 implements the seam for,
 and VIBE-85 packages.
+
+The live skeleton is documented in
+[`docs/packaging/integration-skeleton.md`](integration-skeleton.md).
 
 ---
 
