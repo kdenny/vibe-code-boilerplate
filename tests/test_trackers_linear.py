@@ -88,9 +88,7 @@ class TestLinearTrackerExecuteQuery:
         mock_response.json.return_value = {"data": {"viewer": {"id": "123"}}}
         mock_response.raise_for_status = MagicMock()
 
-        with patch(
-            "vibe.trackers.linear.requests.post", return_value=mock_response
-        ) as mock_post:
+        with patch("vibe.trackers.linear.requests.post", return_value=mock_response) as mock_post:
             result = tracker._execute_query("query { viewer { id } }")
 
         mock_post.assert_called_once_with(
@@ -107,9 +105,7 @@ class TestLinearTrackerExecuteQuery:
         mock_response.json.return_value = {"data": {"issue": {"id": "abc"}}}
         mock_response.raise_for_status = MagicMock()
 
-        with patch(
-            "vibe.trackers.linear.requests.post", return_value=mock_response
-        ) as mock_post:
+        with patch("vibe.trackers.linear.requests.post", return_value=mock_response) as mock_post:
             _result = tracker._execute_query(
                 "query GetIssue($id: String!) { issue(id: $id) { id } }", {"id": "TEST-1"}
             )
