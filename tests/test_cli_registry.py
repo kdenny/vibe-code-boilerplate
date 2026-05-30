@@ -90,3 +90,21 @@ def test_loads_entry_point_integrations(monkeypatch: pytest.MonkeyPatch) -> None
 
     assert loaded == (integration,)
     assert registry.get("sample") is integration
+
+
+def test_bootstrap_survives_broken_entry_point(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from lib.vibe.cli import main as main_module
+
+    def explode() -> None:
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(main_module, "load_entry_point_integrations", explode)
+    monkeypatch.setattr(main_module, "register_integration_commands", lambda root: None)
+
+    # A broken integration entry point must be reported, not propagated.
+    main_module._bootstrap_integrations()
+
+    assert "skipping a broken integration entry point" in capsys.readouterr().err
