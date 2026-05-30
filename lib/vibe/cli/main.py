@@ -26,7 +26,8 @@ class _VibeGroup(click.Group):
 
     def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:
         ctx.meta["vibe_raw_args"] = tuple(args)
-        return super().parse_args(ctx, args)
+        parsed: list[str] = super().parse_args(ctx, args)
+        return parsed
 
 
 def _machine_output_requested(ctx: click.Context | None) -> bool:
