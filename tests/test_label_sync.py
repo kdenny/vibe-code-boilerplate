@@ -364,6 +364,8 @@ class TestSyncLabelsCommand:
 
         assert result.exit_code == 0
         output = json.loads(result.output)
+        # stdout must be exactly the JSON payload — no spinner/banner bleed.
+        assert result.output == json.dumps(output, indent=2) + "\n"
         assert "labels" in output
         assert "type" in output["labels"]
         assert "area" in output["labels"]
