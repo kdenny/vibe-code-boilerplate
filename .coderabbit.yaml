@@ -6,10 +6,11 @@
 # This file is the standing "review firewall" for the non-destructive revamp.
 #
 # SYNC RULE: Any substantial change to repo structure, module boundaries, the
-# local run/validation flow, or the agent-PR contract MUST be reflected here in
-# the same PR. CLAUDE.md and this file are a matched pair — if one moves, the
-# other moves. CodeRabbit should request changes on PRs that shift the
-# architecture without updating this config (and CLAUDE.md).
+# local run/validation flow, the testing strategy, or the agent-PR contract MUST
+# be reflected here in the same PR. CLAUDE.md, this file, and the plan doc
+# (docs/architecture/VIBE-174-modular-restructure-plan.md, which has a paired
+# Linear summary) are a matched set — if one moves, the others move. CodeRabbit
+# should request changes on PRs that shift the architecture without updating them.
 #
 # SPEED RULE: This project is optimized for speed. If a reviewer or agent ever
 # sees a way to make setup faster, validation faster, or the agent loop tighter,
@@ -136,21 +137,34 @@ reviews:
     - path: "tests/**"
       instructions: >-
         Require tests at the right level per recipes/testing/modular-testing.md:
-        one module = one test file (lib/vibe/<name>.py -> tests/test_<name>.py;
+        one module = one unit test file (lib/vibe/<name>.py -> tests/test_<name>.py;
         lib/vibe/<pkg>/ -> tests/test_<pkg>_*.py), module-level unit tests for
-        isolated changes, and combinatorial/integration tests only where modules
-        are intentionally designed to compose. Flag behavior that ships without a
-        corresponding test, tests that pin private internals, and tests that mock
-        so much they no longer exercise the real path. Prefer parametrization over
-        copy-pasted near-identical cases. When a module is rewritten, its tests
-        should be re-leveled in the same PR, not gutted in a separate one.
+        isolated changes, and combinatorial/integration tests (under
+        tests/integration/) only where modules are intentionally designed to
+        compose. Flag behavior that ships without a corresponding test, tests that
+        pin private internals, and tests that mock so much they no longer exercise
+        the real path. Prefer parametrization over copy-pasted near-identical
+        cases. When a module is rewritten, its tests should be re-leveled in the
+        same PR, not gutted in a separate one.
+    - path: "tests/integration/**"
+      instructions: >-
+        Integration suites for REAL compose seams (>=2 modules designed to work
+        together). The defining rule: mock ONLY the true I/O boundary
+        (network/subprocess/filesystem) and run the real collaborating modules —
+        never mock the collaborator itself (that's a unit test, and it proves the
+        modules compose for real). Request changes if a suite here mocks a sibling
+        lib/vibe module, exercises a seam the product doesn't actually have, or is
+        not registered in INTEGRATION_SEAMS in lib/vibe/testscope.py. Flag any
+        suite that needs live network/services — it doesn't belong here.
     - path: "lib/vibe/testscope.py"
       instructions: >-
         The module-scoped CI selector: maps changed files to pytest targets so
         PRs run only affected modules while main and shared-file changes run the
-        full suite. Changing SOURCE_TEST_MAP or SHARED_PREFIXES alters which tests
-        gate a PR — require that test_testscope.py is updated alongside, and that
-        the change keeps the fail-safe (unmapped lib/vibe/ paths -> full suite).
+        full suite. Changing SOURCE_TEST_MAP, SHARED_PREFIXES, or INTEGRATION_SEAMS
+        alters which tests gate a PR — require that test_testscope.py is updated
+        alongside, that the change keeps the fail-safe (unmapped lib/vibe/ paths ->
+        full suite), and that every INTEGRATION_SEAMS entry points at an existing
+        suite with >=2 participants under lib/vibe/.
     - path: ".github/workflows/**"
       instructions: >-
         CI must stay fast and local-first. CI is scoped per-module on PRs via
@@ -165,9 +179,19 @@ reviews:
         and this .coderabbit.yaml stay consistent with them.
     - path: "CLAUDE.md"
       instructions: >-
-        The provisional revamp contract. Any change to module boundaries, local
-        run/validation flow, or the agent-PR contract here MUST be matched by a
-        corresponding update to .coderabbit.yaml in the same PR, and vice versa.
+        The target-state revamp contract. Any change to module boundaries, the
+        local run/validation flow, the testing strategy, or the agent-PR contract
+        here MUST be matched by a corresponding update to .coderabbit.yaml and the
+        plan doc (docs/architecture/VIBE-174-modular-restructure-plan.md) in the
+        same PR, and vice versa.
+    - path: "docs/architecture/**"
+      instructions: >-
+        The modular-restructure plan (paired with a Linear summary on VIBE-174).
+        It is the source of truth for the target structure, the staged migration
+        sequence, and the validation contract. If it changes, confirm CLAUDE.md
+        and .coderabbit.yaml stay consistent, and that the staged sequence still
+        reflects non-destructive, one-step-at-a-time migration. Flag drift between
+        this plan and the live structure.
     - path: "recipes/**"
       instructions: >-
         Documentation recipes. Low risk; keep review light. Flag only broken

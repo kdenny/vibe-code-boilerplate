@@ -35,6 +35,31 @@ when a module is rewritten.
    test only where two modules are *designed* to compose (e.g. CLI → tracker).
    Don't synthesize interactions that don't exist in the product.
 
+## Two test levels
+
+The suite has two levels, and the layout makes the level obvious:
+
+| Level | Lives in | Covers | Mocks |
+|-------|----------|--------|-------|
+| **Unit** | `tests/test_<module>.py` | one module in isolation | the network/clock/fs **boundary** only |
+| **Integration** | `tests/integration/test_<seam>.py` | a real compose **seam** between modules | only the true I/O boundary — *never the collaborating module* |
+
+The distinction matters because of rule 3: a unit test that mocks its
+collaborator (e.g. `tests/test_git_worktrees.py` mocks out `state.add_worktree`)
+proves the module calls *something*, but never proves the two modules actually
+compose. That's what an integration suite is for — it runs the real
+collaborator and asserts the observable result of the interaction.
+
+> **Worked example.** `tests/integration/test_worktree_state.py` exercises the
+> `git.worktrees` ↔ `state` seam: it mocks only the git subprocess and lets
+> `create_worktree` drive the *real* `state` module, then asserts the worktree
+> was persisted to `.vibe/local_state.json` on disk. No mock of the collaborator.
+
+**Add an integration suite only at a seam the product actually has.** A "seam"
+needs ≥2 modules designed to compose (`test_testscope.py` enforces this). Don't
+add one for every import edge — that re-couples the suite you're trying to keep
+modular.
+
 ## When you rewrite a module
 
 The revamp rewrites modules in place, non-destructively. When you rewrite a
@@ -58,6 +83,7 @@ module, **re-level its tests in the same PR**:
 | Push to `main` | **Full suite** (the safety net before release) |
 | Change to a shared/core file — exactly the `SHARED_PREFIXES` list in `testscope.py`: `pyproject.toml`, `tests/conftest.py`, `tests/__init__.py`, `lib/vibe/__init__.py`, `config.py`, `config_schema.py`, `env.py`, `utils/`, the selector (`testscope.py`), the workflow | **Full suite** (blast radius is everything) |
 | PR touching one mapped module | **Only that module's** `tests/test_*.py` |
+| PR touching either side of a compose seam | that module's unit suite **plus** the seam's `tests/integration/test_*.py` |
 | Unmapped `lib/vibe/` **package** (`lib/vibe/<pkg>/…` with no convention-matching tests) | **Full suite** (fail-safe — a forgotten mapping costs time, never coverage) |
 | Unmapped top-level `lib/vibe/<name>.py` with no `tests/test_<name>.py` | **No pytest** (nothing to scope to; `main` is the backstop) |
 | Docs / recipes / `bin/` only | **No pytest** (`bin/` wrappers are proven by the live smoke-test matrix) |
@@ -71,8 +97,11 @@ full suite; CI scoping is the fast safety net, not the primary verification.
 
 When you add a module or a test file, update `SOURCE_TEST_MAP` in
 `lib/vibe/testscope.py` only if the naming convention doesn't already connect
-them (most don't need an entry). `tests/test_testscope.py` fails if the map ever
-references a test file that doesn't exist.
+them (most don't need an entry). When you add an **integration suite**, add an
+entry to `INTEGRATION_SEAMS` listing its participant source paths.
+`tests/test_testscope.py` fails if either map references a test file that
+doesn't exist, if a seam participant isn't under `lib/vibe/`, or if a seam has
+fewer than two participants.
 
 Try it locally:
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from lib.vibe.testscope import (
+    INTEGRATION_SEAMS,
     RUN_ALL,
     SOURCE_TEST_MAP,
     discover_test_stems,
@@ -95,7 +96,9 @@ class TestPackageScoping:
         assert select("lib/vibe/secrets/providers/fly.py") == ["tests/test_secrets_providers.py"]
 
     def test_git_package_maps_to_worktrees_suite(self) -> None:
-        assert select("lib/vibe/git/worktrees.py") == ["tests/test_git_worktrees.py"]
+        # The unit suite is always selected; the worktree↔state seam suite is
+        # additive (see TestIntegrationSeams).
+        assert "tests/test_git_worktrees.py" in select("lib/vibe/git/worktrees.py")
 
 
 class TestTopLevelModuleScoping:
@@ -143,6 +146,35 @@ class TestFailSafe:
         assert select("", "  ") == []
 
 
+class TestIntegrationSeams:
+    """A change to either side of a compose seam runs that seam's suite."""
+
+    SEAM = "tests/integration/test_worktree_state.py"
+
+    def test_worktrees_change_runs_seam_and_its_unit_suite(self) -> None:
+        targets = select("lib/vibe/git/worktrees.py")
+        # The seam suite AND the package's own unit suite both run.
+        assert self.SEAM in targets
+        assert "tests/test_git_worktrees.py" in targets
+
+    def test_state_change_runs_seam_and_its_unit_suite(self) -> None:
+        targets = select("lib/vibe/state.py")
+        # state.py maps to duplicate_pr_prevention by SOURCE_TEST_MAP; the seam
+        # is additive on top of that.
+        assert self.SEAM in targets
+        assert "tests/test_duplicate_pr_prevention.py" in targets
+
+    def test_changed_integration_test_runs_itself(self) -> None:
+        assert select(self.SEAM) == [self.SEAM]
+
+    def test_unrelated_change_does_not_pull_in_seam(self) -> None:
+        assert self.SEAM not in select("lib/vibe/frontend/analyzer.py")
+
+    def test_seam_appears_once_when_both_sides_change(self) -> None:
+        targets = select("lib/vibe/git/worktrees.py", "lib/vibe/state.py")
+        assert targets.count(self.SEAM) == 1
+
+
 class TestMappingIntegrity:
     def test_every_mapped_stem_exists_in_repo(self) -> None:
         """SOURCE_TEST_MAP must not reference test files that don't exist."""
@@ -158,3 +190,26 @@ class TestMappingIntegrity:
         targets = select("lib/vibe/trackers/linear.py", "lib/vibe/cli/ticket.py")
         # Both pull in views; it should appear once.
         assert targets.count("tests/test_views.py") == 1
+
+    def test_every_seam_suite_file_exists(self) -> None:
+        """INTEGRATION_SEAMS must not reference suites that don't exist."""
+        from pathlib import Path
+
+        repo_root = Path(__file__).resolve().parent.parent
+        missing = [p for p in INTEGRATION_SEAMS if not (repo_root / p).exists()]
+        assert not missing, f"INTEGRATION_SEAMS references nonexistent suites: {missing}"
+
+    def test_every_seam_participant_is_a_source_path(self) -> None:
+        """Seam participants must point at real package source under lib/vibe/."""
+        bad = [
+            part
+            for participants in INTEGRATION_SEAMS.values()
+            for part in participants
+            if not part.startswith("lib/vibe/")
+        ]
+        assert not bad, f"seam participants must live under lib/vibe/: {bad}"
+
+    def test_each_seam_has_at_least_two_participants(self) -> None:
+        """A 'seam' with one participant isn't a seam — it's a unit test."""
+        thin = {p: parts for p, parts in INTEGRATION_SEAMS.items() if len(parts) < 2}
+        assert not thin, f"integration seams need >=2 participants: {thin}"
