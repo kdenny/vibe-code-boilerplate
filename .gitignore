@@ -14,8 +14,10 @@
 .env.local
 .env.*.local
 !.env.example
-.envrc
+# .envrc is committed for THIS repo (see VIBE-176); ignore only direnv's local
+# cache and any per-developer .envrc override.
 .direnv/
+.envrc.local
 
 # Python
 __pycache__/

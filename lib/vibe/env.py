@@ -99,12 +99,31 @@ def auto_load_env(verbose: bool = False) -> list[str]:
     return load_env_files(environment=environment, verbose=verbose)
 
 
+def _is_git_tracked(path: Path, root: Path) -> bool:
+    """Return True if ``path`` is tracked by git in ``root``.
+
+    Used so we never re-ignore a ``.envrc`` that a project has deliberately
+    committed (as the VIBE repo itself does). Returns False when git is
+    unavailable or the path is untracked.
+    """
+    try:
+        proc = subprocess.run(
+            ["git", "ls-files", "--error-unmatch", path.name],
+            capture_output=True,
+            text=True,
+            cwd=str(root),
+        )
+        return proc.returncode == 0
+    except OSError:
+        return False
+
+
 def setup_direnv(project_root: Path | None = None) -> dict[str, bool]:
     """
     Set up direnv for automatic env variable loading.
 
-    Creates a .envrc file, adds .envrc and .direnv/ to .gitignore,
-    and runs `direnv allow` if direnv is installed.
+    Creates a .envrc file, ignores .direnv/ (and .envrc unless it's already
+    committed) in .gitignore, and runs `direnv allow` if direnv is installed.
 
     Args:
         project_root: Project root directory (defaults to cwd)
@@ -126,7 +145,8 @@ def setup_direnv(project_root: Path | None = None) -> dict[str, bool]:
     if gitignore_path.exists():
         content = gitignore_path.read_text(encoding="utf-8")
         additions = []
-        if ".envrc" not in content:
+        # Don't ignore a .envrc the project has deliberately committed.
+        if ".envrc" not in content and not _is_git_tracked(envrc_path, root):
             additions.append(".envrc")
         if ".direnv/" not in content:
             additions.append(".direnv/")
