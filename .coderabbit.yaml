@@ -180,6 +180,30 @@ reviews:
         is absent. Any change to how local env loads, the venv activates, or
         bin/ reaches PATH is a local-setup-flow change — confirm CLAUDE.md and
         this file stay consistent per the sync rule.
+    - path: ".cursor/**"
+      instructions: >-
+        Cursor Cloud agent config — the CLOUD counterpart of the run/validation
+        flow (VIBE-187; ops in docs/operations/cursor-cloud-agents-runbook.md).
+        environment.json MUST stay secret-free (no plaintext secrets in-repo), and
+        Cursor agents should use only required runtime secrets from Cursor's secret
+        store (e.g. LINEAR_API_KEY + Slack-related keys; explicitly exclude
+        ANTHROPIC_API_KEY — Cursor agents run on Cursor's model billing). Its
+        install step MUST resolve to
+        the same pinned versions as the local path — install from requirements.lock
+        via uv (pip fallback), never an unpinned `pip install`. Flag: any secret or
+        token literal, an install that drifts from requirements.lock /
+        recipes/environments/cloud-bootstrap.md, or anything implying the agent can
+        merge or push to main (the token is branch-only; merge is human-gated).
+    - path: "AGENTS.md"
+      instructions: >-
+        The agent-facing operational mirror of CLAUDE.md (the canonical contract).
+        Per CLAUDE.md standing rule #1 they are a matched set: AGENTS.md must not
+        contradict CLAUDE.md, and any change to the PR policy, run/validation flow,
+        or agent-PR contract must update both in the same PR. Flag drift between
+        the two (e.g. a draft/DNM or base-branch rule stated differently), and any
+        bootstrap snippet here that diverges from .cursor/environment.json /
+        requirements.lock. Keep it a fast quickstart that defers to CLAUDE.md for
+        the contract, not a second copy of the rules.
     - path: "tests/**"
       instructions: >-
         Require tests at the right level per recipes/testing/modular-testing.md:
