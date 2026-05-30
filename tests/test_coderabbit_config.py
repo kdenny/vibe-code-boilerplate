@@ -16,7 +16,13 @@ yaml = pytest.importorskip("yaml")
 CONFIG_PATH = Path(__file__).resolve().parents[1] / ".coderabbit.yaml"
 
 # maxLength limits from the CodeRabbit config schema. Over any of these, the WHOLE
-# config silently reverts to defaults.
+# config silently reverts to defaults. Values verified against the published schema
+# (https://storage.googleapis.com/coderabbit_public_assets/schema.v2.json):
+# tone_instructions=250, path_instructions[].instructions=20000,
+# pre_merge_checks.custom_checks[].instructions=10000. NOTE: the custom-checks cap
+# (10k) is deliberately DIFFERENT from the path-instructions cap (20k) — do not
+# "align" them. Docs informally suggest ~1k for custom checks, but the schema's hard
+# maxLength is 10k; this guard tracks the hard limit that triggers the silent revert.
 MAX_TONE_INSTRUCTIONS = 250
 MAX_PATH_INSTRUCTIONS = 20_000
 MAX_CUSTOM_CHECK_INSTRUCTIONS = 10_000
