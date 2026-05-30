@@ -41,7 +41,7 @@ This doc is the contract they migrate *toward*; it does not perform the migratio
 import vibe                      # package root — stable
 from vibe import config          # typed config model + loader (§3)
 from vibe import cli             # CLI dispatch + verb registry (§5)
-from vibe.errors import ...      # the public exception hierarchy (§6)
+from vibe.errors import ...      # the public exception hierarchy (§6.1)
 ```
 
 `vibe` (top-level) is **stable across downstream repos** for v0. Anything reachable
@@ -57,16 +57,18 @@ vibe.integrations.<name>          # canonical location for every integration
 ```
 
 `<name>` is the integration's stable slug (`pr_autopilot`, `linear`, `neon`,
-`axiom`, `fly`, …). Each integration module exposes exactly one public symbol — its
-**registration entrypoint** (§4):
+`axiom`, `fly`, …). Each integration module exposes exactly two public symbols — its
+**registration entrypoint** `integration` (§4) and its **typed config class** (§3.1),
+which downstream constructs directly for the injected path:
 
 ```python
-from vibe.integrations.pr_autopilot import integration   # an Integration instance
+from vibe.integrations.pr_autopilot import integration         # an Integration instance
+from vibe.integrations.pr_autopilot import PRAutopilotConfig    # its typed config class
 ```
 
 Everything else inside `vibe.integrations.<name>.*` is **internal** and may change
-without a major bump. Downstream code imports the integration through its registered
-verbs/config, never by reaching into its internals.
+without a major bump. Downstream code imports the integration through these two
+symbols (and its registered verbs/config), never by reaching into its internals.
 
 > **Why `vibe.integrations.<name>` and not `vibe.<name>`:** it keeps the top-level
 > namespace small and stable, makes "what is an integration" answerable by listing
@@ -168,7 +170,7 @@ artifact:
    overrides) applies.
 3. Otherwise, the `.vibe/` file value (with its secret reference resolved).
 
-Missing required field after all three layers → a typed `ConfigError` (§6) naming
+Missing required field after all three layers → a typed `ConfigError` (§6.1) naming
 the field and the integration, never a bare `KeyError`.
 
 ---
