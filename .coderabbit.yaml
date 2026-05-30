@@ -104,11 +104,11 @@ reviews:
         instructions: >-
           PRs must target the main branch. If this PR's base is a feature branch
           (it is bundled on top of another not-yet-merged PR's work), request
-          changes UNLESS the PR is a draft, carries the DNM label, and its
-          description clearly states which earlier ticket/PR it depends on and that
-          it must wait for that PR to merge first. A PR based on a feature branch is
-          never a valid final, mergeable state — once the parent merges it must be
-          rebased onto main and retargeted.
+          changes UNLESS the PR is a draft, carries the DNM label, and BOTH its
+          description AND the linked ticket clearly state which earlier ticket/PR it
+          depends on and that it must wait for that PR to merge first. A PR based on
+          a feature branch is never a valid final, mergeable state — once the parent
+          merges it must be rebased onto main and retargeted.
 
   # Exclude generated, vendored, and archived material from review.
   path_filters:
@@ -191,9 +191,13 @@ reviews:
       instructions: >-
         The target-state revamp contract. Any change to module boundaries, the
         local run/validation flow, the testing strategy, or the agent-PR contract
-        here MUST be matched by a corresponding update to .coderabbit.yaml and the
-        plan doc (docs/architecture/VIBE-174-modular-restructure-plan.md) in the
-        same PR, and vice versa.
+        here MUST be matched by a corresponding update to .coderabbit.yaml in the
+        same PR, and vice versa — CLAUDE.md and this file are the canonical matched
+        pair (the Sync rule). Changes that touch the target structure, module
+        boundaries, the staged migration sequence, or the validation contract MUST
+        ADDITIONALLY update the plan doc
+        (docs/architecture/VIBE-174-modular-restructure-plan.md); agent-PR-contract
+        or review-policy changes that don't touch the plan's domain need not.
     - path: "docs/architecture/**"
       instructions: >-
         The modular-restructure plan (paired with a Linear summary on VIBE-174).

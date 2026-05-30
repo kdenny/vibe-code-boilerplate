@@ -14,7 +14,7 @@
 > the broader board context into the CLAUDE.md discipline brief; VIBE-112/113/115/117
 > cover *upstream auto-filing* of downstream defects (a different, outbound triage
 > inbox). This document is the **inbound board-quality triage** layer.
-
+>
 > **🔁 Mirrored in Linear — keep in sync.** A copy of this operating model lives as
 > a Linear document for posterity and for people who live in Linear, not the repo:
 > [Triage Intelligence — VIBE board operating model](https://linear.app/2wrist/document/triage-intelligence-vibe-board-operating-model-a528198da4fc).
@@ -260,7 +260,7 @@ API (only `triageEnabled` / `productIntelligenceScope` are), so it is set in the
 
 ### 5a. Guidance text (paste verbatim into "Optional agent guidance")
 
-```
+```text
 VIBE's board is an AGENT EXECUTION QUEUE. Labels are promises about what happens
 when an agent pulls a ticket — keep them trustworthy. Linear is the source of
 truth: never assume missing context exists elsewhere.
