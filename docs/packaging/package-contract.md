@@ -52,7 +52,7 @@ documented integration entrypoints is part of the promise (§7).
 
 Integrations live under a single, predictable namespace:
 
-```
+```text
 vibe.integrations.<name>          # canonical location for every integration
 ```
 
@@ -137,7 +137,7 @@ with explicit fields, no free-form dict).
 A thin, **optional** loader materializes typed config from the layered `.vibe/`
 artifact:
 
-```
+```text
 .vibe/config.toml            # shared identity/wiring (one file)
 .vibe/<integration>.toml     # one declarative file per ENABLED integration
 ```
@@ -213,7 +213,7 @@ integration = Integration(
 
 ### 5.1 Entrypoints
 
-```
+```text
 vibe ...                # console_scripts entry (pyproject [project.scripts])
 python -m vibe ...      # module entrypoint — identical dispatch
 ```
@@ -223,7 +223,7 @@ exists for environments where the script shim is unavailable.
 
 ### 5.2 Verb tree
 
-```
+```text
 vibe <integration> <action> [options]
 vibe status [<integration>]
 vibe <core-verb> ...           # reserved core verbs (status, version, doctor)
@@ -270,7 +270,7 @@ contain **no business logic**. The CLI is the contract; the markdown is a shortc
 - Installing bare `vibe` gives **core only**. Importing or invoking an integration
   whose extra is not installed yields a **clear, actionable error**, not a traceback:
 
-  ```
+  ```text
   $ vibe pr-autopilot run
   Error: integration 'pr-autopilot' requires its extra.
          Install it with:  uv pip install 'vibe[pr-autopilot]'
@@ -282,7 +282,7 @@ contain **no business logic**. The CLI is the contract; the markdown is a shortc
 
 ### 6.1 Public error hierarchy
 
-```
+```text
 vibe.errors.VibeError                 # base — everything catchable here
 ├── ConfigError                       # missing/invalid config field (§3.3)
 ├── MissingExtraError                 # integration used without its extra (§6)
