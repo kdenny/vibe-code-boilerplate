@@ -68,6 +68,10 @@ respect these:
 - **Tests at the right level** — module-level unit tests per module, plus
   **combinatorial / integration suites only where modules are designed to
   compose.** Don't add integration tests for modules that aren't meant to interact.
+  The policy and the module↔test mapping live in
+  [`recipes/testing/modular-testing.md`](recipes/testing/modular-testing.md). PR
+  CI is **module-scoped** (`lib/vibe/testscope.py`): a PR runs only the changed
+  modules' tests; `main` and shared-file changes run the full suite.
 - **Clean critical path to packaged PR Autopilot in DEAL** — structure choices
   should move us toward shipping this capability downstream, not away from it.
 
