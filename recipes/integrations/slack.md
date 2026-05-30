@@ -118,8 +118,8 @@ runner-only de-attribution policy (VIBE-197).
 
 ### 7. Store the secrets (names in repo, values never)
 
-Add the three **values** to each store the runner reads — local, CI, deploy.
-Locally:
+Add the three secret **values** — plus the (non-secret) `SLACK_CHANNEL` name — to
+each store the runner reads — local, CI, deploy. Locally:
 
 ```bash
 # .env.local (gitignored — never commit)
@@ -134,9 +134,10 @@ SLACK_CHANNEL=#_vibe-cloud-agents
 gh secret set SLACK_BOT_TOKEN
 gh secret set SLACK_SIGNING_SECRET
 gh secret set SLACK_APP_TOKEN
+gh secret set SLACK_CHANNEL          # channel name, not a secret — set it here too so CI routing matches local
 
 # Deploy (Fly) — set when VIBE-190 provisions the machine
-fly secrets set SLACK_BOT_TOKEN=… SLACK_SIGNING_SECRET=… SLACK_APP_TOKEN=…
+fly secrets set SLACK_BOT_TOKEN=… SLACK_SIGNING_SECRET=… SLACK_APP_TOKEN=… SLACK_CHANNEL='#_vibe-cloud-agents'
 ```
 
 The **names** live in `.env.example`; nothing echoes a value to logs, and the CI
