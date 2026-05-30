@@ -240,7 +240,7 @@ instead of inventing it nine times.
   [`.vibe/handoff-state.schema.json`](../../.vibe/handoff-state.schema.json).
 - **Shape.** Per milestone + provider, a list of human steps, each:
   `{ id, description, where (console|secret|oauth|billing), status
-  (pending|done|blocked), secret_ref }`. **Secrets are references, never values**
+  (pending|done|blocked|waived), required, secret_ref }`. **Secrets are references, never values**
   (`"gh:ANTHROPIC_API_KEY"`), so the committed file is safe.
 - **Gate reads it.** The gate's validation matrix asserts every *required* human
   step is `done` (or explicitly waived) before the milestone closes — that is how
