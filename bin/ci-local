@@ -58,7 +58,10 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --help|-h)
-      head -37 "$0" | tail -33 | sed 's/^#//' | sed 's/^ //'
+      # Print the leading comment block (everything between the shebang and the
+      # first line of code), stripping the leading "# ". Anchored on the comment
+      # structure, not line counts, so it can't spill code when the header grows.
+      awk 'NR>1{if(/^#/){sub(/^# ?/,"");print}else exit}' "$0"
       exit 0
       ;;
     --)
