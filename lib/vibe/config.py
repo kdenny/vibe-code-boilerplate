@@ -33,7 +33,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "type": ["Bug", "Feature", "Chore", "Refactor"],
         "risk": ["Low Risk", "Medium Risk", "High Risk"],
         "area": ["Frontend", "Backend", "Infra", "Docs"],
-        "special": ["HUMAN", "Milestone", "Blocked"],
+        "special": ["HUMAN", "Milestone", "Blocked", "DX"],
     },
     "security": {
         "secret_scanner": "gitleaks",

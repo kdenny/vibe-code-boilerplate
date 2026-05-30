@@ -996,3 +996,169 @@ class TestBatchAssignProject:
             )
 
         assert "appears in multiple projects" in result.output
+
+
+class TestFileToolingIssue:
+    """Tests for the `file-tooling-issue` command (VIBE-206)."""
+
+    def _tracker_with_created(self) -> MagicMock:
+        mock_tracker = MagicMock()
+        mock_tracker.list_tickets.return_value = []
+        mock_tracker.create_ticket.return_value = Ticket(
+            id="TEST-50",
+            title="[DX] bin/x: boom",
+            description="",
+            status="Todo",
+            labels=["Bug", "DX"],
+            url="https://example.com/TEST-50",
+            raw={},
+        )
+        return mock_tracker
+
+    def test_creates_urgent_bug_dx_ticket(self) -> None:
+        runner = CliRunner()
+        mock_tracker = self._tracker_with_created()
+
+        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+            result = runner.invoke(
+                main,
+                ["file-tooling-issue", "--cli", "bin/x", "--summary", "boom"],
+            )
+
+        assert result.exit_code == 0
+        assert "Filed tooling-fault ticket: TEST-50" in result.output
+        mock_tracker.create_ticket.assert_called_once()
+        kwargs = mock_tracker.create_ticket.call_args.kwargs
+        assert kwargs["priority"] == "urgent"
+        assert "Bug" in kwargs["labels"]
+        assert "DX" in kwargs["labels"]
+        assert kwargs["title"] == "[DX] bin/x: boom"
+
+    def test_dedup_by_title_skips_creation(self) -> None:
+        runner = CliRunner()
+        mock_tracker = MagicMock()
+        mock_tracker.list_tickets.return_value = [
+            Ticket(
+                id="TEST-9",
+                title="[DX] bin/x: boom",
+                description="",
+                status="Todo",
+                labels=["DX"],
+                url="https://example.com/TEST-9",
+                raw={},
+            )
+        ]
+
+        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+            result = runner.invoke(
+                main,
+                ["file-tooling-issue", "--cli", "bin/x", "--summary", "boom"],
+            )
+
+        assert result.exit_code == 0
+        assert "already open: TEST-9" in result.output
+        mock_tracker.create_ticket.assert_not_called()
+        mock_tracker.comment_ticket.assert_called_once()
+
+    def test_dedup_by_signature_when_title_differs(self) -> None:
+        runner = CliRunner()
+        # Same underlying fault (path/line vary), different summary wording.
+        from lib.vibe.cli.errors import normalize_signature
+
+        sig = normalize_signature("boom in /tmp/a.py at line 5")
+        mock_tracker = MagicMock()
+        mock_tracker.list_tickets.return_value = [
+            Ticket(
+                id="TEST-9",
+                title="[DX] bin/x: some other wording",
+                description=f"...\n<!-- vibe-fault-signature: {sig} -->\n",
+                status="In Progress",
+                labels=["DX"],
+                url="https://example.com/TEST-9",
+                raw={},
+            )
+        ]
+
+        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+            result = runner.invoke(
+                main,
+                [
+                    "file-tooling-issue",
+                    "--cli",
+                    "bin/x",
+                    "--summary",
+                    "boom in /tmp/b.py at line 99",
+                ],
+            )
+
+        assert result.exit_code == 0
+        assert "already open: TEST-9" in result.output
+        mock_tracker.create_ticket.assert_not_called()
+
+    def test_terminal_state_duplicate_does_not_block(self) -> None:
+        runner = CliRunner()
+        mock_tracker = self._tracker_with_created()
+        mock_tracker.list_tickets.return_value = [
+            Ticket(
+                id="TEST-OLD",
+                title="[DX] bin/x: boom",
+                description="",
+                status="Done",  # terminal — should be ignored
+                labels=["DX"],
+                url="https://example.com/TEST-OLD",
+                raw={},
+            )
+        ]
+
+        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+            result = runner.invoke(
+                main,
+                ["file-tooling-issue", "--cli", "bin/x", "--summary", "boom"],
+            )
+
+        assert result.exit_code == 0
+        mock_tracker.create_ticket.assert_called_once()
+
+    def test_dry_run_does_not_touch_tracker(self) -> None:
+        runner = CliRunner()
+        with patch("lib.vibe.cli.ticket.ensure_tracker_configured") as ensure:
+            result = runner.invoke(
+                main,
+                ["file-tooling-issue", "--cli", "bin/x", "--summary", "boom", "--dry-run"],
+            )
+
+        assert result.exit_code == 0
+        assert "[dry-run]" in result.output
+        ensure.assert_not_called()
+
+    def test_wires_relations(self) -> None:
+        runner = CliRunner()
+        mock_tracker = self._tracker_with_created()
+
+        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+            result = runner.invoke(
+                main,
+                [
+                    "file-tooling-issue",
+                    "--cli",
+                    "bin/x",
+                    "--summary",
+                    "boom",
+                    "--blocked-by",
+                    "TEST-1",
+                    "--blocks",
+                    "TEST-2",
+                    "--relates-to",
+                    "TEST-3",
+                ],
+            )
+
+        assert result.exit_code == 0
+        mock_tracker.create_relation.assert_any_call("TEST-1", "TEST-50", "blocks")
+        mock_tracker.create_relation.assert_any_call("TEST-50", "TEST-2", "blocks")
+        mock_tracker.add_relation.assert_any_call("TEST-50", "TEST-3", "related")
+
+    def test_missing_required_args_is_usage_error(self) -> None:
+        runner = CliRunner()
+        result = runner.invoke(main, ["file-tooling-issue", "--cli", "bin/x"])
+        assert result.exit_code == 2  # click usage error, not a tooling fault

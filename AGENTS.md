@@ -79,6 +79,16 @@ Live tracker/API flows need credentials in `.env.local` (gitignored); not requir
 
 Same tools as `bin/ci-local`: `ruff check .`, `ruff format . --check`, `mypy lib/vibe/`, `pytest`. See [`CLAUDE.md`](CLAUDE.md) validation contract table.
 
+### When the VIBE tooling itself breaks
+
+If one of **our** CLIs (`bin/*`, `lib/vibe/`) misbehaves — silent failure, confusing error, missing flag, wrong output — file it, don't work around it silently:
+
+```bash
+bin/ticket file-tooling-issue --cli bin/<x> --summary "<what broke>" --detail "<observed vs expected>"
+```
+
+This files an Urgent `Bug`+`DX` ticket and de-dups against open DX tickets. On an *unexpected crash*, a VIBE CLI emits a `VIBE_TOOLING_FAULT` marker and the `PostToolUse` hook auto-files it — so you usually only call this by hand for non-crashing faults. Set `VIBE_NO_AUTOFILE=1` to disable. Full doctrine: [`agent_instructions/CLI.md`](agent_instructions/CLI.md). (Third-party tools like `gh`/`fly` are out of scope — note their gotchas in memory instead.)
+
 ### Optional integrations
 
 GitHub (`gh`), Linear, Slack, etc. are **optional** for automated tests. Do not block setup on them unless the task requires live API calls.

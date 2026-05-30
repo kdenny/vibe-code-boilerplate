@@ -333,7 +333,9 @@ contract.
   branches, never main.
 - **CLI doctrine** (`agent_instructions/CLI.md`): smoke-test every subcommand
   locally before a CLI PR; maximalist surface + same-PR docs; classify every CLI
-  error (agent's fault → memory file; CLI's fault → Urgent ticket + DX channel).
+  error (agent's fault → memory file; CLI's fault → run `bin/ticket
+  file-tooling-issue`, which files an Urgent `Bug`+`DX` ticket and de-dups it —
+  the `PostToolUse` hook auto-files it on a `VIBE_TOOLING_FAULT` crash marker).
 - **Read before editing; match existing patterns; keep changes minimal;** don't
   commit secrets; don't skip CI.
 - **Run `bin/ci-local` before pushing.**

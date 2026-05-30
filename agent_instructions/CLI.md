@@ -11,7 +11,19 @@ These rules apply to **CLIs we author** (`bin/vibe`, `bin/ticket`, `bin/secrets`
 Every CLI invocation should succeed. When one errors, classify and act:
 
 - **Agent's fault** (wrong flag, missed prerequisite, misread output) → write a feedback memory entry (e.g. `feedback_cli_<cli>_<topic>.md`) so the same mistake doesn't recur in future sessions.
-- **CLI's fault** (silent failure, confusing error, missing flag, broken default, parser drift, wrong exit code, undocumented behaviour) → file a Linear ticket marked **Urgent** and post to your project's CLI/agent-DX discussion channel with repro steps + ticket link.
+- **CLI's fault** (silent failure, confusing error, missing flag, broken default, parser drift, wrong exit code, undocumented behaviour) → **run `bin/ticket file-tooling-issue`** — don't hand-assemble the ticket. It files an **Urgent** `Bug`+`DX` ticket, de-dups against open DX tickets by a normalized error signature, and wires any `--blocks/--blocked-by/--relates-to` edges you pass:
+
+  ```bash
+  bin/ticket file-tooling-issue \
+    --cli bin/logs \
+    --summary "silently returns 'No results.' on column-major Axiom responses" \
+    --detail "Expected rows; parser only handles tables[0].rows." \
+    --repro "bin/logs --query '...'"
+  ```
+
+  This is the doctrine made executable: file the ticket with one command instead of remembering the labels, priority, and dedup check by hand. (Posting to the CLI/agent-DX Slack channel is wired separately — VIBE-208.)
+
+**You usually don't have to invoke it manually.** When a VIBE CLI hits an *unexpected* crash it emits a `VIBE_TOOLING_FAULT` marker (`lib/vibe/cli/errors.py`), and the `PostToolUse` hook (`.claude/hooks/file-tooling-fault.sh`, enabled via `.claude/settings.local.json`) auto-files the ticket. The marker fires only on genuine CLI crashes, never on ordinary usage errors, so it stays low-noise. Set `VIBE_NO_AUTOFILE=1` to disable. Invoke `file-tooling-issue` by hand for the faults a crash can't self-detect (silent wrong output, missing flags, confusing-but-non-crashing errors).
 
 The bar for "Urgent" is intentionally low: any DX papercut counts, not just blockers. The cost of agent friction compounds across sessions, so each papercut is worth fixing fast.
 

@@ -1565,4 +1565,6 @@ main.add_command(costs_group, "costs")
 
 
 if __name__ == "__main__":
-    main()
+    from lib.vibe.cli.errors import run_cli
+
+    run_cli(main, "lib.vibe.cli.main")
