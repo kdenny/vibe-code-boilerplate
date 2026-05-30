@@ -162,26 +162,33 @@ Key properties:
 
 ## Cost Model (with assumptions)
 
-> 🔧 **TODO (human owner): confirm or correct these three inputs — they drive everything.**
-> - Team size: **__** engineers
-> - PR throughput target: **__** PRs / week
-> - Blended labor cost of a human review cycle: **$__** / hour
+**Confirmed inputs (owner, 2026-05-30):**
+- Team size: **1 engineer (solo)**
+- PR throughput target: **~20 PRs / week ≈ 87 PRs / month**
+- Blended cost of a review cycle: **~$100 / hr** *(assumption — solo opportunity cost;
+  adjust if your real number differs)*
+- "Useful PR" = merged with ≤1 review iteration; model = Claude Sonnet, small-to-medium PRs.
 
-**Stated assumptions (replace with the above):** 1–3 engineers, ~12 PRs/week, mostly
-small-to-medium PRs, model = Claude Sonnet, human review at ~$100/hr blended, "useful PR"
-= merged with ≤1 review iteration.
-
-| Option | Raw cost / PR | Merge (useful) rate | **Cost / useful PR** | Monthly @ ~50 PRs |
+| Option | Raw cost / PR | Merge (useful) rate | **Cost / useful PR** | **Monthly @ ~87 PRs (model spend)** |
 |---|---|---|---|---|
-| **Claude Code runner** (Sonnet) | $0.50–$15 (≈$3 avg) | high (human-gated, steerable) | **≈$3–$5** | **$15–$25 model** |
-| **Cursor Background** (MAX +20%) | metered, spiky | 65.7% SWE-bench class | **≈$8–$20** | $60–$200+ |
-| **Devin** (ACU) | $11–$45 | ~67% merge | **≈$16–$67** | $300–$500+ |
-| **Copilot coding agent** | low base, metering shift 6/1 | moderate | unstable to forecast | $10–$39 + usage |
+| **Claude Code runner** (Sonnet) | $0.50–$15 (≈$2–3 avg) | high (human-gated, steerable) | **≈$3–$5** | **≈$175–$350** |
+| **Cursor Background** (MAX +20%) | metered, spiky | 65.7% SWE-bench class | **≈$8–$20** | ≈$700–$1,700+ |
+| **Devin** (ACU) | $11–$45 | ~67% merge | **≈$16–$67** | ≈$1,400–$5,800+ |
+| **Copilot coding agent** | low base, metering shift 6/1 | moderate | unstable to forecast | $10–$39 + heavy usage |
 
-**The honest footnote the brief demands:** the cheap per-PR numbers exclude *your labor*.
-If glue maintenance for the self-hosted path costs more than ~**N hours/month** at your
-blended rate, the managed options' higher model spend can be the cheaper total. That
-crossover is exactly the rollback trigger below.
+**Why volume makes the choice starker, not closer:** at 87 PRs/month, model cost scales
+linearly while glue cost is roughly fixed. The metered options' per-PR premium compounds —
+Devin alone would run **$1.4k–$5.8k/month** vs. the Claude path's **~$175–$350**. Even if
+self-hosting cost you a full **5 hrs/month of ops ($500)**, total Claude-path cost
+(~$675–$850) still beats Cursor's *model spend alone*. The labor-vs-spend crossover that
+red-teaming worried about only bites at low volume; at 20 PRs/week it inverts decisively
+toward the cheap-per-PR path.
+
+**The honest footnote the brief demands:** the cheap per-PR numbers still exclude *your
+labor*. The crossover where managed (Remote Tasks / Cursor) wins on *total* cost is encoded
+as the rollback trigger below — but at this volume you'd have to be spending **>5 hrs/month**
+on glue *and* getting Cursor's spend down for it to flip. The real ceiling at 87 PRs/month
+is **your review throughput**, not dollars (see Risks: reviewer overload).
 
 ## Risks, Trust Boundaries, and Rollback Criteria
 
@@ -196,18 +203,22 @@ crossover is exactly the rollback trigger below.
 - **Cost runaway (metered options):** Cursor MAX surcharge and Devin ACUs can spike silently
   → set hard monthly spend caps and alerting before enabling either.
 - **Source-of-truth drift:** Copilot/GitHub-issue-centric tools fight VIBE's Linear spine.
-- **Reviewer overload:** any agent can flood the queue with low-quality PRs; throttle
-  concurrency and require green tests before requesting review.
+- **Reviewer overload (the binding constraint here):** with a **solo reviewer at ~87
+  PRs/month (~4–5/day)**, *your* review bandwidth — not dollars — is the bottleneck. Any
+  agent can out-produce one human reviewer. Mitigate: cap in-flight agent PRs, require
+  green tests before a PR requests review, and batch-review on a cadence rather than
+  reacting per-PR. This is the strongest reason *not* to chase raw throughput (Devin/
+  Cursor parallelism) — more PRs you can't review is negative value.
 
 ### Rollback / Flip Criteria (primary ↔ fallback)
 
-> 🔧 **TODO (human owner): set the two thresholds below — these are genuinely your call,
-> not a technical default.** They encode your tolerance for ops time vs. model spend.
+**Confirmed thresholds (owner, 2026-05-30).** These encode the owner's tolerance for ops
+time vs. model spend.
 
 Flip **primary → Cursor Background (fallback)** if, over a 4-week trial:
-- Self-hosted glue/ops exceeds **__ hours/month** (suggest 4–6) at your blended rate, **or**
-- Per-useful-PR cost on the Claude path exceeds **$__** (suggest $8), **or**
-- Single-issue autonomy is the bottleneck (>__% of tasks need >2 agent re-runs).
+- Self-hosted glue/ops exceeds **5 hours/month** at the ~$100/hr blended rate, **or**
+- Per-useful-PR cost on the Claude path exceeds **$8**, **or**
+- Single-issue autonomy is the bottleneck (>25% of tasks need >2 agent re-runs).
 
 Abandon a path entirely if monthly spend breaches the configured hard cap twice, or if any
 secret-leak / unwanted-dependency incident traces to the agent's PRs.
