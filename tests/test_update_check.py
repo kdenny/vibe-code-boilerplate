@@ -1,7 +1,7 @@
 """Tests for automatic boilerplate update checking."""
 
 from datetime import datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -189,3 +189,81 @@ class TestFormatUpdateNotice:
             }
         )
         assert "--skip" in notice
+
+
+class TestUpdateNoticeGating:
+    """The update notice is interactive-only: it must never leak into pipes,
+    CI, or --json output. The CLI group callback gates it on stderr being a TTY.
+    """
+
+    UPDATE = {"current_version": "1.0.0", "upstream_version": "2.0.0", "cached": True}
+
+    def test_notice_suppressed_when_stderr_not_a_tty(self) -> None:
+        from lib.vibe.cli import main as main_mod
+
+        fake_sys = MagicMock()
+        fake_sys.stderr.isatty.return_value = False
+        with (
+            patch.object(main_mod, "sys", fake_sys),
+            patch("lib.vibe.update_check.check_for_update", return_value=self.UPDATE) as mock_check,
+            patch("lib.vibe.cli.main.click.echo") as mock_echo,
+        ):
+            main_mod.main.callback()
+
+        # Non-interactive: don't even hit the network, and never echo the notice.
+        mock_check.assert_not_called()
+        mock_echo.assert_not_called()
+
+    def test_notice_shown_when_stderr_is_a_tty(self) -> None:
+        from lib.vibe.cli import main as main_mod
+
+        fake_sys = MagicMock()
+        fake_sys.stderr.isatty.return_value = True
+        with (
+            patch.object(main_mod, "sys", fake_sys),
+            patch("lib.vibe.update_check.check_for_update", return_value=self.UPDATE),
+            patch("lib.vibe.cli.main.click.echo") as mock_echo,
+        ):
+            main_mod.main.callback()
+
+        mock_echo.assert_called_once()
+        # Notice goes to stderr.
+        assert mock_echo.call_args.kwargs.get("err") is True
+
+    def test_json_output_is_clean_when_update_available(self) -> None:
+        """Reproduces the original failure: an available update must not pollute
+        --json output captured by CliRunner (which mixes stderr into output)."""
+        import json
+
+        from click.testing import CliRunner
+
+        from lib.vibe.cli.main import main
+
+        mock_tracker = MagicMock()
+        mock_tracker.list_labels.return_value = [{"name": "Bug", "id": "1"}]
+
+        runner = CliRunner()
+        with (
+            patch("lib.vibe.update_check.check_for_update", return_value=self.UPDATE),
+            patch(
+                "lib.vibe.config.load_config",
+                return_value={
+                    "tracker": {"type": "linear", "config": {"team_id": "t1"}},
+                    "labels": {},
+                },
+            ),
+            patch("lib.vibe.trackers.linear.LinearTracker", return_value=mock_tracker),
+            patch(
+                "lib.vibe.label_sync.load_config",
+                return_value={"tracker": {"type": "linear", "config": {}}, "labels": {}},
+            ),
+            patch("lib.vibe.label_sync.save_config"),
+            patch.dict("os.environ", {"LINEAR_API_KEY": "test-key"}),
+        ):
+            result = runner.invoke(main, ["sync-labels", "--json"])
+
+        assert result.exit_code == 0
+        # Must parse cleanly even though an update is "available".
+        payload = json.loads(result.output)
+        assert "labels" in payload
+        assert "Boilerplate update available" not in result.output
