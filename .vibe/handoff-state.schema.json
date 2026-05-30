@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Human Handoff State",
+  "description": "Structured state the guided human-setup flow writes and the milestone gate reads, so a milestone reaches validation without hidden assumptions. Secrets are references, never values. See docs/review/external-service-milestone-pattern.md section 7.",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "_comment": {
+      "type": "string"
+    },
+    "milestones": {
+      "type": "object",
+      "description": "Keyed by milestone slug. Each holds the per-provider human steps that gate the milestone.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "description": "Keyed by provider slug; the list of human steps for that provider in this milestone.",
+          "properties": {
+            "steps": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Stable step slug."
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "What the human must do."
+                  },
+                  "where": {
+                    "type": "string",
+                    "enum": ["console", "secret", "oauth", "billing"],
+                    "description": "Where the step bottoms out."
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["pending", "done", "blocked", "waived"],
+                    "description": "The gate requires every non-waived required step to be done."
+                  },
+                  "required": {
+                    "type": "boolean",
+                    "description": "Whether the gate blocks on this step (default true)."
+                  },
+                  "secret_ref": {
+                    "type": "string",
+                    "description": "Reference to a secret, never its value (e.g. \"gh:ANTHROPIC_API_KEY\")."
+                  }
+                },
+                "required": ["id", "description", "where", "status"]
+              }
+            }
+          },
+          "required": ["steps"]
+        }
+      }
+    }
+  },
+  "required": ["milestones"]
+}

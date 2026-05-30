@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Provider Docs Index",
+  "description": "Repo-stored, machine-readable index mapping each external-provider feature to its docs URL plus drift-tracking fields. The contract that external-service-milestone Index tickets populate and the doc-drift automation reads. See docs/review/external-service-milestone-pattern.md.",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "_comment": {
+      "type": "string"
+    },
+    "providers": {
+      "type": "object",
+      "description": "One entry per external provider, keyed by provider slug (e.g. github-actions, neon, fly, axiom).",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "milestone": {
+            "type": "string",
+            "description": "The external-service milestone this provider belongs to."
+          },
+          "last_indexed": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "Date the provider's docs were last indexed (YYYY-MM-DD)."
+          },
+          "features": {
+            "type": "object",
+            "description": "Feature -> docs mapping. Keyed by a stable feature slug used by the installer/human-setup flows.",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "docs_url": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "Canonical provider documentation URL for this feature."
+                },
+                "local_ref": {
+                  "type": "string",
+                  "description": "Path to the in-repo recipe/reference for this feature (e.g. recipes/integrations/<provider>.md)."
+                },
+                "content_signature": {
+                  "type": "string",
+                  "description": "Signature (e.g. sha256:...) of the indexed doc content, captured at index time. Drift detection compares the current doc against this."
+                },
+                "last_verified": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                  "description": "Date this feature's doc was last verified against content_signature (YYYY-MM-DD)."
+                }
+              },
+              "required": ["docs_url"]
+            }
+          }
+        },
+        "required": ["features"]
+      }
+    }
+  },
+  "required": ["providers"]
+}

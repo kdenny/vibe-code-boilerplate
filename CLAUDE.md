@@ -203,6 +203,8 @@ Review policy details and a worked PR example:
 - [`docs/review/triage-intelligence.md`](docs/review/triage-intelligence.md) — **the
   triage operating model on top of the rubric: taxonomy, the Linear Triage
   Intelligence guidance text, and the board-quality → CLAUDE.md feedback loop**
+- [`docs/review/external-service-milestone-pattern.md`](docs/review/external-service-milestone-pattern.md) — **the
+  reusable milestone + ticket-graph shape for any milestone that integrates an external provider**
 - [`docs/review/coderabbit-policy.md`](docs/review/coderabbit-policy.md)
 - [`docs/review/agent-pr-example.md`](docs/review/agent-pr-example.md)
 
@@ -264,6 +266,14 @@ ticket.
 > team's "wall only when a hard blocker exists" model; gates are mandatory
 > everywhere. Full detail: the canonical Linear doc *"Dependency walls and
 > gates."*
+
+**External-service milestones** (any milestone that integrates a provider — Fly,
+Neon, Axiom, GitHub Actions, a model provider, …) have a repeating internal shape
+on top of this discipline: a docs-index → CLI-installer → guided-human-setup lane
+per provider, a shared repo-stored docs index, and a doc-drift → `HUMAN ‼️`
+contract. Don't re-derive it — follow
+[`docs/review/external-service-milestone-pattern.md`](docs/review/external-service-milestone-pattern.md)
+(scaffold with `/new-milestone`).
 
 ---
 
