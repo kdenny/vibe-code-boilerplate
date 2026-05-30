@@ -63,7 +63,9 @@ def _integration_group(integration: Integration) -> click.Group:
         help=integration.description or f"{integration.cli_name} integration commands.",
     )
     for integration_verb in integration.verbs:
-        group.add_command(_integration_command(integration, integration_verb), integration_verb.cli_name)
+        group.add_command(
+            _integration_command(integration, integration_verb), integration_verb.cli_name
+        )
     return group
 
 

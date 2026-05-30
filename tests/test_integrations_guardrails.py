@@ -5,7 +5,6 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-
 FORBIDDEN_DOWNSTREAM_IMPORT_ROOTS = {
     "app",
     "apps",

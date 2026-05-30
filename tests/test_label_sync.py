@@ -355,7 +355,10 @@ class TestSyncLabelsCommand:
                 return_value={"tracker": {"type": "linear", "config": {}}, "labels": {}},
             ),
             patch("lib.vibe.label_sync.save_config"),
-            patch.dict("os.environ", {"LINEAR_API_KEY": "test-key"}),
+            patch.dict(
+                "os.environ",
+                {"LINEAR_API_KEY": "test-key", "VIBE_NO_UPDATE_CHECK": "1"},
+            ),
         ):
             result = runner.invoke(main, ["sync-labels", "--json"])
 

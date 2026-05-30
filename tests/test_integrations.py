@@ -1,8 +1,8 @@
 """Tests for built-in integration skeletons."""
 
+import tomllib
 from dataclasses import is_dataclass
 from pathlib import Path
-import tomllib
 
 import pytest
 
