@@ -105,6 +105,53 @@ Review policy details and a worked PR example:
 
 ---
 
+## Walls & gates (milestone discipline)
+
+Every milestone is bracketed by two control tickets, and **all milestones get
+both.** This is how multi-agent work stays scoped and verifiable without
+interpretation drift.
+
+- **Wall — the milestone's entrance.** The *first* ticket. It scopes the
+  milestone, validates the plan and assumptions, and **sets the acceptance
+  criteria** for the rest of the work. Nothing else in the milestone starts
+  until the wall clears. Title `[Wall] <project> — <milestone> … cleared`;
+  label `wall`.
+- **Gate — the milestone's exit.** The *last* ticket. It validates the work and
+  **confirms every acceptance criterion the wall set has been met.** The
+  milestone is done only when its gate is Done. Title
+  `[Gate] <project> — <milestone> complete`; label `gate`.
+
+**Wiring (mechanical — use `bin/ticket relate`; never paraphrase a dependency in
+prose where an edge belongs):**
+
+1. The **wall blocks every other ticket** in its milestone — the work tickets
+   *and* the gate. Work cannot begin until the wall is Done.
+2. **Every work ticket blocks the gate.** The gate's blocker set *is* the
+   milestone's definition of done — wire late-added tickets in too.
+3. **Across milestones, chain at the milestone level:** the downstream
+   milestone's **wall is `blocked-by` the upstream milestone's gate.** Keep the
+   cross-boundary graph shallow; add a direct ticket→ticket edge only for a
+   real, narrow dependency.
+4. **A blocker is only real when work genuinely cannot proceed.** Don't encode
+   soft "nice to do first" ordering as a blocker — it needlessly serializes
+   parallel agents.
+
+**Lifecycle:** walls go first, gates go last; everything between them runs in
+parallel across distinct surfaces. Close a wall once its scope/contract is set
+and verified (or the user gives explicit go-ahead to proceed — record it in a
+wall comment). Close the gate **last**, only when every blocker is Done,
+validation passed, and docs are updated. Any human-only step (secrets, OAuth,
+billing, sign-off) gets its **own** ticket — never buried in an implementation
+ticket.
+
+> **VIBE convention:** *every* milestone carries a wall (it is the scoping +
+> acceptance-criteria step), which is intentionally broader than the PROMPT
+> team's "wall only when a hard blocker exists" model; gates are mandatory
+> everywhere. Full detail: the canonical Linear doc *"Dependency walls and
+> gates."*
+
+---
+
 ## Operating rules (condensed — full detail in the archive)
 
 These remain in force during the revamp. The archived boilerplate doc has the
