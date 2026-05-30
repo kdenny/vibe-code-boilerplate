@@ -29,6 +29,16 @@
    or as a follow-up ticket — even when the change in front of you is otherwise
    fine. Don't sit on a speed idea.
 
+3. **Scoping rule — `agent-ready` is a promise; honor the rubric.** The board is
+   an agent execution queue, so a label must mean exactly one thing. Before you
+   apply `agent-ready` / `needs-scoping` / `wall` / `gate` to a ticket — or pull
+   one to work on — check it against
+   [`docs/review/agent-ready-rubric.md`](docs/review/agent-ready-rubric.md).
+   `agent-ready` means *no open design decision is left to the agent* (it may
+   still be blocked); a hidden dependency on a not-yet-built contract is the most
+   common way a ticket is falsely `agent-ready` — wire the `blocked-by` edge or
+   demote to `needs-scoping` with the open questions written out.
+
 ---
 
 ## What this repo is
@@ -100,6 +110,8 @@ right architecture isn't clear from the ticket. See the HUMAN-ticket guidance in
 [`docs/archive/CLAUDE.boilerplate.md`](docs/archive/CLAUDE.boilerplate.md).
 
 Review policy details and a worked PR example:
+- [`docs/review/agent-ready-rubric.md`](docs/review/agent-ready-rubric.md) — **the
+  `agent-ready`/`needs-scoping`/`wall`/`gate` label contract and dependency-hygiene rules**
 - [`docs/review/coderabbit-policy.md`](docs/review/coderabbit-policy.md)
 - [`docs/review/agent-pr-example.md`](docs/review/agent-pr-example.md)
 
