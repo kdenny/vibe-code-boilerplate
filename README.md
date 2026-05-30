@@ -407,7 +407,7 @@ This lets the system:
 │   ├── doctor                # Health check
 │   ├── ticket                # Ticket operations
 │   └── secrets               # Secret management
-├── lib/vibe/                 # Python library
+├── vibe/                 # Python library
 │   ├── config.py             # Config management
 │   ├── state.py              # State management
 │   ├── doctor.py             # Health checks

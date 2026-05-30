@@ -224,7 +224,7 @@ uvx rulebook-ai project sync
    - `bin/vibe setup --quick` skips all optional wizards
    - CLAUDE.md works standalone without Python
 
-2. **Evaluate MCP Integration**: Could Linear MCP server replace `lib/vibe/trackers/linear.py`?
+2. **Evaluate MCP Integration**: Could Linear MCP server replace `vibe/trackers/linear.py`?
    - Reduces maintenance burden
    - Aligns with Claude Code ecosystem
 

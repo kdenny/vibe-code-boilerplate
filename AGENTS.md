@@ -31,7 +31,7 @@ Guidance for autonomous agents (including Cursor Cloud) working in this reposito
 
 ### What this repo is
 
-VIBE is a **Python CLI toolkit** (`bin/vibe`, `bin/ticket`, `bin/ci-local`, …) plus `lib/vibe/`. There is **no** long-running web app or `docker compose` stack to start. Development = install deps, run CLIs, validate with `bin/ci-local`.
+VIBE is a **Python CLI toolkit** (`bin/vibe`, `bin/ticket`, `bin/ci-local`, …) plus `vibe/`. There is **no** long-running web app or `docker compose` stack to start. Development = install deps, run CLIs, validate with `bin/ci-local`.
 
 Canonical bootstrap contract: [`recipes/environments/cloud-bootstrap.md`](recipes/environments/cloud-bootstrap.md).
 
@@ -69,8 +69,8 @@ Fallback (no uv): `pip install -r requirements.lock` then `pip install -e . --no
 |------|---------|
 | Full local CI (source of truth) | `unset LINEAR_API_KEY` then `bin/ci-local` |
 | **Before every push** (lint + mypy) | `bin/ci-local --fast` |
-| Fast warm loop (module-scoped) | `bin/ci-local --scope lib/vibe/<module>.py` |
-| Predict CI pytest scope | `PYTHONPATH=. python3 -m lib.vibe.testscope <paths>` |
+| Fast warm loop (module-scoped) | `bin/ci-local --scope vibe/<module>.py` |
+| Predict CI pytest scope | `PYTHONPATH=. python3 -m vibe.testscope <paths>` |
 
 **Run `bin/ci-local --fast` before you push.** It runs ruff + mypy + scoped
 tests in seconds and is the same gate the `.githooks/pre-push` hook enforces. If
@@ -80,7 +80,7 @@ and re-run. Never push past a skip warning.
 
 **`LINEAR_API_KEY`:** Cloud VMs often inject this secret. One unit test (`test_authenticate_no_api_key`) expects no key — **unset `LINEAR_API_KEY` before `bin/ci-local`** unless you are doing live Linear work.
 
-**Scoped vs full:** Changes under shared/core paths (`config`, `config_schema`, `env`, `utils/`, `pyproject.toml`, `lib/vibe/testscope.py`, …) intentionally run the **full** pytest suite via `--scope`. That matches CI.
+**Scoped vs full:** Changes under shared/core paths (`config`, `config_schema`, `env`, `utils/`, `pyproject.toml`, `vibe/testscope.py`, …) intentionally run the **full** pytest suite via `--scope`. That matches CI.
 
 ### Running the “application”
 
@@ -96,11 +96,11 @@ Live tracker/API flows need credentials in `.env.local` (gitignored); not requir
 
 ### Lint / test shortcuts
 
-Same tools as `bin/ci-local`: `ruff check .`, `ruff format . --check`, `mypy lib/vibe/`, `pytest`. See [`CLAUDE.md`](CLAUDE.md) validation contract table.
+Same tools as `bin/ci-local`: `ruff check .`, `ruff format . --check`, `mypy vibe/`, `pytest`. See [`CLAUDE.md`](CLAUDE.md) validation contract table.
 
 ### When the VIBE tooling itself breaks
 
-If one of **our** CLIs (`bin/*`, `lib/vibe/`) misbehaves — silent failure, confusing error, missing flag, wrong output — file it, don't work around it silently:
+If one of **our** CLIs (`bin/*`, `vibe/`) misbehaves — silent failure, confusing error, missing flag, wrong output — file it, don't work around it silently:
 
 ```bash
 bin/ticket file-tooling-issue --cli bin/<x> --summary "<what broke>" --detail "<observed vs expected>"

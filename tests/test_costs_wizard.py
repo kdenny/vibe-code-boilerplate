@@ -2,7 +2,7 @@
 
 from unittest.mock import patch
 
-from lib.vibe.wizards.costs import _should_default_enable, run_costs_wizard
+from vibe.wizards.costs import _should_default_enable, run_costs_wizard
 
 
 class TestShouldDefaultEnable:
@@ -38,7 +38,7 @@ class TestRunCostsWizard:
     def test_non_interactive_fails(self):
         config = {}
         with patch(
-            "lib.vibe.wizards.costs.require_interactive", return_value=(False, "Not interactive")
+            "vibe.wizards.costs.require_interactive", return_value=(False, "Not interactive")
         ):
             result = run_costs_wizard(config)
         assert result is False

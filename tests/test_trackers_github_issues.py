@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from lib.vibe.trackers.github_issues import GitHubIssuesTracker, _gh
+from vibe.trackers.github_issues import GitHubIssuesTracker, _gh
 
 
 class TestGhHelper:
@@ -16,7 +16,7 @@ class TestGhHelper:
         mock_result.returncode = 0
         mock_result.stdout = "output"
 
-        with patch("lib.vibe.trackers.github_issues.subprocess.run", return_value=mock_result):
+        with patch("vibe.trackers.github_issues.subprocess.run", return_value=mock_result):
             result = _gh(["issue", "list"])
 
         assert result.stdout == "output"
@@ -26,7 +26,7 @@ class TestGhHelper:
         mock_result.returncode = 1
         mock_result.stderr = "not found"
 
-        with patch("lib.vibe.trackers.github_issues.subprocess.run", return_value=mock_result):
+        with patch("vibe.trackers.github_issues.subprocess.run", return_value=mock_result):
             with pytest.raises(RuntimeError, match="gh issue list"):
                 _gh(["issue", "list"])
 
@@ -35,7 +35,7 @@ class TestGhHelper:
         mock_result.returncode = 1
         mock_result.stderr = "not found"
 
-        with patch("lib.vibe.trackers.github_issues.subprocess.run", return_value=mock_result):
+        with patch("vibe.trackers.github_issues.subprocess.run", return_value=mock_result):
             result = _gh(["issue", "list"], check=False)
 
         assert result.returncode == 1
@@ -75,7 +75,7 @@ class TestGitHubIssuesTrackerAuthenticate:
         mock_result = MagicMock()
         mock_result.returncode = 0
 
-        with patch("lib.vibe.trackers.github_issues.subprocess.run", return_value=mock_result):
+        with patch("vibe.trackers.github_issues.subprocess.run", return_value=mock_result):
             assert tracker.authenticate() is True
 
     def test_authenticate_failure(self) -> None:
@@ -84,7 +84,7 @@ class TestGitHubIssuesTrackerAuthenticate:
         mock_result.returncode = 1
         mock_result.stderr = "not logged in"
 
-        with patch("lib.vibe.trackers.github_issues.subprocess.run", return_value=mock_result):
+        with patch("vibe.trackers.github_issues.subprocess.run", return_value=mock_result):
             assert tracker.authenticate() is False
 
 
@@ -108,7 +108,7 @@ class TestGitHubIssuesTrackerGetTicket:
         mock_result.returncode = 0
         mock_result.stdout = json.dumps(issue_data)
 
-        with patch("lib.vibe.trackers.github_issues.subprocess.run", return_value=mock_result):
+        with patch("vibe.trackers.github_issues.subprocess.run", return_value=mock_result):
             ticket = tracker.get_ticket("42")
 
         assert ticket is not None
@@ -137,7 +137,7 @@ class TestGitHubIssuesTrackerGetTicket:
         mock_result.stdout = json.dumps(issue_data)
 
         with patch(
-            "lib.vibe.trackers.github_issues.subprocess.run", return_value=mock_result
+            "vibe.trackers.github_issues.subprocess.run", return_value=mock_result
         ) as mock_run:
             ticket = tracker.get_ticket("#99")
 
@@ -153,7 +153,7 @@ class TestGitHubIssuesTrackerGetTicket:
         mock_result.returncode = 1
         mock_result.stderr = "Could not resolve to an issue"
 
-        with patch("lib.vibe.trackers.github_issues.subprocess.run", return_value=mock_result):
+        with patch("vibe.trackers.github_issues.subprocess.run", return_value=mock_result):
             ticket = tracker.get_ticket("99999")
 
         assert ticket is None
@@ -197,7 +197,7 @@ class TestGitHubIssuesTrackerListTickets:
         mock_result.returncode = 0
         mock_result.stdout = json.dumps(issues_data)
 
-        with patch("lib.vibe.trackers.github_issues.subprocess.run", return_value=mock_result):
+        with patch("vibe.trackers.github_issues.subprocess.run", return_value=mock_result):
             tickets = tracker.list_tickets()
 
         assert len(tickets) == 2
@@ -211,7 +211,7 @@ class TestGitHubIssuesTrackerListTickets:
         mock_result.stdout = "[]"
 
         with patch(
-            "lib.vibe.trackers.github_issues.subprocess.run", return_value=mock_result
+            "vibe.trackers.github_issues.subprocess.run", return_value=mock_result
         ) as mock_run:
             tracker.list_tickets(status="Done")
 
@@ -227,7 +227,7 @@ class TestGitHubIssuesTrackerListTickets:
         mock_result.stdout = "[]"
 
         with patch(
-            "lib.vibe.trackers.github_issues.subprocess.run", return_value=mock_result
+            "vibe.trackers.github_issues.subprocess.run", return_value=mock_result
         ) as mock_run:
             tracker.list_tickets(labels=["Bug", "Frontend"])
 
@@ -244,7 +244,7 @@ class TestGitHubIssuesTrackerListTickets:
         mock_result.stdout = "[]"
 
         with patch(
-            "lib.vibe.trackers.github_issues.subprocess.run", return_value=mock_result
+            "vibe.trackers.github_issues.subprocess.run", return_value=mock_result
         ) as mock_run:
             tracker.list_tickets(assignee="me")
 
@@ -259,7 +259,7 @@ class TestGitHubIssuesTrackerListTickets:
         mock_result.returncode = 1
         mock_result.stderr = "error"
 
-        with patch("lib.vibe.trackers.github_issues.subprocess.run", return_value=mock_result):
+        with patch("vibe.trackers.github_issues.subprocess.run", return_value=mock_result):
             tickets = tracker.list_tickets()
 
         assert tickets == []
@@ -293,7 +293,7 @@ class TestGitHubIssuesTrackerCreateTicket:
         )
 
         with patch(
-            "lib.vibe.trackers.github_issues.subprocess.run",
+            "vibe.trackers.github_issues.subprocess.run",
             side_effect=[create_result, view_result],
         ):
             ticket = tracker.create_ticket("New feature", "Description", labels=["Feature"])
@@ -324,7 +324,7 @@ class TestGitHubIssuesTrackerCreateTicket:
         )
 
         with patch(
-            "lib.vibe.trackers.github_issues.subprocess.run",
+            "vibe.trackers.github_issues.subprocess.run",
             side_effect=[create_result, view_result],
         ) as mock_run:
             tracker.create_ticket("Assigned ticket", "Desc", assignee="dev1")
@@ -339,7 +339,7 @@ class TestGitHubIssuesTrackerCreateTicket:
         mock_result.returncode = 1
         mock_result.stderr = "permission denied"
 
-        with patch("lib.vibe.trackers.github_issues.subprocess.run", return_value=mock_result):
+        with patch("vibe.trackers.github_issues.subprocess.run", return_value=mock_result):
             with pytest.raises(RuntimeError):
                 tracker.create_ticket("Title", "Description")
 
@@ -371,7 +371,7 @@ class TestGitHubIssuesTrackerUpdateTicket:
         )
 
         with patch(
-            "lib.vibe.trackers.github_issues.subprocess.run",
+            "vibe.trackers.github_issues.subprocess.run",
             side_effect=[close_result, view_result],
         ):
             ticket = tracker.update_ticket("10", status="Done")
@@ -401,7 +401,7 @@ class TestGitHubIssuesTrackerUpdateTicket:
         )
 
         with patch(
-            "lib.vibe.trackers.github_issues.subprocess.run",
+            "vibe.trackers.github_issues.subprocess.run",
             side_effect=[edit_result, view_result],
         ) as mock_run:
             ticket = tracker.update_ticket("10", title="New Title")
@@ -433,7 +433,7 @@ class TestGitHubIssuesTrackerUpdateTicket:
         )
 
         with patch(
-            "lib.vibe.trackers.github_issues.subprocess.run",
+            "vibe.trackers.github_issues.subprocess.run",
             side_effect=[edit_result, view_result],
         ) as mock_run:
             tracker.update_ticket("10", labels=["Bug"])
@@ -452,7 +452,7 @@ class TestGitHubIssuesTrackerCommentTicket:
         mock_result.stdout = ""
 
         with patch(
-            "lib.vibe.trackers.github_issues.subprocess.run", return_value=mock_result
+            "vibe.trackers.github_issues.subprocess.run", return_value=mock_result
         ) as mock_run:
             tracker.comment_ticket("42", "Great work!")
 
@@ -466,7 +466,7 @@ class TestGitHubIssuesTrackerCommentTicket:
         mock_result.returncode = 1
         mock_result.stderr = "not found"
 
-        with patch("lib.vibe.trackers.github_issues.subprocess.run", return_value=mock_result):
+        with patch("vibe.trackers.github_issues.subprocess.run", return_value=mock_result):
             with pytest.raises(RuntimeError):
                 tracker.comment_ticket("42", "Comment")
 
@@ -484,7 +484,7 @@ class TestGitHubIssuesTrackerListLabels:
         mock_result.returncode = 0
         mock_result.stdout = json.dumps(labels_data)
 
-        with patch("lib.vibe.trackers.github_issues.subprocess.run", return_value=mock_result):
+        with patch("vibe.trackers.github_issues.subprocess.run", return_value=mock_result):
             labels = tracker.list_labels()
 
         assert len(labels) == 2
@@ -497,7 +497,7 @@ class TestGitHubIssuesTrackerListLabels:
         mock_result.returncode = 1
         mock_result.stderr = "error"
 
-        with patch("lib.vibe.trackers.github_issues.subprocess.run", return_value=mock_result):
+        with patch("vibe.trackers.github_issues.subprocess.run", return_value=mock_result):
             labels = tracker.list_labels()
 
         assert labels == []
@@ -517,7 +517,7 @@ class TestGitHubIssuesTrackerValidateConfig:
         auth_result.returncode = 0
 
         with patch(
-            "lib.vibe.trackers.github_issues.subprocess.run",
+            "vibe.trackers.github_issues.subprocess.run",
             return_value=version_result,
         ):
             valid, issues = tracker.validate_config()
@@ -529,7 +529,7 @@ class TestGitHubIssuesTrackerValidateConfig:
         tracker = GitHubIssuesTracker(repo="owner/repo")
 
         with patch(
-            "lib.vibe.trackers.github_issues.subprocess.run",
+            "vibe.trackers.github_issues.subprocess.run",
             side_effect=FileNotFoundError("gh not found"),
         ):
             valid, issues = tracker.validate_config()
@@ -646,7 +646,7 @@ class TestGitHubIssuesTrackerGetRepo:
         mock_result.returncode = 0
         mock_result.stdout = "detected/repo\n"
 
-        with patch("lib.vibe.trackers.github_issues.subprocess.run", return_value=mock_result):
+        with patch("vibe.trackers.github_issues.subprocess.run", return_value=mock_result):
             assert tracker._get_repo() == "detected/repo"
 
     def test_get_repo_detection_fails(self) -> None:
@@ -658,6 +658,6 @@ class TestGitHubIssuesTrackerGetRepo:
         mock_result.stderr = "not a repo"
         mock_result.stdout = ""
 
-        with patch("lib.vibe.trackers.github_issues.subprocess.run", return_value=mock_result):
+        with patch("vibe.trackers.github_issues.subprocess.run", return_value=mock_result):
             with pytest.raises(RuntimeError, match="Cannot determine GitHub repo"):
                 tracker._get_repo()

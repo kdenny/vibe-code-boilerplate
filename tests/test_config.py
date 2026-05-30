@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-from lib.vibe.config import (
+from vibe.config import (
     _deep_update,
     config_exists,
     get_config_path,
@@ -211,7 +211,7 @@ class TestDeepUpdate:
 
 # --- Migration tests ---
 
-from lib.vibe.config_schema import migrate_config
+from vibe.config_schema import migrate_config
 
 
 class TestMigrateConfig:

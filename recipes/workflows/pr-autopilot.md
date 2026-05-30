@@ -36,7 +36,7 @@ Reproduce locally over **only** the changed module, then fix and push:
 ```bash
 # map the diff to the pytest targets that matter (single source of truth:
 # testscope.py — it reads changed filenames on stdin and prints the targets)
-git diff --name-only origin/main...HEAD | PYTHONPATH=. python -m lib.vibe.testscope
+git diff --name-only origin/main...HEAD | PYTHONPATH=. python -m vibe.testscope
 bin/ci-local                       # local stays the source of truth
 git commit -am "<TICKET>: fix CI (<what>)" && git push
 ```

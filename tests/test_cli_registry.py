@@ -8,9 +8,9 @@ import click
 import pytest
 from click.testing import CliRunner
 
-from lib.vibe.cli import Integration, IntegrationRegistry, load_entry_point_integrations, verb
-from lib.vibe.cli import registry as registry_module
-from lib.vibe.cli.main import register_integration_commands
+from vibe.cli import Integration, IntegrationRegistry, load_entry_point_integrations, verb
+from vibe.cli import registry as registry_module
+from vibe.cli.main import register_integration_commands
 
 
 @dataclass(frozen=True)
@@ -120,7 +120,7 @@ def test_bootstrap_survives_broken_entry_point(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    from lib.vibe.cli import main as main_module
+    from vibe.cli import main as main_module
 
     def explode() -> None:
         raise RuntimeError("boom")

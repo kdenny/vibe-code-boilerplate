@@ -1,1 +1,0 @@
-# Vibe boilerplate library

@@ -1,6 +1,6 @@
 """Tests for deployment follow-up (HUMAN ticket generation)."""
 
-from lib.vibe.deployment_followup import (
+from vibe.deployment_followup import (
     build_human_followup_body,
     detect_deployment_platforms,
     get_default_human_followup_title,

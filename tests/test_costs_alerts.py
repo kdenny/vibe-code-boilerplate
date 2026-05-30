@@ -1,7 +1,7 @@
 """Tests for cost alerting module."""
 
-from lib.vibe.costs.alerts import check_budget_alerts, project_end_of_month
-from lib.vibe.costs.base import CostReport
+from vibe.costs.alerts import check_budget_alerts, project_end_of_month
+from vibe.costs.base import CostReport
 
 
 class TestCheckBudgetAlerts:

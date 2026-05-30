@@ -2,7 +2,7 @@
 
 import pytest
 
-from lib.vibe.costs.base import CostLineItem, CostProvider, CostReport, ManualCostEntry
+from vibe.costs.base import CostLineItem, CostProvider, CostReport, ManualCostEntry
 
 
 class TestCostLineItem:

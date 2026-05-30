@@ -80,7 +80,7 @@ vercel --prod
 3. Use the Vercel secrets provider:
 
 ```python
-from lib.vibe.secrets.providers.vercel import VercelSecretsProvider
+from vibe.secrets.providers.vercel import VercelSecretsProvider
 
 provider = VercelSecretsProvider()
 results = provider.sync_from_local(".env.local", "preview")

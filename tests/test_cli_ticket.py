@@ -6,14 +6,14 @@ from unittest.mock import MagicMock, patch
 import pytest
 from click.testing import CliRunner
 
-from lib.vibe.cli.ticket import (
+from vibe.cli.ticket import (
     ensure_tracker_configured,
     get_tracker,
     main,
     print_ticket,
     print_ticket_summary,
 )
-from lib.vibe.trackers.base import Ticket
+from vibe.trackers.base import Ticket
 
 
 class TestGetTracker:
@@ -22,7 +22,7 @@ class TestGetTracker:
     def test_get_tracker_linear(self) -> None:
         config = {"tracker": {"type": "linear", "config": {"team_id": "team123"}}}
 
-        with patch("lib.vibe.cli.ticket.load_config", return_value=config):
+        with patch("vibe.cli.ticket.load_config", return_value=config):
             tracker = get_tracker()
 
         assert tracker is not None
@@ -32,7 +32,7 @@ class TestGetTracker:
     def test_get_tracker_shortcut(self) -> None:
         config = {"tracker": {"type": "shortcut", "config": {}}}
 
-        with patch("lib.vibe.cli.ticket.load_config", return_value=config):
+        with patch("vibe.cli.ticket.load_config", return_value=config):
             tracker = get_tracker()
 
         assert tracker is not None
@@ -42,7 +42,7 @@ class TestGetTracker:
         config = {"tracker": {"type": None}}
 
         with (
-            patch("lib.vibe.cli.ticket.load_config", return_value=config),
+            patch("vibe.cli.ticket.load_config", return_value=config),
             patch.dict("os.environ", {}, clear=True),
         ):
             tracker = get_tracker()
@@ -53,7 +53,7 @@ class TestGetTracker:
         config = {"tracker": {"type": None, "config": {}}}
 
         with (
-            patch("lib.vibe.cli.ticket.load_config", return_value=config),
+            patch("vibe.cli.ticket.load_config", return_value=config),
             patch.dict(
                 "os.environ", {"LINEAR_API_KEY": "lin_api_test", "LINEAR_TEAM_ID": "team_from_env"}
             ),
@@ -72,7 +72,7 @@ class TestEnsureTrackerConfigured:
         mock_tracker = MagicMock()
         mock_tracker.name = "linear"
 
-        with patch("lib.vibe.cli.ticket.get_tracker", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.get_tracker", return_value=mock_tracker):
             tracker = ensure_tracker_configured()
 
         assert tracker is mock_tracker
@@ -90,11 +90,11 @@ class TestEnsureTrackerConfigured:
             return mock_tracker  # After wizard: configured
 
         with (
-            patch("lib.vibe.cli.ticket.get_tracker", side_effect=get_tracker_side_effect),
-            patch("lib.vibe.cli.ticket.click.confirm", return_value=True),
-            patch("lib.vibe.cli.ticket.load_config", return_value={}),
-            patch("lib.vibe.cli.ticket.run_tracker_wizard", return_value=True),
-            patch("lib.vibe.cli.ticket.save_config"),
+            patch("vibe.cli.ticket.get_tracker", side_effect=get_tracker_side_effect),
+            patch("vibe.cli.ticket.click.confirm", return_value=True),
+            patch("vibe.cli.ticket.load_config", return_value={}),
+            patch("vibe.cli.ticket.run_tracker_wizard", return_value=True),
+            patch("vibe.cli.ticket.save_config"),
         ):
             tracker = ensure_tracker_configured()
 
@@ -102,9 +102,9 @@ class TestEnsureTrackerConfigured:
 
     def test_ensure_tracker_configured_user_declines(self) -> None:
         with (
-            patch("lib.vibe.cli.ticket.get_tracker", return_value=None),
-            patch("lib.vibe.cli.ticket.click.confirm", return_value=False),
-            patch("lib.vibe.cli.ticket.click.echo"),
+            patch("vibe.cli.ticket.get_tracker", return_value=None),
+            patch("vibe.cli.ticket.click.confirm", return_value=False),
+            patch("vibe.cli.ticket.click.echo"),
         ):
             with pytest.raises(SystemExit) as exc_info:
                 ensure_tracker_configured()
@@ -113,11 +113,11 @@ class TestEnsureTrackerConfigured:
 
     def test_ensure_tracker_configured_wizard_fails(self) -> None:
         with (
-            patch("lib.vibe.cli.ticket.get_tracker", return_value=None),
-            patch("lib.vibe.cli.ticket.click.confirm", return_value=True),
-            patch("lib.vibe.cli.ticket.load_config", return_value={}),
-            patch("lib.vibe.cli.ticket.run_tracker_wizard", return_value=False),
-            patch("lib.vibe.cli.ticket.click.echo"),
+            patch("vibe.cli.ticket.get_tracker", return_value=None),
+            patch("vibe.cli.ticket.click.confirm", return_value=True),
+            patch("vibe.cli.ticket.load_config", return_value={}),
+            patch("vibe.cli.ticket.run_tracker_wizard", return_value=False),
+            patch("vibe.cli.ticket.click.echo"),
         ):
             with pytest.raises(SystemExit) as exc_info:
                 ensure_tracker_configured()
@@ -142,7 +142,7 @@ class TestTicketCLI:
         )
         mock_tracker.get_ticket.return_value = mock_ticket
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(main, ["get", "TEST-1"])
 
         assert result.exit_code == 0
@@ -155,7 +155,7 @@ class TestTicketCLI:
         mock_tracker = MagicMock()
         mock_tracker.get_ticket.return_value = None
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(main, ["get", "NONEXISTENT"])
 
         assert result.exit_code == 1
@@ -186,7 +186,7 @@ class TestTicketCLI:
         ]
         mock_tracker.list_tickets.return_value = mock_tickets
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(main, ["list"])
 
         assert result.exit_code == 0
@@ -198,7 +198,7 @@ class TestTicketCLI:
         mock_tracker = MagicMock()
         mock_tracker.list_tickets.return_value = []
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(
                 main, ["list", "--status", "Done", "--label", "Bug", "--limit", "5"]
             )
@@ -221,7 +221,7 @@ class TestTicketCLI:
             ),
         ]
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(main, ["list", "--all"])
 
         assert result.exit_code == 0
@@ -245,7 +245,7 @@ class TestTicketCLI:
             for i in range(50)
         ]
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(main, ["list"])
 
         assert result.exit_code == 0
@@ -256,7 +256,7 @@ class TestTicketCLI:
         mock_tracker = MagicMock()
         mock_tracker.list_tickets.return_value = []
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(main, ["list"])
 
         assert result.exit_code == 0
@@ -276,7 +276,7 @@ class TestTicketCLI:
         )
         mock_tracker.create_ticket.return_value = mock_ticket
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(
                 main, ["create", "New Ticket", "-d", "Description", "--no-labels"]
             )
@@ -301,7 +301,7 @@ class TestTicketCLI:
         )
         mock_tracker.create_ticket.return_value = mock_ticket
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(
                 main,
                 ["create", "Labeled", "-d", "A bug description", "-l", "Bug", "-l", "High Risk"],
@@ -326,9 +326,9 @@ class TestTicketCLI:
         }
 
         with (
-            patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker),
-            patch("lib.vibe.cli.ticket.load_config", return_value=config),
-            patch("lib.vibe.cli.ticket.sys") as mock_sys,
+            patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker),
+            patch("vibe.cli.ticket.load_config", return_value=config),
+            patch("vibe.cli.ticket.sys") as mock_sys,
         ):
             mock_sys.stdin.isatty.return_value = False
             mock_sys.exit.side_effect = SystemExit(1)
@@ -353,7 +353,7 @@ class TestTicketCLI:
         )
         mock_tracker.create_ticket.return_value = mock_ticket
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(
                 main, ["create", "No Labels OK", "-d", "Description", "--no-labels"]
             )
@@ -388,10 +388,10 @@ class TestTicketCLI:
         }
 
         with (
-            patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker),
-            patch("lib.vibe.cli.ticket.load_config", return_value=config),
-            patch("lib.vibe.cli.ticket.sys") as mock_sys,
-            patch("lib.vibe.cli.ticket._prompt_for_labels") as mock_prompt,
+            patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker),
+            patch("vibe.cli.ticket.load_config", return_value=config),
+            patch("vibe.cli.ticket.sys") as mock_sys,
+            patch("vibe.cli.ticket._prompt_for_labels") as mock_prompt,
         ):
             mock_sys.stdin.isatty.return_value = True
             mock_sys.exit = sys.exit  # Use real sys.exit
@@ -417,7 +417,7 @@ class TestTicketCLI:
         )
         mock_tracker.update_ticket.return_value = mock_ticket
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(main, ["update", "TEST-1", "-s", "In Progress"])
 
         assert result.exit_code == 0
@@ -427,7 +427,7 @@ class TestTicketCLI:
         runner = CliRunner()
         mock_tracker = MagicMock()
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(main, ["update", "TEST-1"])
 
         assert result.exit_code == 1
@@ -447,7 +447,7 @@ class TestTicketCLI:
         )
         mock_tracker.update_ticket.return_value = mock_ticket
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(main, ["update", "TEST-1", "--label", "Backend"])
 
         assert result.exit_code == 0
@@ -467,7 +467,7 @@ class TestTicketCLI:
         )
         mock_tracker.update_ticket.return_value = mock_ticket
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(main, ["close", "TEST-1"])
 
         assert result.exit_code == 0
@@ -487,7 +487,7 @@ class TestTicketCLI:
         )
         mock_tracker.update_ticket.return_value = mock_ticket
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(main, ["close", "TEST-1", "--cancel"])
 
         assert result.exit_code == 0
@@ -497,7 +497,7 @@ class TestTicketCLI:
         runner = CliRunner()
         mock_tracker = MagicMock()
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(main, ["comment", "TEST-1", "This is a comment"])
 
         assert result.exit_code == 0
@@ -512,7 +512,7 @@ class TestTicketCLI:
             {"id": "2", "name": "Feature", "color": "#00ff00"},
         ]
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(main, ["labels"])
 
         assert result.exit_code == 0
@@ -524,7 +524,7 @@ class TestTicketCLI:
         mock_tracker = MagicMock()
         mock_tracker.list_labels.return_value = [{"id": "1", "name": "Bug", "color": "#ff0000"}]
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(main, ["labels", "--json"])
 
         assert result.exit_code == 0
@@ -534,7 +534,7 @@ class TestTicketCLI:
         runner = CliRunner()
         mock_tracker = MagicMock(spec=[])  # No list_labels method
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(main, ["labels"])
 
         assert result.exit_code == 1
@@ -551,7 +551,7 @@ class TestHumanFollowupCommand:
         fly_toml.write_text("app = 'test'\n")
 
         with runner.isolated_filesystem(temp_dir=tmp_path):
-            with patch("lib.vibe.cli.ticket.load_config", return_value={"github": {}}):
+            with patch("vibe.cli.ticket.load_config", return_value={"github": {}}):
                 result = runner.invoke(
                     main, ["create-human-followup", "--files", "fly.toml", "--print-only"]
                 )
@@ -564,7 +564,7 @@ class TestHumanFollowupCommand:
         runner = CliRunner()
 
         with runner.isolated_filesystem(temp_dir=tmp_path):
-            with patch("lib.vibe.cli.ticket.load_config", return_value={"github": {}}):
+            with patch("vibe.cli.ticket.load_config", return_value={"github": {}}):
                 result = runner.invoke(
                     main, ["create-human-followup", "--files", "nonexistent.txt"]
                 )
@@ -664,7 +664,7 @@ class TestCreateCommandRelatesTo:
         )
         mock_tracker.create_ticket.return_value = mock_ticket
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(
                 main,
                 [
@@ -696,7 +696,7 @@ class TestCreateCommandRelatesTo:
         )
         mock_tracker.create_ticket.return_value = mock_ticket
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(
                 main,
                 [
@@ -732,7 +732,7 @@ class TestCreateCommandRelatesTo:
         mock_tracker.create_ticket.return_value = mock_ticket
         mock_tracker.add_relation.side_effect = RuntimeError("API error")
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(
                 main,
                 [
@@ -755,7 +755,7 @@ class TestCreateCommandRelatesTo:
         runner = CliRunner()
         mock_tracker = MagicMock()
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(
                 main,
                 [
@@ -876,7 +876,7 @@ class TestBatchAssignProject:
         mock_tracker = MagicMock()
         mock_tracker.create_project = True  # hasattr check passes
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(
                 main,
                 ["batch", "assign-project", "--from", str(yaml_file)],
@@ -897,7 +897,7 @@ class TestBatchAssignProject:
         mock_tracker.create_project = True
         mock_tracker.update_ticket.side_effect = [None, RuntimeError("Not found")]
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(
                 main,
                 ["batch", "assign-project", "--from", str(yaml_file)],
@@ -940,7 +940,7 @@ class TestBatchAssignProject:
         runner = CliRunner()
         mock_tracker = MagicMock(spec=[])  # No create_project attribute
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(
                 main,
                 ["batch", "assign-project", "--from", str(yaml_file)],
@@ -989,7 +989,7 @@ class TestBatchAssignProject:
         mock_tracker = MagicMock()
         mock_tracker.create_project = True
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(
                 main,
                 ["batch", "assign-project", "--from", str(yaml_file)],
@@ -1019,7 +1019,7 @@ class TestFileToolingIssue:
         runner = CliRunner()
         mock_tracker = self._tracker_with_created()
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(
                 main,
                 ["file-tooling-issue", "--cli", "bin/x", "--summary", "boom"],
@@ -1049,7 +1049,7 @@ class TestFileToolingIssue:
             )
         ]
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(
                 main,
                 ["file-tooling-issue", "--cli", "bin/x", "--summary", "boom"],
@@ -1063,7 +1063,7 @@ class TestFileToolingIssue:
     def test_dedup_by_signature_when_title_differs(self) -> None:
         runner = CliRunner()
         # Same underlying fault (path/line vary), different summary wording.
-        from lib.vibe.cli.errors import normalize_signature
+        from vibe.cli.errors import normalize_signature
 
         sig = normalize_signature("boom in /tmp/a.py at line 5")
         mock_tracker = MagicMock()
@@ -1079,7 +1079,7 @@ class TestFileToolingIssue:
             )
         ]
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(
                 main,
                 [
@@ -1110,7 +1110,7 @@ class TestFileToolingIssue:
             )
         ]
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(
                 main,
                 ["file-tooling-issue", "--cli", "bin/x", "--summary", "boom"],
@@ -1121,7 +1121,7 @@ class TestFileToolingIssue:
 
     def test_dry_run_does_not_touch_tracker(self) -> None:
         runner = CliRunner()
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured") as ensure:
+        with patch("vibe.cli.ticket.ensure_tracker_configured") as ensure:
             result = runner.invoke(
                 main,
                 ["file-tooling-issue", "--cli", "bin/x", "--summary", "boom", "--dry-run"],
@@ -1135,7 +1135,7 @@ class TestFileToolingIssue:
         runner = CliRunner()
         mock_tracker = self._tracker_with_created()
 
-        with patch("lib.vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
+        with patch("vibe.cli.ticket.ensure_tracker_configured", return_value=mock_tracker):
             result = runner.invoke(
                 main,
                 [

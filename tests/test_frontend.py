@@ -2,7 +2,7 @@
 
 import json
 
-from lib.vibe.frontend.analyzer import (
+from vibe.frontend.analyzer import (
     ComponentInfo,
     DesignTokens,
     FrontendAnalysis,

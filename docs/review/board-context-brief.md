@@ -50,7 +50,7 @@ one from scratch is mis-scoped.
 
 | Artifact | What it is |
 |---|---|
-| `lib/vibe/testscope.py` | Single source of module-scoped test selection (`INTEGRATION_SEAMS`, "main is the backstop"). Consumed identically by `bin/ci-local --scope`, `tests.yml`, and the cloud QA path. |
+| `vibe/testscope.py` | Single source of module-scoped test selection (`INTEGRATION_SEAMS`, "main is the backstop"). Consumed identically by `bin/ci-local --scope`, `tests.yml`, and the cloud QA path. |
 | `bin/ci-local` (`--scope`, `--fast`) | One-command local validation; the source of truth (CI mirrors it). |
 | `.envrc` + `requirements.lock` | direnv activation (`direnv allow`) + pinned, cacheable install (VIBE-176/185). |
 | `.vibe/.venv` + `.deps_installed` | Worktree Python env + readiness marker, already wired in `bin/vibe` (lines 83-86). |
@@ -207,7 +207,7 @@ before the affected tickets are safe to pull.
 - **Instruction-source precedence is unrecorded.** Four surfaces each imply
   canonicity: the CLAUDE.md banner ("hand-authored… do not regenerate"),
   `agent_instructions/CORE.md:3` ("the single source of truth"), the still-shipping
-  `vibe generate-agent-instructions` CLI (`lib/vibe/cli/main.py:1358`), and
+  `vibe generate-agent-instructions` CLI (`vibe/cli/main.py:1358`), and
   `triage-intelligence.md`. An agent can't tell which wins, and CORE.md also
   ships a **stale generic label scheme** (type/risk/area, P0–P3) that contradicts
   the live VIBE scheme (scoping labels; priority is a field). *Needed:* an explicit

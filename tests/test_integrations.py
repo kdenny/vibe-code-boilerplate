@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from lib.vibe.errors import MissingExtraError
-from lib.vibe.integrations.pr_autopilot import PRAutopilotConfig, integration
-from lib.vibe.integrations.pr_autopilot.prototype import (
+from vibe.errors import MissingExtraError
+from vibe.integrations.pr_autopilot import PRAutopilotConfig, integration
+from vibe.integrations.pr_autopilot.prototype import (
     ANTHROPIC_SECRET_NAME,
     ANTHROPIC_SECRET_REF,
     ToolResult,
@@ -56,7 +56,7 @@ def test_pr_autopilot_extra_and_entry_point_are_wired() -> None:
     assert "pr-autopilot" in pyproject["project"]["optional-dependencies"]
     assert (
         pyproject["project"]["entry-points"]["vibe.integrations"]["pr-autopilot"]
-        == "lib.vibe.integrations.pr_autopilot:integration"
+        == "vibe.integrations.pr_autopilot:integration"
     )
 
 

@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
-from lib.vibe.costs.providers.vercel import VercelCostProvider
+from vibe.costs.providers.vercel import VercelCostProvider
 
 
 class TestVercelCostProvider:
@@ -19,21 +19,21 @@ class TestVercelCostProvider:
             p = VercelCostProvider()
             assert p.check_credentials() is False
 
-    @patch("lib.vibe.costs.providers.vercel.requests.get")
+    @patch("vibe.costs.providers.vercel.requests.get")
     def test_check_credentials_valid(self, mock_get):
         mock_get.return_value = MagicMock(status_code=200)
         with patch.dict("os.environ", {"VERCEL_TOKEN": "test_token"}):
             p = VercelCostProvider()
             assert p.check_credentials() is True
 
-    @patch("lib.vibe.costs.providers.vercel.requests.get")
+    @patch("vibe.costs.providers.vercel.requests.get")
     def test_check_credentials_invalid(self, mock_get):
         mock_get.return_value = MagicMock(status_code=401)
         with patch.dict("os.environ", {"VERCEL_TOKEN": "bad_token"}):
             p = VercelCostProvider()
             assert p.check_credentials() is False
 
-    @patch("lib.vibe.costs.providers.vercel.requests.get")
+    @patch("vibe.costs.providers.vercel.requests.get")
     def test_get_current_costs(self, mock_get):
         jsonl_body = (
             '{"BilledCost": 5.00, "ServiceName": "Bandwidth", "ConsumedQuantity": 100, "PricingUnit": "GB"}\n'
@@ -56,7 +56,7 @@ class TestVercelCostProvider:
         assert len(report.line_items) == 2
         assert report.line_items[0].name == "Bandwidth"
 
-    @patch("lib.vibe.costs.providers.vercel.requests.get")
+    @patch("vibe.costs.providers.vercel.requests.get")
     def test_get_current_costs_with_overage(self, mock_get):
         jsonl_body = '{"BilledCost": 25.00, "ServiceName": "Bandwidth", "ConsumedQuantity": 500, "PricingUnit": "GB"}\n'
         mock_resp = MagicMock()
@@ -71,7 +71,7 @@ class TestVercelCostProvider:
         assert report.total == 25.0
         assert report.overage == 5.0
 
-    @patch("lib.vibe.costs.providers.vercel.requests.get")
+    @patch("vibe.costs.providers.vercel.requests.get")
     def test_get_current_costs_api_error(self, mock_get):
         import requests
 

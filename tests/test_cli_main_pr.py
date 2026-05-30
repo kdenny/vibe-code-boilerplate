@@ -1,8 +1,8 @@
-"""Tests for the PR auto-link feature in lib/vibe/cli/main.py."""
+"""Tests for the PR auto-link feature in vibe/cli/main.py."""
 
 from unittest.mock import MagicMock, patch
 
-from lib.vibe.cli.main import _autolink_pr_to_ticket, _mark_ticket_in_progress
+from vibe.cli.main import _autolink_pr_to_ticket, _mark_ticket_in_progress
 
 
 class TestAutolinkPrToTicket:
@@ -12,7 +12,7 @@ class TestAutolinkPrToTicket:
         config = {"tracker": {"type": "linear", "config": {"team_id": "team_abc"}}}
         mock_tracker = MagicMock()
 
-        with patch("lib.vibe.trackers.linear.LinearTracker", return_value=mock_tracker):
+        with patch("vibe.trackers.linear.LinearTracker", return_value=mock_tracker):
             _autolink_pr_to_ticket("PROJ-123", "https://github.com/org/repo/pull/42", config)
 
         mock_tracker.comment_ticket.assert_called_once_with(
@@ -24,7 +24,7 @@ class TestAutolinkPrToTicket:
         config = {"tracker": {"type": "shortcut", "config": {}}}
         mock_tracker = MagicMock()
 
-        with patch("lib.vibe.trackers.shortcut.ShortcutTracker", return_value=mock_tracker):
+        with patch("vibe.trackers.shortcut.ShortcutTracker", return_value=mock_tracker):
             _autolink_pr_to_ticket("SC-456", "https://github.com/org/repo/pull/43", config)
 
         mock_tracker.comment_ticket.assert_called_once_with(
@@ -54,7 +54,7 @@ class TestAutolinkPrToTicket:
         mock_tracker = MagicMock()
         mock_tracker.comment_ticket.side_effect = RuntimeError("API error")
 
-        with patch("lib.vibe.trackers.linear.LinearTracker", return_value=mock_tracker):
+        with patch("vibe.trackers.linear.LinearTracker", return_value=mock_tracker):
             # Should not raise — error is caught and logged
             _autolink_pr_to_ticket("PROJ-123", "https://github.com/org/repo/pull/46", config)
 
@@ -62,7 +62,7 @@ class TestAutolinkPrToTicket:
         config = {"tracker": {"type": "linear", "config": {"team_id": "team_abc"}}}
         mock_tracker = MagicMock()
 
-        with patch("lib.vibe.trackers.linear.LinearTracker", return_value=mock_tracker):
+        with patch("vibe.trackers.linear.LinearTracker", return_value=mock_tracker):
             _autolink_pr_to_ticket(
                 "feat/PROJ-789-add-feature",
                 "https://github.com/org/repo/pull/47",
@@ -88,7 +88,7 @@ class TestMarkTicketInProgress:
         mock_tracker = MagicMock()
         mock_tracker.start_ticket.return_value = "In Progress"
 
-        with patch("lib.vibe.trackers.linear.LinearTracker", return_value=mock_tracker):
+        with patch("vibe.trackers.linear.LinearTracker", return_value=mock_tracker):
             _mark_ticket_in_progress("PROJ-123", config)
 
         mock_tracker.start_ticket.assert_called_once_with("PROJ-123")
@@ -96,7 +96,7 @@ class TestMarkTicketInProgress:
     def test_skips_non_linear_tracker(self) -> None:
         config = {"tracker": {"type": "github", "config": {}}}
         # No LinearTracker should be constructed; just verify no crash.
-        with patch("lib.vibe.trackers.linear.LinearTracker") as mock_cls:
+        with patch("vibe.trackers.linear.LinearTracker") as mock_cls:
             _mark_ticket_in_progress("PROJ-123", config)
         mock_cls.assert_not_called()
 
@@ -114,6 +114,6 @@ class TestMarkTicketInProgress:
         mock_tracker = MagicMock()
         mock_tracker.start_ticket.side_effect = RuntimeError("API error")
 
-        with patch("lib.vibe.trackers.linear.LinearTracker", return_value=mock_tracker):
+        with patch("vibe.trackers.linear.LinearTracker", return_value=mock_tracker):
             # Best-effort — must not raise so worktree creation continues.
             _mark_ticket_in_progress("PROJ-123", config)

@@ -57,12 +57,12 @@ CLI smoke-test matrix (only for CLI changes — every subcommand of the modified
 
 ## Worked example
 
-**Title:** `VIBE-142: Extract ticket-tracker client into lib/vibe/trackers`
+**Title:** `VIBE-142: Extract ticket-tracker client into vibe/trackers`
 
 ```markdown
 ## What changed and why
-- Moved the Linear client out of `lib/vibe/cli/ticket.py` into a new
-  `lib/vibe/trackers/linear.py` behind a `TrackerClient` protocol.
+- Moved the Linear client out of `vibe/cli/ticket.py` into a new
+  `vibe/trackers/linear.py` behind a `TrackerClient` protocol.
 - `bin/ticket` now depends on the protocol, not the concrete Linear module.
 - No behavior change: every `bin/ticket` subcommand produces identical output.
 
@@ -88,8 +88,8 @@ CLI smoke-test matrix:
 | `bin/ticket update VIBE-138 --status …` | ✅     |       |
 
 ## Module isolation
-- `lib/vibe/trackers/linear.py` imports and runs without the CLI layer
-  (verified via `python -c "from lib.vibe.trackers.linear import LinearClient"`).
+- `vibe/trackers/linear.py` imports and runs without the CLI layer
+  (verified via `python -c "from vibe.trackers.linear import LinearClient"`).
 - No new global state; the client is instantiated and injected.
 
 ## Sync confirmation

@@ -2,7 +2,7 @@
 # Auto-file VIBE tooling faults (VIBE-206).
 #
 # PostToolUse(Bash) hook. When a VIBE CLI crashes it emits a VIBE_TOOLING_FAULT
-# marker (see lib/vibe/cli/errors.py). This hook detects that marker in the tool
+# marker (see vibe/cli/errors.py). This hook detects that marker in the tool
 # output and files (or de-dups onto) an Urgent DX ticket via
 # `bin/ticket file-tooling-issue`. It no-ops for every other Bash call.
 #

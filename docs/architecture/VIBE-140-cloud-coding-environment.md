@@ -63,7 +63,7 @@ feeds VIBE's existing Linear/worktree/PR-policy spine.
   as primary** and **Cursor Background Agents as fallback**, rejecting Devin and
   Copilot on cost-per-useful-PR / source-of-truth grounds. VIBE-140 was blocked
   on that spike; it is now unblocked.
-- **The repo is already module-scoped-test-capable.** `lib/vibe/testscope.py`
+- **The repo is already module-scoped-test-capable.** `vibe/testscope.py`
   (VIBE-137) + `tests/integration/` + `INTEGRATION_SEAMS` (VIBE-174) already let
   us run *only* the suites a change touches. Phase-0 hardening **builds on this**,
   it does not reinvent it.
@@ -313,7 +313,7 @@ Phase 2 (primary):  VIBE-190 ─► VIBE-191 ─┬─► VIBE-194 ─► VIBE-1
    comment), webhook reachability to Fly, idempotency.
 3. **Headless Claude Code on Fly** (VIBE-191): confirm `claude -p` headless runs
    cleanly in the Fly machine with the repo conventions and the branch-scoped
-   token; settle the dispatcher home (`lib/vibe/cloud/` vs `bin/`).
+   token; settle the dispatcher home (`vibe/cloud/` vs `bin/`).
 4. **CodeRabbit rate limits** (VIBE-196): real-world limits that drive the
    escalation threshold.
 

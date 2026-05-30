@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
-from lib.vibe.ui.components import (
+from vibe.ui.components import (
     ConfirmWithHelp,
     MenuOption,
     MultiSelect,

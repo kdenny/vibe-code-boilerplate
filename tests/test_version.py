@@ -1,6 +1,6 @@
 """Tests for version management."""
 
-from lib.vibe.version import bump_version, get_version
+from vibe.version import bump_version, get_version
 
 
 class TestGetVersion:

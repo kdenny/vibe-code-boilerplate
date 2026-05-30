@@ -74,16 +74,16 @@ echo "$HOOK ruff..."
 run_check "ruff check" $RUFF check . --output-format=concise
 run_check "ruff format" $RUFF format . --check --diff --quiet
 
-# ── 2. mypy (if lib/vibe/ exists) ────────────────────────────────────────────
+# ── 2. mypy (if vibe/ exists) ────────────────────────────────────────────
 # Mirrors the lint.yml workflow. Projects with a different layout can add
 # their own mypy invocation via .githooks/pre-push.d/<name>.sh
-if [[ -d "$REPO_ROOT/lib/vibe" ]] && ! command -v mypy >/dev/null 2>&1; then
+if [[ -d "$REPO_ROOT/vibe" ]] && ! command -v mypy >/dev/null 2>&1; then
   echo "$HOOK ⚠ mypy NOT available — type checking DID NOT RUN (CI still enforces it)."
   echo "$HOOK   Activate the project venv or run 'pip install mypy' to catch type errors locally."
 fi
-if command -v mypy >/dev/null 2>&1 && [[ -d "$REPO_ROOT/lib/vibe" ]]; then
+if command -v mypy >/dev/null 2>&1 && [[ -d "$REPO_ROOT/vibe" ]]; then
   echo "$HOOK mypy..."
-  run_check "mypy" mypy lib/vibe/
+  run_check "mypy" mypy vibe/
 fi
 
 # ── 3. pytest (only if explicitly opted in via VIBE_PRE_PUSH_PYTEST=1) ───────

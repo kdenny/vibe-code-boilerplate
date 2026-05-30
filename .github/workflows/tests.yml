@@ -133,7 +133,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]" 2>/dev/null || pip install pytest pytest-cov
 
-      # Module-scoped CI (lib/vibe/testscope.py): on a pull request, run only the
+      # Module-scoped CI (vibe/testscope.py): on a pull request, run only the
       # tests for the modules that changed; run the FULL suite on main (the
       # safety net) and whenever a shared/core file changes. Keeps the agent
       # loop fast (speed rule) without losing coverage before release.
@@ -154,7 +154,7 @@ jobs:
           CHANGED="$(git diff --name-only "$BASE...$HEAD")"
           echo "Changed files:"
           echo "$CHANGED" | sed 's/^/  /'
-          TARGETS="$(printf '%s\n' "$CHANGED" | PYTHONPATH=. python -m lib.vibe.testscope)"
+          TARGETS="$(printf '%s\n' "$CHANGED" | PYTHONPATH=. python -m vibe.testscope)"
           echo "Selected pytest scope: ${TARGETS:-<none affected>}"
           echo "targets=$TARGETS" >> "$GITHUB_OUTPUT"
 

@@ -1,11 +1,11 @@
-"""Tests for CLI fault signalling (lib/vibe/cli/errors.py, VIBE-206)."""
+"""Tests for CLI fault signalling (vibe/cli/errors.py, VIBE-206)."""
 
 import sys
 
 import click
 import pytest
 
-from lib.vibe.cli.errors import (
+from vibe.cli.errors import (
     FAULT_MARKER,
     TOOLING_FAULT_EXIT_CODE,
     normalize_signature,
@@ -52,14 +52,14 @@ class TestRunCli:
     def test_crash_emits_marker_and_fault_exit_code(self, capsys, monkeypatch) -> None:
         monkeypatch.setattr(sys, "argv", ["prog"])
         with pytest.raises(SystemExit) as exc:
-            run_cli(_boom_cmd, "lib.vibe.cli.test")
+            run_cli(_boom_cmd, "vibe.cli.test")
         assert exc.value.code == TOOLING_FAULT_EXIT_CODE
         assert FAULT_MARKER in capsys.readouterr().err
 
     def test_normal_completion_passes_through_without_marker(self, capsys, monkeypatch) -> None:
         monkeypatch.setattr(sys, "argv", ["prog"])
         with pytest.raises(SystemExit) as exc:
-            run_cli(_ok_cmd, "lib.vibe.cli.test")
+            run_cli(_ok_cmd, "vibe.cli.test")
         assert exc.value.code == 0
         captured = capsys.readouterr()
         assert FAULT_MARKER not in (captured.out + captured.err)
@@ -67,6 +67,6 @@ class TestRunCli:
     def test_usage_error_is_not_a_tooling_fault(self, capsys, monkeypatch) -> None:
         monkeypatch.setattr(sys, "argv", ["prog"])  # required NAME missing
         with pytest.raises(SystemExit) as exc:
-            run_cli(_needs_arg_cmd, "lib.vibe.cli.test")
+            run_cli(_needs_arg_cmd, "vibe.cli.test")
         assert exc.value.code == 2  # click usage error
         assert FAULT_MARKER not in capsys.readouterr().err

@@ -114,7 +114,7 @@ vercel env pull .env.local
 The boilerplate includes a Vercel secrets provider:
 
 ```python
-from lib.vibe.secrets.providers.vercel import VercelSecretsProvider
+from vibe.secrets.providers.vercel import VercelSecretsProvider
 
 provider = VercelSecretsProvider()
 

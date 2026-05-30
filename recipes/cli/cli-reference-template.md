@@ -187,5 +187,5 @@ live there.
 
 - Investigation playbook: `.claude/commands/<cli>.md`
 - Architecture: `docs/operations/<related-architecture-doc>.md`
-- Source: `bin/<cli>` (and `lib/vibe/cli/<cli>.py` if implementation is split)
+- Source: `bin/<cli>` (and `vibe/cli/<cli>.py` if implementation is split)
 ```

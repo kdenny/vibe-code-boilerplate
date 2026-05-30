@@ -22,7 +22,7 @@
 #   bin/ci-local --help       # show this help
 #
 # --scope makes the LOCAL pytest run match the module-scoped CI: it pipes the
-# changed files through lib/vibe/testscope.py (the single source of truth, the
+# changed files through vibe/testscope.py (the single source of truth, the
 # same selector .github/workflows/tests.yml uses) and runs only the affected
 # suites. A shared/core change still expands to the full suite; nothing changed
 # means pytest is skipped. Lint/secret scans always run on the whole tree.
@@ -188,12 +188,12 @@ if [[ "$HAS_PYTHON_PROJECT" == "true" ]]; then
     warn_skip "ruff" "not installed (pip install ruff, or activate the project venv)"
   fi
 
-  if [[ -d "$REPO_ROOT/lib/vibe" ]]; then
+  if [[ -d "$REPO_ROOT/vibe" ]]; then
     if command -v mypy >/dev/null 2>&1; then
-      # Mirrors the lint.yml workflow: mypy lib/vibe/
+      # Mirrors the lint.yml workflow: mypy vibe/
       # Projects with a different layout can add their own mypy invocation
       # via .githooks/ci-local.d/<name>.sh
-      run_check "mypy" mypy lib/vibe/
+      run_check "mypy" mypy vibe/
     else
       # LOUD: a missing mypy is exactly how no-any-return errors reached CI
       # green-locally (tools installed in .venv but not on the shell PATH).
@@ -205,12 +205,12 @@ fi
 # ── Scope resolution (module-scoped pytest — shared with tests.yml) ───────────
 # Echoes the testscope.py verdict for the changed set: "ALL" (full suite), a
 # space-separated list of tests/test_*.py paths, or empty (no Python tests
-# affected). lib/vibe/testscope.py is the single source of truth — the same
+# affected). vibe/testscope.py is the single source of truth — the same
 # selector .github/workflows/tests.yml invokes — so local --scope and CI never
 # disagree. Returns non-zero only when the selector can't run, so the caller
 # falls back to the full suite (fail safe, not fast).
 resolve_scope_targets() {
-  local testscope="$REPO_ROOT/lib/vibe/testscope.py"
+  local testscope="$REPO_ROOT/vibe/testscope.py"
   [[ -f "$testscope" ]] || return 1
 
   local changed
@@ -230,7 +230,7 @@ resolve_scope_targets() {
     changed+=$'\n'"$(git diff --name-only --cached 2>/dev/null)"
   fi
 
-  printf '%s\n' "$changed" | PYTHONPATH="$REPO_ROOT" "$PYTHON_BIN" -m lib.vibe.testscope
+  printf '%s\n' "$changed" | PYTHONPATH="$REPO_ROOT" "$PYTHON_BIN" -m vibe.testscope
 }
 
 # ── 4. Python tests: pytest ──────────────────────────────────────────────────

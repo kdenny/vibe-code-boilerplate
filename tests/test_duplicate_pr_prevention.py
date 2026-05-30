@@ -16,14 +16,14 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from lib.vibe.cli.main import (
+from vibe.cli.main import (
     _branch_record_is_stale,
     _check_existing_prs_for_ticket,
     _check_local_state_for_ticket_conflicts,
     _extract_ticket_id,
     _warn_duplicate_prs,
 )
-from lib.vibe.state import (
+from vibe.state import (
     get_branches_for_ticket,
     get_ticket_branch,
     record_ticket_branch,
@@ -78,7 +78,7 @@ class TestCheckExistingPrsForTicket:
             ]
         )
         mock_result = MagicMock(returncode=0, stdout=prs_json)
-        with patch("lib.vibe.cli.main._subprocess.run", return_value=mock_result):
+        with patch("vibe.cli.main._subprocess.run", return_value=mock_result):
             result = _check_existing_prs_for_ticket("PROJ-123")
         assert len(result) == 2
 
@@ -96,7 +96,7 @@ class TestCheckExistingPrsForTicket:
             ]
         )
         mock_result = MagicMock(returncode=0, stdout=prs_json)
-        with patch("lib.vibe.cli.main._subprocess.run", return_value=mock_result):
+        with patch("vibe.cli.main._subprocess.run", return_value=mock_result):
             result = _check_existing_prs_for_ticket("PROJ-123")
         assert len(result) == 1
         assert result[0]["number"] == 10
@@ -112,7 +112,7 @@ class TestCheckExistingPrsForTicket:
             ]
         )
         mock_result = MagicMock(returncode=0, stdout=prs_json)
-        with patch("lib.vibe.cli.main._subprocess.run", return_value=mock_result):
+        with patch("vibe.cli.main._subprocess.run", return_value=mock_result):
             result = _check_existing_prs_for_ticket("PROJ-1")
         # Only the two titles with PROJ-1 on a word boundary should match.
         assert sorted(r["number"] for r in result) == [1, 13]
@@ -122,24 +122,24 @@ class TestCheckExistingPrsForTicket:
             [{"number": 7, "title": "proj-7: lowercase title", "state": "OPEN", "url": "u1"}]
         )
         mock_result = MagicMock(returncode=0, stdout=prs_json)
-        with patch("lib.vibe.cli.main._subprocess.run", return_value=mock_result):
+        with patch("vibe.cli.main._subprocess.run", return_value=mock_result):
             result = _check_existing_prs_for_ticket("PROJ-7")
         assert len(result) == 1
 
     def test_empty_result(self) -> None:
         mock_result = MagicMock(returncode=0, stdout="[]")
-        with patch("lib.vibe.cli.main._subprocess.run", return_value=mock_result):
+        with patch("vibe.cli.main._subprocess.run", return_value=mock_result):
             result = _check_existing_prs_for_ticket("PROJ-999")
         assert result == []
 
     def test_gh_not_found(self) -> None:
-        with patch("lib.vibe.cli.main._subprocess.run", side_effect=FileNotFoundError):
+        with patch("vibe.cli.main._subprocess.run", side_effect=FileNotFoundError):
             result = _check_existing_prs_for_ticket("PROJ-123")
         assert result == []
 
     def test_gh_timeout(self) -> None:
         with patch(
-            "lib.vibe.cli.main._subprocess.run",
+            "vibe.cli.main._subprocess.run",
             side_effect=subprocess.TimeoutExpired(cmd="gh", timeout=15),
         ):
             result = _check_existing_prs_for_ticket("PROJ-123")
@@ -147,13 +147,13 @@ class TestCheckExistingPrsForTicket:
 
     def test_gh_nonzero_exit(self) -> None:
         mock_result = MagicMock(returncode=1, stdout="")
-        with patch("lib.vibe.cli.main._subprocess.run", return_value=mock_result):
+        with patch("vibe.cli.main._subprocess.run", return_value=mock_result):
             result = _check_existing_prs_for_ticket("PROJ-123")
         assert result == []
 
     def test_malformed_json(self) -> None:
         mock_result = MagicMock(returncode=0, stdout="not json")
-        with patch("lib.vibe.cli.main._subprocess.run", return_value=mock_result):
+        with patch("vibe.cli.main._subprocess.run", return_value=mock_result):
             result = _check_existing_prs_for_ticket("PROJ-123")
         assert result == []
 
@@ -166,7 +166,7 @@ class TestCheckExistingPrsForTicket:
 class TestCheckLocalStateForTicketConflicts:
     def test_no_conflicts(self) -> None:
         with patch(
-            "lib.vibe.state.get_branches_for_ticket",
+            "vibe.state.get_branches_for_ticket",
             return_value=[{"ticket_id": "PROJ-123", "branch": "PROJ-123"}],
         ):
             result = _check_local_state_for_ticket_conflicts("PROJ-123", "PROJ-123")
@@ -174,7 +174,7 @@ class TestCheckLocalStateForTicketConflicts:
 
     def test_detects_conflict(self) -> None:
         with patch(
-            "lib.vibe.state.get_branches_for_ticket",
+            "vibe.state.get_branches_for_ticket",
             return_value=[
                 {
                     "ticket_id": "PROJ-123",
@@ -188,7 +188,7 @@ class TestCheckLocalStateForTicketConflicts:
         assert result[0]["branch"] == "PROJ-123-add-feature"
 
     def test_no_entries(self) -> None:
-        with patch("lib.vibe.state.get_branches_for_ticket", return_value=[]):
+        with patch("vibe.state.get_branches_for_ticket", return_value=[]):
             result = _check_local_state_for_ticket_conflicts("PROJ-123", "PROJ-123")
         assert result == []
 
@@ -196,7 +196,7 @@ class TestCheckLocalStateForTicketConflicts:
         """A branch recorded long ago is treated as abandoned, not a conflict."""
         old = (datetime.now() - timedelta(days=90)).isoformat()
         with patch(
-            "lib.vibe.state.get_branches_for_ticket",
+            "vibe.state.get_branches_for_ticket",
             return_value=[
                 {"ticket_id": "PROJ-123", "branch": "PROJ-123-old", "created_at": old},
             ],
@@ -207,7 +207,7 @@ class TestCheckLocalStateForTicketConflicts:
     def test_keeps_recent_branch_record(self) -> None:
         recent = (datetime.now() - timedelta(days=2)).isoformat()
         with patch(
-            "lib.vibe.state.get_branches_for_ticket",
+            "vibe.state.get_branches_for_ticket",
             return_value=[
                 {"ticket_id": "PROJ-123", "branch": "PROJ-123-recent", "created_at": recent},
             ],
@@ -253,8 +253,8 @@ class TestBranchRecordIsStale:
 class TestWarnDuplicatePrs:
     def test_no_duplicates_returns_true(self) -> None:
         with (
-            patch("lib.vibe.cli.main._check_existing_prs_for_ticket", return_value=[]),
-            patch("lib.vibe.cli.main._check_local_state_for_ticket_conflicts", return_value=[]),
+            patch("vibe.cli.main._check_existing_prs_for_ticket", return_value=[]),
+            patch("vibe.cli.main._check_local_state_for_ticket_conflicts", return_value=[]),
         ):
             assert _warn_duplicate_prs("PROJ-123", "PROJ-123") is True
 
@@ -263,10 +263,10 @@ class TestWarnDuplicatePrs:
             {"number": 5, "title": "PROJ-123: Old PR", "state": "MERGED", "url": "u1"},
         ]
         with (
-            patch("lib.vibe.cli.main._check_existing_prs_for_ticket", return_value=merged_pr),
-            patch("lib.vibe.cli.main._check_local_state_for_ticket_conflicts", return_value=[]),
-            patch("lib.vibe.cli.main.click.confirm", return_value=True),
-            patch("lib.vibe.cli.main.click.echo"),
+            patch("vibe.cli.main._check_existing_prs_for_ticket", return_value=merged_pr),
+            patch("vibe.cli.main._check_local_state_for_ticket_conflicts", return_value=[]),
+            patch("vibe.cli.main.click.confirm", return_value=True),
+            patch("vibe.cli.main.click.echo"),
         ):
             assert _warn_duplicate_prs("PROJ-123", "PROJ-123") is True
 
@@ -275,10 +275,10 @@ class TestWarnDuplicatePrs:
             {"number": 5, "title": "PROJ-123: Old PR", "state": "MERGED", "url": "u1"},
         ]
         with (
-            patch("lib.vibe.cli.main._check_existing_prs_for_ticket", return_value=merged_pr),
-            patch("lib.vibe.cli.main._check_local_state_for_ticket_conflicts", return_value=[]),
-            patch("lib.vibe.cli.main.click.confirm", return_value=False),
-            patch("lib.vibe.cli.main.click.echo"),
+            patch("vibe.cli.main._check_existing_prs_for_ticket", return_value=merged_pr),
+            patch("vibe.cli.main._check_local_state_for_ticket_conflicts", return_value=[]),
+            patch("vibe.cli.main.click.confirm", return_value=False),
+            patch("vibe.cli.main.click.echo"),
         ):
             assert _warn_duplicate_prs("PROJ-123", "PROJ-123") is False
 
@@ -287,23 +287,23 @@ class TestWarnDuplicatePrs:
             {"number": 10, "title": "PROJ-123: In progress", "state": "OPEN", "url": "u1"},
         ]
         with (
-            patch("lib.vibe.cli.main._check_existing_prs_for_ticket", return_value=open_pr),
-            patch("lib.vibe.cli.main._check_local_state_for_ticket_conflicts", return_value=[]),
-            patch("lib.vibe.cli.main.click.confirm", return_value=True),
-            patch("lib.vibe.cli.main.click.echo"),
+            patch("vibe.cli.main._check_existing_prs_for_ticket", return_value=open_pr),
+            patch("vibe.cli.main._check_local_state_for_ticket_conflicts", return_value=[]),
+            patch("vibe.cli.main.click.confirm", return_value=True),
+            patch("vibe.cli.main.click.echo"),
         ):
             assert _warn_duplicate_prs("PROJ-123", "PROJ-123") is True
 
     def test_local_conflict_user_aborts(self) -> None:
         conflict = [{"ticket_id": "PROJ-123", "branch": "PROJ-123-other", "worktree_path": "/p"}]
         with (
-            patch("lib.vibe.cli.main._check_existing_prs_for_ticket", return_value=[]),
+            patch("vibe.cli.main._check_existing_prs_for_ticket", return_value=[]),
             patch(
-                "lib.vibe.cli.main._check_local_state_for_ticket_conflicts",
+                "vibe.cli.main._check_local_state_for_ticket_conflicts",
                 return_value=conflict,
             ),
-            patch("lib.vibe.cli.main.click.confirm", return_value=False),
-            patch("lib.vibe.cli.main.click.echo"),
+            patch("vibe.cli.main.click.confirm", return_value=False),
+            patch("vibe.cli.main.click.echo"),
         ):
             assert _warn_duplicate_prs("PROJ-123", "PROJ-123-new") is False
 
@@ -312,9 +312,9 @@ class TestWarnDuplicatePrs:
             {"number": 5, "title": "PROJ-123: Old PR", "state": "MERGED", "url": "u1"},
         ]
         with (
-            patch("lib.vibe.cli.main._check_existing_prs_for_ticket", return_value=merged_pr),
-            patch("lib.vibe.cli.main._check_local_state_for_ticket_conflicts", return_value=[]),
-            patch("lib.vibe.cli.main.click.echo"),
+            patch("vibe.cli.main._check_existing_prs_for_ticket", return_value=merged_pr),
+            patch("vibe.cli.main._check_local_state_for_ticket_conflicts", return_value=[]),
+            patch("vibe.cli.main.click.echo"),
         ):
             # skip_confirmation=True means we always proceed
             assert _warn_duplicate_prs("PROJ-123", "PROJ-123", skip_confirmation=True) is True

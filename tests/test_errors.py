@@ -1,6 +1,6 @@
 """Tests for public Vibe errors."""
 
-from lib.vibe.errors import MissingExtraError
+from vibe.errors import MissingExtraError
 
 
 def test_missing_extra_error_message_is_actionable() -> None:

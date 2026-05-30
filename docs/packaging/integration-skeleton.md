@@ -1,13 +1,13 @@
 # Packaged Vibe Integration Skeleton
 
 > **Status:** VIBE-86 reference shape. Today the implementation lives under
-> `lib.vibe.integrations.*`; VIBE-182 re-homes the package to the target
+> `vibe.integrations.*`; VIBE-182 re-homes the package to the target
 > `vibe.integrations.*` namespace without changing the seam below.
 
 ## Module layout
 
 ```text
-lib/vibe/integrations/<integration>/
+vibe/integrations/<integration>/
   __init__.py        # exports exactly: integration, <Integration>Config
 ```
 
@@ -19,7 +19,7 @@ future contract explicitly says otherwise.
 ```python
 from dataclasses import dataclass
 
-from lib.vibe.cli import Integration, verb
+from vibe.cli import Integration, verb
 
 
 @dataclass(frozen=True)
@@ -67,7 +67,7 @@ parses integration imports and fails if a deliberate app-code import is added.
 
 ## Reference consumer
 
-`lib.vibe.integrations.pr_autopilot` is the reference skeleton for VIBE-128 and
+`vibe.integrations.pr_autopilot` is the reference skeleton for VIBE-128 and
 the VIBE-179 Claude Code configuration-DX prototype. It exports
 `PRAutopilotConfig` and `integration`, declares prototype
 `configure` / `status` / `inspect` / `enable` / `disable` verbs that work without

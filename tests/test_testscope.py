@@ -1,10 +1,10 @@
-"""Unit tests for module-scoped test selection (lib/vibe/testscope.py)."""
+"""Unit tests for module-scoped test selection (vibe/testscope.py)."""
 
 from __future__ import annotations
 
 import pytest
 
-from lib.vibe.testscope import (
+from vibe.testscope import (
     INTEGRATION_SEAMS,
     RUN_ALL,
     SOURCE_TEST_MAP,
@@ -43,6 +43,7 @@ KNOWN = {
     "git_worktrees",
     "frontend",
     "agents",
+    "import_surface",
     "integrations",
     "integrations_guardrails",
     "retrofit",
@@ -59,12 +60,12 @@ class TestSharedPathsRunEverything:
         [
             "pyproject.toml",
             "tests/conftest.py",
-            "lib/vibe/__init__.py",
-            "lib/vibe/config.py",
-            "lib/vibe/config_schema.py",
-            "lib/vibe/env.py",
-            "lib/vibe/utils/cache.py",
-            "lib/vibe/testscope.py",
+            "vibe/__init__.py",
+            "vibe/config.py",
+            "vibe/config_schema.py",
+            "vibe/env.py",
+            "vibe/utils/cache.py",
+            "vibe/testscope.py",
             ".github/workflows/tests.yml",
         ],
     )
@@ -74,12 +75,12 @@ class TestSharedPathsRunEverything:
     def test_shared_path_wins_even_alongside_scoped_change(self) -> None:
         # If anything shared changed, the whole suite runs regardless of what
         # else is in the diff.
-        assert select("lib/vibe/costs/providers/vercel.py", "pyproject.toml") == RUN_ALL
+        assert select("vibe/costs/providers/vercel.py", "pyproject.toml") == RUN_ALL
 
 
 class TestPackageScoping:
     def test_costs_package_selects_all_costs_suites(self) -> None:
-        targets = select("lib/vibe/costs/providers/vercel.py")
+        targets = select("vibe/costs/providers/vercel.py")
         # The convention prefix "costs_" also matches test_costs_wizard.py.
         # That suite actually covers wizards/costs.py, so it's a slight
         # over-selection — but over-selection is the safe direction (extra
@@ -97,15 +98,15 @@ class TestPackageScoping:
         )
 
     def test_secrets_package_uses_differently_named_suite(self) -> None:
-        assert select("lib/vibe/secrets/providers/fly.py") == ["tests/test_secrets_providers.py"]
+        assert select("vibe/secrets/providers/fly.py") == ["tests/test_secrets_providers.py"]
 
     def test_git_package_maps_to_worktrees_suite(self) -> None:
         # The unit suite is always selected; the worktree↔state seam suite is
         # additive (see TestIntegrationSeams).
-        assert "tests/test_git_worktrees.py" in select("lib/vibe/git/worktrees.py")
+        assert "tests/test_git_worktrees.py" in select("vibe/git/worktrees.py")
 
     def test_integrations_package_maps_to_guardrail_and_shape_suites(self) -> None:
-        assert select("lib/vibe/integrations/pr_autopilot/__init__.py") == [
+        assert select("vibe/integrations/pr_autopilot/__init__.py") == [
             "tests/test_integrations.py",
             "tests/test_integrations_guardrails.py",
         ]
@@ -113,17 +114,20 @@ class TestPackageScoping:
 
 class TestTopLevelModuleScoping:
     def test_top_level_module_maps_by_convention(self) -> None:
-        assert select("lib/vibe/update_check.py") == ["tests/test_update_check.py"]
+        assert select("vibe/update_check.py") == ["tests/test_update_check.py"]
+
+    def test_main_module_maps_to_import_surface_suite(self) -> None:
+        assert select("vibe/__main__.py") == ["tests/test_import_surface.py"]
 
     def test_top_level_module_without_tests_selects_nothing(self) -> None:
         # cors.py / github_actions.py have no unit suite; scoping to nothing is
         # fine because main runs the full suite as the backstop.
-        assert select("lib/vibe/cors.py") == []
+        assert select("vibe/cors.py") == []
 
 
 class TestExplicitCrossFileMappings:
     def test_cli_main_pulls_pr_and_duplicate_suites(self) -> None:
-        assert select("lib/vibe/cli/main.py") == sorted(
+        assert select("vibe/cli/main.py") == sorted(
             [
                 "tests/test_cli_main_pr.py",
                 "tests/test_cli_registry.py",
@@ -132,21 +136,21 @@ class TestExplicitCrossFileMappings:
         )
 
     def test_cli_registry_maps_to_registry_suite(self) -> None:
-        assert select("lib/vibe/cli/registry.py") == ["tests/test_cli_registry.py"]
+        assert select("vibe/cli/registry.py") == ["tests/test_cli_registry.py"]
 
     def test_linear_change_includes_views(self) -> None:
-        assert select("lib/vibe/trackers/linear.py") == sorted(
+        assert select("vibe/trackers/linear.py") == sorted(
             ["tests/test_trackers_linear.py", "tests/test_views.py"]
         )
 
     def test_wizard_costs_maps_to_costs_wizard_suite(self) -> None:
-        assert select("lib/vibe/wizards/costs.py") == ["tests/test_costs_wizard.py"]
+        assert select("vibe/wizards/costs.py") == ["tests/test_costs_wizard.py"]
 
 
 class TestFailSafe:
     def test_unmapped_package_runs_everything(self) -> None:
         # A brand-new package with no convention-matching tests must fail safe.
-        assert select("lib/vibe/brandnew/thing.py") == RUN_ALL
+        assert select("vibe/brandnew/thing.py") == RUN_ALL
 
     def test_changed_test_file_runs_itself(self) -> None:
         assert select("tests/test_doctor.py") == ["tests/test_doctor.py"]
@@ -169,13 +173,13 @@ class TestIntegrationSeams:
     SEAM = "tests/integration/test_worktree_state.py"
 
     def test_worktrees_change_runs_seam_and_its_unit_suite(self) -> None:
-        targets = select("lib/vibe/git/worktrees.py")
+        targets = select("vibe/git/worktrees.py")
         # The seam suite AND the package's own unit suite both run.
         assert self.SEAM in targets
         assert "tests/test_git_worktrees.py" in targets
 
     def test_state_change_runs_seam_and_its_unit_suite(self) -> None:
-        targets = select("lib/vibe/state.py")
+        targets = select("vibe/state.py")
         # state.py maps to duplicate_pr_prevention by SOURCE_TEST_MAP; the seam
         # is additive on top of that.
         assert self.SEAM in targets
@@ -185,10 +189,10 @@ class TestIntegrationSeams:
         assert select(self.SEAM) == [self.SEAM]
 
     def test_unrelated_change_does_not_pull_in_seam(self) -> None:
-        assert self.SEAM not in select("lib/vibe/frontend/analyzer.py")
+        assert self.SEAM not in select("vibe/frontend/analyzer.py")
 
     def test_seam_appears_once_when_both_sides_change(self) -> None:
-        targets = select("lib/vibe/git/worktrees.py", "lib/vibe/state.py")
+        targets = select("vibe/git/worktrees.py", "vibe/state.py")
         assert targets.count(self.SEAM) == 1
 
 
@@ -202,7 +206,7 @@ class TestScopeContract:
         # The worked example used in recipes/testing/modular-testing.md and the
         # PR: touching one module selects only its suites, never the whole tree.
         full = {f"tests/test_{stem}.py" for stem in KNOWN}
-        targets = select("lib/vibe/trackers/linear.py")
+        targets = select("vibe/trackers/linear.py")
         assert targets != RUN_ALL
         assert set(targets) < full  # proper subset
         assert set(targets) == {"tests/test_trackers_linear.py", "tests/test_views.py"}
@@ -210,7 +214,7 @@ class TestScopeContract:
     def test_contract_file_change_runs_full_tree(self) -> None:
         # Cross-cutting / contract changes must still trigger full validation —
         # the rule the runner relies on to stay safe (documented in the recipe).
-        assert select("lib/vibe/config.py") == RUN_ALL
+        assert select("vibe/config.py") == RUN_ALL
         assert select(".github/workflows/tests.yml") == RUN_ALL
 
     def test_docs_only_change_runs_no_python_tests(self) -> None:
@@ -231,7 +235,7 @@ class TestMappingIntegrity:
         assert not missing, f"SOURCE_TEST_MAP references nonexistent test suites: {sorted(missing)}"
 
     def test_dedupes_across_multiple_changed_files(self) -> None:
-        targets = select("lib/vibe/trackers/linear.py", "lib/vibe/cli/ticket.py")
+        targets = select("vibe/trackers/linear.py", "vibe/cli/ticket.py")
         # Both pull in views; it should appear once.
         assert targets.count("tests/test_views.py") == 1
 
@@ -244,14 +248,14 @@ class TestMappingIntegrity:
         assert not missing, f"INTEGRATION_SEAMS references nonexistent suites: {missing}"
 
     def test_every_seam_participant_is_a_source_path(self) -> None:
-        """Seam participants must point at real package source under lib/vibe/."""
+        """Seam participants must point at real package source under vibe/."""
         bad = [
             part
             for participants in INTEGRATION_SEAMS.values()
             for part in participants
-            if not part.startswith("lib/vibe/")
+            if not part.startswith("vibe/")
         ]
-        assert not bad, f"seam participants must live under lib/vibe/: {bad}"
+        assert not bad, f"seam participants must live under vibe/: {bad}"
 
     def test_each_seam_has_at_least_two_participants(self) -> None:
         """A 'seam' with one participant isn't a seam — it's a unit test."""

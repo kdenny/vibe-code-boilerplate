@@ -5,8 +5,8 @@ from unittest.mock import patch
 import pytest
 from click.testing import CliRunner
 
-from lib.vibe.cli.costs import main
-from lib.vibe.costs.base import ManualCostEntry
+from vibe.cli.costs import main
+from vibe.costs.base import ManualCostEntry
 
 
 @pytest.fixture
@@ -24,18 +24,18 @@ def _mock_disabled(config=None):
 
 class TestCostsSummaryCommand:
     def test_not_enabled(self, runner):
-        with patch("lib.vibe.cli.costs.is_cost_tracking_enabled", return_value=False):
+        with patch("vibe.cli.costs.is_cost_tracking_enabled", return_value=False):
             result = runner.invoke(main, ["summary"])
         assert result.exit_code == 0
         assert "not enabled" in result.output.lower()
 
     def test_summary_with_providers(self, runner):
         with (
-            patch("lib.vibe.cli.costs.is_cost_tracking_enabled", return_value=True),
-            patch("lib.vibe.cli.costs.get_cost_tracking_config", return_value={"providers": {}}),
-            patch("lib.vibe.cli.costs.get_all_providers", return_value=[]),
-            patch("lib.vibe.cli.costs.get_manual_entries", return_value=[]),
-            patch("lib.vibe.cli.costs.get_budget_config", return_value=(0, 80)),
+            patch("vibe.cli.costs.is_cost_tracking_enabled", return_value=True),
+            patch("vibe.cli.costs.get_cost_tracking_config", return_value={"providers": {}}),
+            patch("vibe.cli.costs.get_all_providers", return_value=[]),
+            patch("vibe.cli.costs.get_manual_entries", return_value=[]),
+            patch("vibe.cli.costs.get_budget_config", return_value=(0, 80)),
         ):
             result = runner.invoke(main, ["summary"])
         assert result.exit_code == 0
@@ -43,11 +43,11 @@ class TestCostsSummaryCommand:
 
     def test_summary_json_output(self, runner):
         with (
-            patch("lib.vibe.cli.costs.is_cost_tracking_enabled", return_value=True),
-            patch("lib.vibe.cli.costs.get_cost_tracking_config", return_value={"providers": {}}),
-            patch("lib.vibe.cli.costs.get_all_providers", return_value=[]),
-            patch("lib.vibe.cli.costs.get_manual_entries", return_value=[]),
-            patch("lib.vibe.cli.costs.get_budget_config", return_value=(200, 80)),
+            patch("vibe.cli.costs.is_cost_tracking_enabled", return_value=True),
+            patch("vibe.cli.costs.get_cost_tracking_config", return_value={"providers": {}}),
+            patch("vibe.cli.costs.get_all_providers", return_value=[]),
+            patch("vibe.cli.costs.get_manual_entries", return_value=[]),
+            patch("vibe.cli.costs.get_budget_config", return_value=(200, 80)),
         ):
             result = runner.invoke(main, ["summary", "--json-output"])
         assert result.exit_code == 0
@@ -65,11 +65,11 @@ class TestCostsSummaryCommand:
         ]
 
         with (
-            patch("lib.vibe.cli.costs.is_cost_tracking_enabled", return_value=True),
-            patch("lib.vibe.cli.costs.get_cost_tracking_config", return_value={"providers": {}}),
-            patch("lib.vibe.cli.costs.get_all_providers", return_value=[]),
-            patch("lib.vibe.cli.costs.get_manual_entries", return_value=entries),
-            patch("lib.vibe.cli.costs.get_budget_config", return_value=(0, 80)),
+            patch("vibe.cli.costs.is_cost_tracking_enabled", return_value=True),
+            patch("vibe.cli.costs.get_cost_tracking_config", return_value={"providers": {}}),
+            patch("vibe.cli.costs.get_all_providers", return_value=[]),
+            patch("vibe.cli.costs.get_manual_entries", return_value=entries),
+            patch("vibe.cli.costs.get_budget_config", return_value=(0, 80)),
         ):
             result = runner.invoke(main, ["summary"])
         assert result.exit_code == 0

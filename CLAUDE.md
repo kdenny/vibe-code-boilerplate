@@ -66,7 +66,7 @@
 ## What this repo is
 
 VIBE is a language-agnostic workflow-automation toolkit (Python `bin/*` CLIs +
-the `lib/vibe/` package) that runs *alongside* a project to manage tickets,
+the `vibe/` package) that runs *alongside* a project to manage tickets,
 worktrees, PR policy, and integrations. The current effort is a **non-destructive
 revamp**: formalize and enforce the module seams that already exist — explicit
 public surfaces, declared dependencies, isolated + seam-level tests — on the
@@ -80,24 +80,24 @@ its boundaries **explicit and enforced**, not relocating files.
 
 ## Target shape (the module contract)
 
-Every `lib/vibe/<module>` — a package or a top-level `.py` — is held to a
+Every `vibe/<module>` — a package or a top-level `.py` — is held to a
 **module contract**:
 
 1. **Explicit public surface.** A package declares `__all__` in its `__init__.py`;
    that list *is* its API. Import from the package
-   (`from lib.vibe.trackers import LinearTracker`), never a deep submodule. 🎯
+   (`from vibe.trackers import LinearTracker`), never a deep submodule. 🎯
    *Target: a check enforces `__all__` on every package — see plan step 2.*
 2. **Declared dependencies.** Import only the core tier (`config`, `config_schema`,
    `env`, `state`, `utils/`) and the **public surfaces** of declared
    collaborators. No reach-through into another package's internals; no new
    global state.
-3. **One unit suite.** `lib/vibe/<name>.py → tests/test_<name>.py`;
-   `lib/vibe/<pkg>/ → tests/test_<pkg>_*.py`. Enforced by `lib/vibe/testscope.py`.
+3. **One unit suite.** `vibe/<name>.py → tests/test_<name>.py`;
+   `vibe/<pkg>/ → tests/test_<pkg>_*.py`. Enforced by `vibe/testscope.py`.
 4. **Runs and tests in isolation.** A module imports and its unit suite runs
    without standing up the whole app.
 5. **Declared compose seams.** Where a module is *designed* to compose with
    another, that seam has an integration suite registered in `INTEGRATION_SEAMS`
-   (`lib/vibe/testscope.py`).
+   (`vibe/testscope.py`).
 
 The toolkit stays **fast to set up and validate**: minimal bootstrap, `bin/ci-local`
 as the one-command local check, module-scoped CI as the fast safety net.
@@ -132,7 +132,7 @@ Full policy: [`recipes/testing/modular-testing.md`](recipes/testing/modular-test
   (network/subprocess/fs). Add a seam **only** where modules are designed to
   compose in the product (≥2 participants); never synthesize interactions.
 
-**Module-scoped CI** (`lib/vibe/testscope.py` + `.github/workflows/tests.yml`):
+**Module-scoped CI** (`vibe/testscope.py` + `.github/workflows/tests.yml`):
 
 | Trigger | What runs |
 |---------|-----------|
@@ -140,12 +140,12 @@ Full policy: [`recipes/testing/modular-testing.md`](recipes/testing/modular-test
 | Shared/core file changed (`SHARED_PREFIXES`: `config`, `config_schema`, `env`, `utils/`, `conftest`, `pyproject`, the selector, the workflow) | **Full suite** (blast radius is everything) |
 | PR touching one module | **Only that module's** `tests/test_*.py` |
 | PR touching either side of a compose seam | the unit suite **plus** the seam's `tests/integration/test_*.py` |
-| Unmapped `lib/vibe/` path | **Full suite** (fail safe — a forgotten mapping costs time, never coverage) |
+| Unmapped `vibe/` path | **Full suite** (fail safe — a forgotten mapping costs time, never coverage) |
 | Docs / recipes / `bin/` only | **No pytest** (`bin/` wrappers are proven by the live smoke-test matrix) |
 
 **Local is the source of truth.** `bin/ci-local` runs the full suite; CI scoping
 is the fast safety net, not the primary verification. Predict CI scope with
-`PYTHONPATH=. python -m lib.vibe.testscope <changed paths>`, or run the scoped
+`PYTHONPATH=. python -m vibe.testscope <changed paths>`, or run the scoped
 suite locally with `bin/ci-local --scope` (same selector as CI — one source of
 truth). That scoped path is what the cloud agent's QA loop calls; see
 [`recipes/environments/cloud-bootstrap.md`](recipes/environments/cloud-bootstrap.md)
@@ -162,10 +162,10 @@ its rewrite.
 
 | Command | Guarantee |
 |---------|-----------|
-| `bin/ci-local` | All locally-runnable checks (ruff check + format, mypy on `lib/vibe/`, full pytest, gitleaks, project hooks). Exit 0 **with no `⚠ … SKIPPED` warning** ⇒ safe to push. Resolves ruff/mypy/pytest from the project venv (`.venv`/`.direnv`) even when it isn't on `PATH`. A missing **core linter** (ruff/mypy) skips non-fatally (exit stays 0) but warns **loudly** (`⚠ … SKIPPED`, "not a clean pass") — a warned run is **not** a clean pass: install the tool and re-run before pushing. |
+| `bin/ci-local` | All locally-runnable checks (ruff check + format, mypy on `vibe/`, full pytest, gitleaks, project hooks). Exit 0 **with no `⚠ … SKIPPED` warning** ⇒ safe to push. Resolves ruff/mypy/pytest from the project venv (`.venv`/`.direnv`) even when it isn't on `PATH`. A missing **core linter** (ruff/mypy) skips non-fatally (exit stays 0) but warns **loudly** (`⚠ … SKIPPED`, "not a clean pass") — a warned run is **not** a clean pass: install the tool and re-run before pushing. |
 | `bin/ci-local --fast` | Same, minus slow frontend tests — for tight inner loops. |
 | `bin/ci-local --scope [paths]` | Pytest scoped to changed modules (auto-diff vs `origin/main`, or the explicit paths). Same `testscope.py` selector as CI; the cloud agent's QA path. Lint/secret scans still run whole-tree. |
-| `python -m lib.vibe.testscope <paths>` | Prints exactly which suites CI will run (`ALL` / paths / empty). |
+| `python -m vibe.testscope <paths>` | Prints exactly which suites CI will run (`ALL` / paths / empty). |
 | `bin/<cli> --help` + live smoke test | CLI behavior proof (live runs only). |
 
 Minimal bootstrap: Python ≥3.11, then install the pinned, cacheable closure —
@@ -311,8 +311,8 @@ package DEAL can install:
    isolation *and* prove its seams.
 3. **Validation contract** → `bin/ci-local` + module-scoped CI is the reusable
    "does this change pass?" gate the autopilot leans on.
-4. **Integration registration seam** → `lib.vibe.cli` exposes the VIBE-86
-   `Integration`/`verb` registry API and `lib.vibe.integrations.pr_autopilot`
+4. **Integration registration seam** → `vibe.cli` exposes the VIBE-86
+   `Integration`/`verb` registry API and `vibe.integrations.pr_autopilot`
    is the extra-gated skeleton VIBE-128 plugs into (re-homed to `vibe.*` by
    VIBE-182).
 

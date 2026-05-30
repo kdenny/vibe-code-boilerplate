@@ -136,7 +136,7 @@ fly secrets import < .env.production
 The boilerplate includes a Fly.io secrets provider:
 
 ```python
-from lib.vibe.secrets.providers.fly import FlySecretsProvider
+from vibe.secrets.providers.fly import FlySecretsProvider
 
 provider = FlySecretsProvider(app_name="my-app")
 

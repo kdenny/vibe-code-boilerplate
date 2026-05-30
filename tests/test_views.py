@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pytest
 import requests
 
-from lib.vibe.trackers.linear import LinearTracker
+from vibe.trackers.linear import LinearTracker
 
 
 class TestListViews:
@@ -79,7 +79,7 @@ class TestListViews:
         }
 
         with patch.object(tracker, "_execute_query", return_value=mock_response) as mock_query:
-            with patch("lib.vibe.trackers.linear.get_cache") as mock_cache_fn:
+            with patch("vibe.trackers.linear.get_cache") as mock_cache_fn:
                 cache = mock_cache_fn.return_value
                 # First call: cache miss
                 cache.get.return_value = None
