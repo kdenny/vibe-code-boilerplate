@@ -113,3 +113,51 @@ PYTHONPATH=. python -m lib.vibe.testscope lib/vibe/trackers/linear.py
 git diff --name-only origin/main...HEAD | PYTHONPATH=. python -m lib.vibe.testscope
 #   -> ALL | <space-separated paths> | <empty: no Python tests affected>
 ```
+
+### The one command the runner (and you) call: `bin/ci-local --scope`
+
+`testscope.py` is the selector; `bin/ci-local --scope` is the **single command**
+that turns its verdict into an actual scoped run. It is what a cloud agent's QA
+path invokes, and what you run locally to feel the same thing (VIBE-186).
+
+```bash
+bin/ci-local --scope                      # auto-diff this branch vs origin/main
+bin/ci-local --scope lib/vibe/trackers/linear.py   # explicit changed-file list
+```
+
+It maps the changed set → suites via `testscope.py` (no duplicated selection
+logic anywhere — the GitHub workflow and this command both shell out to the same
+module), then:
+
+| `testscope.py` verdict | `--scope` behaviour |
+|------------------------|---------------------|
+| a list of suites | runs **only** those (`pytest (scoped)`) |
+| `ALL` | runs the **full** suite (`pytest (full — shared change)`) |
+| empty | **skips** pytest (no changed file maps to a suite) |
+
+Lint and secret scans always run on the whole tree (they're fast); only pytest —
+the dominant cost — is scoped. With no `--scope`, `bin/ci-local` runs the full
+suite: **local is the source of truth**, `--scope` is the fast warm-loop path.
+
+### When full-tree validation is still required
+
+`--scope` is for fast feedback on a focused change. The full suite still runs —
+automatically — in these cases, and you should reach for an unscoped
+`bin/ci-local` whenever you're unsure:
+
+- **Push to `main`** — the release backstop always runs everything (workflow).
+- **A shared/contract file changed** — exactly the `SHARED_PREFIXES` list
+  (`pyproject.toml`, `requirements.lock`'s closure via it, `config.py`,
+  `config_schema.py`, `env.py`, `utils/`, `testscope.py`, the workflow). Their
+  blast radius is the whole package, so `testscope.py` returns `ALL` and
+  `--scope` expands to the full run on its own.
+- **A new/unmapped `lib/vibe/` package** — fail-safe: `testscope.py` returns
+  `ALL` rather than risk skipping an untested change.
+- **A cross-cutting refactor** that touches many modules — `--scope` will run
+  every affected suite, but when the change is broad enough that the *interaction*
+  matters, prefer the full `bin/ci-local`.
+
+The tradeoff is deliberate and unchanged: scoped runs trade exhaustiveness for
+speed on PRs; the full suite on `main` is the safety net before release. See
+[`recipes/environments/cloud-bootstrap.md`](../environments/cloud-bootstrap.md)
+for how this composes with the cached install into the cold/warm budget.
