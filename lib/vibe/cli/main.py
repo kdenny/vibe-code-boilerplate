@@ -306,7 +306,10 @@ def sync_labels(dry_run: bool, as_json: bool) -> None:
         click.echo(f"Label syncing is not supported by the {tracker_type} tracker.", err=True)
         sys.exit(1)
 
-    with Spinner(f"Fetching labels from {tracker_type}"):
+    # In --json mode, suppress the interactive spinner (stderr) too, so the
+    # invocation emits no human-progress UI alongside the machine-readable
+    # payload. Update-notice gating lives in the group callback (VIBE-181).
+    with Spinner(f"Fetching labels from {tracker_type}", quiet=as_json):
         try:
             result = sync_labels_to_config(tracker, dry_run=dry_run)
         except Exception as e:
