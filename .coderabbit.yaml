@@ -19,12 +19,13 @@
 language: "en-US"
 
 # Tone is the global voice for every comment. Keep it decisive and fast.
-# NOTE: CodeRabbit caps tone_instructions at 250 characters — keep it terse.
+# NOTE: CodeRabbit caps tone_instructions at 250 chars; over that the WHOLE
+# config silently falls back to defaults. Keep this terse and under the limit.
 tone_instructions: >-
-  Be decisive and concise. Lead with an approve or request-changes verdict, then
-  only what matters; skip subjective style. Flag architectural drift, weak or
-  missing tests, hidden coupling, broken local run paths, and any way to make the
-  loop faster.
+  Be decisive and concise: lead with an approve or request-changes verdict,
+  then only what matters. Skip subjective style. Always flag architectural
+  drift, weak tests, hidden coupling, broken local-run paths, and any way to
+  make the agent loop faster.
 
 early_access: false
 
@@ -134,17 +135,30 @@ reviews:
         this file stay consistent per the sync rule.
     - path: "tests/**"
       instructions: >-
-        Require tests at the right level: module-level unit tests for isolated
-        changes, and combinatorial/integration tests only where modules are
-        intentionally designed to compose. Flag changes to behavior that ship
-        without a corresponding test, and flag tests that mock so much they no
-        longer exercise the real path.
+        Require tests at the right level per recipes/testing/modular-testing.md:
+        one module = one test file (lib/vibe/<name>.py -> tests/test_<name>.py;
+        lib/vibe/<pkg>/ -> tests/test_<pkg>_*.py), module-level unit tests for
+        isolated changes, and combinatorial/integration tests only where modules
+        are intentionally designed to compose. Flag behavior that ships without a
+        corresponding test, tests that pin private internals, and tests that mock
+        so much they no longer exercise the real path. Prefer parametrization over
+        copy-pasted near-identical cases. When a module is rewritten, its tests
+        should be re-leveled in the same PR, not gutted in a separate one.
+    - path: "lib/vibe/testscope.py"
+      instructions: >-
+        The module-scoped CI selector: maps changed files to pytest targets so
+        PRs run only affected modules while main and shared-file changes run the
+        full suite. Changing SOURCE_TEST_MAP or SHARED_PREFIXES alters which tests
+        gate a PR — require that test_testscope.py is updated alongside, and that
+        the change keeps the fail-safe (unmapped lib/vibe/ paths -> full suite).
     - path: ".github/workflows/**"
       instructions: >-
-        CI must stay fast and local-first. Flag pinning/permission regressions,
-        secrets in plaintext, and any attempt to make CLI tests in CI the primary
-        verification (local live tests are the source of truth). Surface any
-        opportunity to make CI faster.
+        CI must stay fast and local-first. CI is scoped per-module on PRs via
+        lib/vibe/testscope.py (full suite on main and shared-file changes); flag
+        any change that could let a PR skip tests for a module it actually
+        touched. Flag pinning/permission regressions, secrets in plaintext, and
+        any attempt to make CLI tests in CI the primary verification (local live
+        tests are the source of truth). Surface any opportunity to make CI faster.
     - path: "agent_instructions/**"
       instructions: >-
         Source of truth for agent instructions. If these change, confirm CLAUDE.md

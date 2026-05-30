@@ -12,10 +12,12 @@ from __future__ import annotations
 
 import json
 import subprocess
+from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from lib.vibe.cli.main import (
+    _branch_record_is_stale,
     _check_existing_prs_for_ticket,
     _check_local_state_for_ticket_conflicts,
     _extract_ticket_id,
@@ -99,6 +101,31 @@ class TestCheckExistingPrsForTicket:
         assert len(result) == 1
         assert result[0]["number"] == 10
 
+    def test_exact_match_does_not_flag_longer_ids(self) -> None:
+        """PROJ-1 must not match PROJ-12 / PROJ-100 (gh --search is substring)."""
+        prs_json = json.dumps(
+            [
+                {"number": 1, "title": "PROJ-1: The real one", "state": "OPEN", "url": "u1"},
+                {"number": 12, "title": "PROJ-12: Different ticket", "state": "OPEN", "url": "u2"},
+                {"number": 100, "title": "PROJ-100: Another one", "state": "MERGED", "url": "u3"},
+                {"number": 13, "title": "Fixes PROJ-1 finally", "state": "OPEN", "url": "u4"},
+            ]
+        )
+        mock_result = MagicMock(returncode=0, stdout=prs_json)
+        with patch("lib.vibe.cli.main._subprocess.run", return_value=mock_result):
+            result = _check_existing_prs_for_ticket("PROJ-1")
+        # Only the two titles with PROJ-1 on a word boundary should match.
+        assert sorted(r["number"] for r in result) == [1, 13]
+
+    def test_match_is_case_insensitive(self) -> None:
+        prs_json = json.dumps(
+            [{"number": 7, "title": "proj-7: lowercase title", "state": "OPEN", "url": "u1"}]
+        )
+        mock_result = MagicMock(returncode=0, stdout=prs_json)
+        with patch("lib.vibe.cli.main._subprocess.run", return_value=mock_result):
+            result = _check_existing_prs_for_ticket("PROJ-7")
+        assert len(result) == 1
+
     def test_empty_result(self) -> None:
         mock_result = MagicMock(returncode=0, stdout="[]")
         with patch("lib.vibe.cli.main._subprocess.run", return_value=mock_result):
@@ -164,6 +191,58 @@ class TestCheckLocalStateForTicketConflicts:
         with patch("lib.vibe.state.get_branches_for_ticket", return_value=[]):
             result = _check_local_state_for_ticket_conflicts("PROJ-123", "PROJ-123")
         assert result == []
+
+    def test_ignores_stale_branch_record(self) -> None:
+        """A branch recorded long ago is treated as abandoned, not a conflict."""
+        old = (datetime.now() - timedelta(days=90)).isoformat()
+        with patch(
+            "lib.vibe.state.get_branches_for_ticket",
+            return_value=[
+                {"ticket_id": "PROJ-123", "branch": "PROJ-123-old", "created_at": old},
+            ],
+        ):
+            result = _check_local_state_for_ticket_conflicts("PROJ-123", "worktree-agent-abc")
+        assert result == []
+
+    def test_keeps_recent_branch_record(self) -> None:
+        recent = (datetime.now() - timedelta(days=2)).isoformat()
+        with patch(
+            "lib.vibe.state.get_branches_for_ticket",
+            return_value=[
+                {"ticket_id": "PROJ-123", "branch": "PROJ-123-recent", "created_at": recent},
+            ],
+        ):
+            result = _check_local_state_for_ticket_conflicts("PROJ-123", "worktree-agent-abc")
+        assert len(result) == 1
+
+
+class TestBranchRecordIsStale:
+    def test_old_record_is_stale(self) -> None:
+        old = (datetime.now() - timedelta(days=31)).isoformat()
+        assert _branch_record_is_stale({"created_at": old}) is True
+
+    def test_recent_record_is_not_stale(self) -> None:
+        recent = (datetime.now() - timedelta(days=5)).isoformat()
+        assert _branch_record_is_stale({"created_at": recent}) is False
+
+    def test_missing_created_at_is_not_stale(self) -> None:
+        # Fail safe: without a timestamp we keep the record (over-warn).
+        assert _branch_record_is_stale({"branch": "PROJ-123-x"}) is False
+
+    def test_unparseable_created_at_is_not_stale(self) -> None:
+        assert _branch_record_is_stale({"created_at": "not-a-date"}) is False
+
+    def test_tz_aware_created_at_is_not_stale(self) -> None:
+        # An offset-aware created_at can't be subtracted from the offset-naive
+        # datetime.now() — that raises TypeError. Fail safe (keep) rather than
+        # blow up bin/vibe pr.
+        assert _branch_record_is_stale({"created_at": "2026-01-01T00:00:00+00:00"}) is False
+
+    def test_now_override_is_respected(self) -> None:
+        created = "2026-01-01T00:00:00"
+        # 10 days later -> not stale; 40 days later -> stale.
+        assert _branch_record_is_stale({"created_at": created}, now=datetime(2026, 1, 11)) is False
+        assert _branch_record_is_stale({"created_at": created}, now=datetime(2026, 2, 10)) is True
 
 
 # ---------------------------------------------------------------------------

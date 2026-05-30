@@ -4,6 +4,7 @@ import os
 import re
 import subprocess as _subprocess
 import sys
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import click
@@ -705,15 +706,42 @@ def _check_existing_prs_for_ticket(ticket_id: str) -> list[dict[str, object]]:
         )
         if result.returncode == 0 and result.stdout.strip():
             prs: list[dict[str, object]] = _json.loads(result.stdout)
-            # Filter to only PRs whose title actually contains the ticket ID
-            return [
-                pr_item
-                for pr_item in prs
-                if ticket_id.upper() in str(pr_item.get("title", "")).upper()
-            ]
+            # Filter to PRs whose title references this exact ticket. `gh pr
+            # list --search` does substring matching, so a search for VIBE-1
+            # also returns VIBE-12 / VIBE-100. Match on a word boundary so we
+            # don't flag those as duplicates. (We support Linear only, whose IDs
+            # are <UPPER>-<digits>; the trailing boundary is what stops VIBE-1
+            # matching VIBE-12.)
+            pattern = re.compile(rf"\b{re.escape(ticket_id)}\b", re.IGNORECASE)
+            return [pr_item for pr_item in prs if pattern.search(str(pr_item.get("title", "")))]
     except (FileNotFoundError, _subprocess.TimeoutExpired, _json.JSONDecodeError):
         pass
     return []
+
+
+# Local-state branch records older than this are treated as abandoned and are
+# not reported as duplicate-PR conflicts. Keeps the warning useful as agents
+# scale and leave stale entries behind, without losing same-session signal.
+_STALE_BRANCH_DAYS = 30
+
+
+def _branch_record_is_stale(entry: dict[str, str], *, now: datetime | None = None) -> bool:
+    """True if a recorded branch is older than ``_STALE_BRANCH_DAYS``.
+
+    A missing, unparseable, or tz-mismatched ``created_at`` is treated as **not
+    stale** — we'd rather over-warn than silently drop a real conflict. (A
+    tz-aware ``created_at`` would make the subtraction below raise ``TypeError``
+    against the offset-naive ``datetime.now()``; we fail safe on that too.)
+    """
+    created_raw = entry.get("created_at")
+    if not created_raw:
+        return False
+    try:
+        created = datetime.fromisoformat(created_raw)
+        reference = now or datetime.now()
+        return (reference - created) > timedelta(days=_STALE_BRANCH_DAYS)
+    except (ValueError, TypeError):
+        return False
 
 
 def _check_local_state_for_ticket_conflicts(
@@ -721,13 +749,19 @@ def _check_local_state_for_ticket_conflicts(
 ) -> list[dict[str, str]]:
     """Check .vibe/local_state.json for other branches associated with *ticket_id*.
 
-    Returns recorded branches that match the ticket but differ from *current_branch*.
+    Returns recorded branches that match the ticket but differ from
+    *current_branch*, excluding stale (abandoned) records — see
+    :func:`_branch_record_is_stale`.
     """
     from lib.vibe.state import get_branches_for_ticket
 
     recorded = get_branches_for_ticket(ticket_id)
     return [
-        entry for entry in recorded if entry.get("branch") and entry["branch"] != current_branch
+        entry
+        for entry in recorded
+        if entry.get("branch")
+        and entry["branch"] != current_branch
+        and not _branch_record_is_stale(entry)
     ]
 
 

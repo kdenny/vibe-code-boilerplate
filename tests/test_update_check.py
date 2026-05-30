@@ -3,6 +3,8 @@
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
+import pytest
+
 from lib.vibe.update_check import (
     _compare_versions,
     _should_check,
@@ -13,29 +15,21 @@ from lib.vibe.update_check import (
 
 
 class TestCompareVersions:
-    def test_remote_newer_patch(self):
-        assert _compare_versions("1.0.0", "1.0.1") is True
-
-    def test_remote_newer_minor(self):
-        assert _compare_versions("1.0.0", "1.1.0") is True
-
-    def test_remote_newer_major(self):
-        assert _compare_versions("1.0.0", "2.0.0") is True
-
-    def test_same_version(self):
-        assert _compare_versions("1.0.0", "1.0.0") is False
-
-    def test_local_newer(self):
-        assert _compare_versions("1.1.0", "1.0.0") is False
-
-    def test_invalid_local(self):
-        assert _compare_versions("invalid", "1.0.0") is False
-
-    def test_invalid_remote(self):
-        assert _compare_versions("1.0.0", "invalid") is False
-
-    def test_empty_string(self):
-        assert _compare_versions("", "1.0.0") is False
+    @pytest.mark.parametrize(
+        ("local", "remote", "expected"),
+        [
+            ("1.0.0", "1.0.1", True),  # remote newer (patch)
+            ("1.0.0", "1.1.0", True),  # remote newer (minor)
+            ("1.0.0", "2.0.0", True),  # remote newer (major)
+            ("1.0.0", "1.0.0", False),  # same version
+            ("1.1.0", "1.0.0", False),  # local newer
+            ("invalid", "1.0.0", False),  # invalid local
+            ("1.0.0", "invalid", False),  # invalid remote
+            ("", "1.0.0", False),  # empty local
+        ],
+    )
+    def test_compare_versions(self, local: str, remote: str, expected: bool) -> None:
+        assert _compare_versions(local, remote) is expected
 
 
 class TestShouldCheck:
