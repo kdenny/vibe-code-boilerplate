@@ -139,7 +139,7 @@ class LinearTracker(TrackerBase):
                     nodes {{
                         id
                         type
-                        relatedIssue {{
+                        issue {{
                             identifier
                             title
                             state {{ name }}
@@ -216,7 +216,7 @@ class LinearTracker(TrackerBase):
                         nodes {
                             id
                             type
-                            relatedIssue {
+                            issue {
                                 identifier
                                 title
                                 state { name }
@@ -1025,10 +1025,12 @@ class LinearTracker(TrackerBase):
                 continue
             if rel_type == "blocks":
                 blocks.append(identifier)
-        # Inverse relations: if type="blocks", relatedIssue blocks this issue
+        # Inverse relations: this issue is the *target* of the edge, so the other
+        # endpoint lives in `issue` (not `relatedIssue`, which is this issue itself).
+        # If type="blocks", that other issue blocks this one.
         for rel in issue.get("inverseRelations", {}).get("nodes", []):
             rel_type = rel.get("type", "")
-            related = rel.get("relatedIssue") or {}
+            related = rel.get("issue") or {}
             identifier = related.get("identifier", "")
             if not identifier:
                 continue

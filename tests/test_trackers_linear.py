@@ -167,6 +167,64 @@ class TestLinearTrackerGetTicket:
         assert ticket is None
 
 
+class TestLinearTrackerParseRelations:
+    """Tests for blocking-relation parsing in _parse_issue (VIBE-204).
+
+    Linear's IssueRelation has two endpoints: `issue` (source) and `relatedIssue`
+    (target). For an issue's *forward* relations it is the source, so the other
+    ticket is `relatedIssue`. For its *inverse* relations it is the target, so the
+    other ticket is `issue` — reading `relatedIssue` there returns the issue itself,
+    which is the self-reference regression this guards against.
+    """
+
+    def _parse(self, **relation_nodes: object):
+        tracker = LinearTracker(api_key="test-fake-key")
+        issue = {
+            "identifier": "TEST-7",
+            "title": "Gate ticket",
+            "state": {"name": "Todo"},
+            **relation_nodes,
+        }
+        return tracker._parse_issue(issue)
+
+    def test_forward_blocks_resolves_to_other_ticket(self) -> None:
+        ticket = self._parse(
+            relations={
+                "nodes": [
+                    {
+                        "type": "blocks",
+                        "relatedIssue": {"identifier": "TEST-9", "title": "Downstream"},
+                    }
+                ]
+            }
+        )
+        assert ticket.blocks == ["TEST-9"]
+        assert ticket.blocked_by == []
+
+    def test_inverse_blocks_resolves_to_blocker_not_self(self) -> None:
+        # Linear returns the queried issue as `relatedIssue` on inverse edges;
+        # the real blocker is in `issue`. The parser must read `issue`.
+        ticket = self._parse(
+            inverseRelations={
+                "nodes": [
+                    {
+                        "type": "blocks",
+                        "issue": {"identifier": "TEST-2", "title": "Blocker"},
+                        "relatedIssue": {"identifier": "TEST-7", "title": "Gate ticket"},
+                    }
+                ]
+            }
+        )
+        assert ticket.blocked_by == ["TEST-2"]
+        assert "TEST-7" not in ticket.blocked_by  # no self-reference
+
+    def test_related_type_is_not_treated_as_blocking(self) -> None:
+        ticket = self._parse(
+            inverseRelations={"nodes": [{"type": "related", "issue": {"identifier": "TEST-3"}}]}
+        )
+        assert ticket.blocked_by == []
+
+
 class TestLinearTrackerListTickets:
     """Tests for list_tickets method."""
 
