@@ -15,6 +15,12 @@
 > cover *upstream auto-filing* of downstream defects (a different, outbound triage
 > inbox). This document is the **inbound board-quality triage** layer.
 
+> **🔁 Mirrored in Linear — keep in sync.** A copy of this operating model lives as
+> a Linear document for posterity and for people who live in Linear, not the repo:
+> [Triage Intelligence — VIBE board operating model](https://linear.app/2wrist/document/triage-intelligence-vibe-board-operating-model-a528198da4fc).
+> **This checked-in file is canonical.** When you change one, make the same change
+> to the other in the same unit of work — a drifted mirror is worse than none.
+
 ---
 
 ## Why this exists

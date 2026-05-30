@@ -99,6 +99,16 @@ reviews:
           affected modules remain independently runnable. For CLI changes, it must
           include the per-subcommand smoke-test matrix. Request changes if any of
           these four sections is missing.
+      - name: "PR base branch"
+        mode: "error"
+        instructions: >-
+          PRs must target the main branch. If this PR's base is a feature branch
+          (it is bundled on top of another not-yet-merged PR's work), request
+          changes UNLESS the PR is a draft, carries the DNM label, and its
+          description clearly states which earlier ticket/PR it depends on and that
+          it must wait for that PR to merge first. A PR based on a feature branch is
+          never a valid final, mergeable state — once the parent merges it must be
+          rebased onto main and retargeted.
 
   # Exclude generated, vendored, and archived material from review.
   path_filters:
