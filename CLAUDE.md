@@ -155,7 +155,7 @@ its rewrite.
 
 | Command | Guarantee |
 |---------|-----------|
-| `bin/ci-local` | All locally-runnable checks (ruff check + format, mypy on `lib/vibe/`, full pytest, gitleaks, project hooks). Exit 0 ⇒ safe to push. Resolves ruff/mypy/pytest from the project venv (`.venv`/`.direnv`) even when it isn't on `PATH`. A missing **core linter** (ruff/mypy) still skips non-fatally — but warns **loudly** (`⚠ … SKIPPED`, "not a clean pass"), never silently, so it can't masquerade as a pass. |
+| `bin/ci-local` | All locally-runnable checks (ruff check + format, mypy on `lib/vibe/`, full pytest, gitleaks, project hooks). Exit 0 **with no `⚠ … SKIPPED` warning** ⇒ safe to push. Resolves ruff/mypy/pytest from the project venv (`.venv`/`.direnv`) even when it isn't on `PATH`. A missing **core linter** (ruff/mypy) skips non-fatally (exit stays 0) but warns **loudly** (`⚠ … SKIPPED`, "not a clean pass") — a warned run is **not** a clean pass: install the tool and re-run before pushing. |
 | `bin/ci-local --fast` | Same, minus slow frontend tests — for tight inner loops. |
 | `bin/ci-local --scope [paths]` | Pytest scoped to changed modules (auto-diff vs `origin/main`, or the explicit paths). Same `testscope.py` selector as CI; the cloud agent's QA path. Lint/secret scans still run whole-tree. |
 | `python -m lib.vibe.testscope <paths>` | Prints exactly which suites CI will run (`ALL` / paths / empty). |
