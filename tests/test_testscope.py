@@ -45,6 +45,11 @@ KNOWN = {
     "secrets_providers",
     "git_worktrees",
     "frontend",
+    "events_schema",
+    "events_store",
+    "events_sinks",
+    "events_emitter",
+    "events_cli",
     "agents",
     "import_surface",
     "integrations",
@@ -142,8 +147,14 @@ class TestExplicitCrossFileMappings:
         assert select("vibe/cli/registry.py") == ["tests/test_cli_registry.py"]
 
     def test_linear_change_includes_views(self) -> None:
+        # linear.py is also a participant in the events↔linear seam, so a change
+        # to it runs that seam suite on top of its own unit + views suites.
         assert select("vibe/trackers/linear.py") == sorted(
-            ["tests/test_trackers_linear.py", "tests/test_views.py"]
+            [
+                "tests/test_trackers_linear.py",
+                "tests/test_views.py",
+                "tests/integration/test_events_linear.py",
+            ]
         )
 
     def test_wizard_costs_maps_to_costs_wizard_suite(self) -> None:
@@ -198,6 +209,18 @@ class TestIntegrationSeams:
         targets = select("vibe/git/worktrees.py", "vibe/state.py")
         assert targets.count(self.SEAM) == 1
 
+    EVENTS_SEAM = "tests/integration/test_events_linear.py"
+
+    def test_events_change_runs_seam_and_its_unit_suites(self) -> None:
+        targets = select("vibe/events/emitter.py")
+        # The events↔linear seam AND the events package's own unit suites run.
+        assert self.EVENTS_SEAM in targets
+        assert "tests/test_events_emitter.py" in targets
+
+    def test_linear_change_runs_events_seam(self) -> None:
+        # Touching the tracker side of the seam pulls in the events seam too.
+        assert self.EVENTS_SEAM in select("vibe/trackers/linear.py")
+
 
 class TestScopeContract:
     """The promise VIBE-186 wires into `bin/ci-local --scope` and tests.yml:
@@ -211,8 +234,13 @@ class TestScopeContract:
         full = {f"tests/test_{stem}.py" for stem in KNOWN}
         targets = select("vibe/trackers/linear.py")
         assert targets != RUN_ALL
-        assert set(targets) < full  # proper subset
-        assert set(targets) == {"tests/test_trackers_linear.py", "tests/test_views.py"}
+        unit_targets = {t for t in targets if not t.startswith("tests/integration/")}
+        assert unit_targets < full  # proper subset of the unit suites
+        assert set(targets) == {
+            "tests/test_trackers_linear.py",
+            "tests/test_views.py",
+            "tests/integration/test_events_linear.py",
+        }
 
     def test_contract_file_change_runs_full_tree(self) -> None:
         # Cross-cutting / contract changes must still trigger full validation —
@@ -231,7 +259,12 @@ class TestScopeContract:
         assert testscope_main(["vibe/trackers/linear.py"]) == 0
 
         captured = capsys.readouterr()
-        assert captured.out.strip() == "tests/test_trackers_linear.py tests/test_views.py"
+        # linear.py participates in the events↔linear seam, so the discovered
+        # targets include that integration suite alongside its unit suites.
+        assert captured.out.strip() == (
+            "tests/integration/test_events_linear.py "
+            "tests/test_trackers_linear.py tests/test_views.py"
+        )
 
 
 class TestMappingIntegrity:

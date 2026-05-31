@@ -115,6 +115,12 @@ INTEGRATION_SEAMS: dict[str, tuple[str, ...]] = {
         "vibe/git/worktrees.py",
         "vibe/state.py",
     ),
+    # The events emitter drives the real Linear tracker to make a failed run
+    # visible as a comment on its ticket — the seam VIBE-146 depends on.
+    "tests/integration/test_events_linear.py": (
+        "vibe/events/",
+        "vibe/trackers/linear.py",
+    ),
 }
 
 
