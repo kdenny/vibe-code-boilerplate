@@ -192,7 +192,7 @@ class PRAutopilotRunTelemetry:
         exc_type: type[BaseException] | None,
         exc: BaseException | None,
         traceback: object,
-    ) -> bool:
+    ) -> Literal[False]:
         if self._terminal_event is None:
             if exc is None:
                 self.complete()
@@ -202,7 +202,9 @@ class PRAutopilotRunTelemetry:
                 self.fail(error=exc)
         return False
 
-    def start(self, *, message: str | None = None, phase: str | None = None) -> PRAutopilotTelemetryEvent:
+    def start(
+        self, *, message: str | None = None, phase: str | None = None
+    ) -> PRAutopilotTelemetryEvent:
         """Emit the run start event once."""
 
         if self._start_event is not None:
