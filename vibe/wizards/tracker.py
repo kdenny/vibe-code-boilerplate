@@ -6,7 +6,7 @@ from typing import Any
 import click
 
 from vibe.tools import require_interactive
-from vibe.trackers.base import TrackerBase
+from vibe.trackers import TrackerBase
 from vibe.ui.components import NumberedMenu
 
 
@@ -216,11 +216,11 @@ def _try_sync_labels(config: dict[str, Any], tracker_type: str, **kwargs: Any) -
 
         tracker: TrackerBase
         if tracker_type == "linear":
-            from vibe.trackers.linear import LinearTracker
+            from vibe.trackers import LinearTracker
 
             tracker = LinearTracker(api_key=api_key, team_id=team_id)
         elif tracker_type == "github":
-            from vibe.trackers.github_issues import GitHubIssuesTracker
+            from vibe.trackers import GitHubIssuesTracker
 
             tracker = GitHubIssuesTracker(repo=kwargs.get("repo"))
         else:
