@@ -90,8 +90,9 @@ SOURCE_TEST_MAP: dict[str, tuple[str, ...]] = {
     # wizards/<x>.py -> test_<x>_wizard / test_wizards_<x> (convention breaks).
     "vibe/wizards/costs.py": ("costs_wizard",),
     "vibe/wizards/github.py": ("wizards_github",),
+    "vibe/wizards/axiom.py": ("wizards_axiom",),
     "vibe/wizards/setup.py": ("setup",),
-    "vibe/wizards/": ("costs_wizard", "wizards_github", "setup"),
+    "vibe/wizards/": ("costs_wizard", "wizards_github", "wizards_axiom", "setup"),
     # secrets/git/frontend packages each have a single differently-named suite.
     "vibe/secrets/": ("secrets_providers",),
     "vibe/git/": ("git_worktrees",),

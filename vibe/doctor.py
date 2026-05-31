@@ -122,7 +122,14 @@ def run_live_validation_checks(config: dict) -> list[CheckResult]:
     validation_results = validator.run_all()
 
     for vr in validation_results:
-        status = Status.PASS if vr.success else Status.FAIL
+        if vr.success:
+            status = Status.PASS
+        elif vr.optional:
+            # Optional integration (e.g. Axiom) the pilot can run without —
+            # a failure is a warning, not a hard failure that blocks the flow.
+            status = Status.WARN
+        else:
+            status = Status.FAIL
         results.append(
             CheckResult(
                 name=f"Live: {vr.name}",

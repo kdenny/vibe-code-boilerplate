@@ -16,6 +16,7 @@ from vibe.ui.components import (
     WhatNextFlow,
 )
 from vibe.ui.context import WizardContext
+from vibe.wizards.axiom import run_axiom_wizard
 from vibe.wizards.branch import run_branch_wizard
 from vibe.wizards.costs import run_costs_wizard
 from vibe.wizards.database import run_database_wizard
@@ -433,6 +434,7 @@ def run_individual_wizard(wizard_name: str, show_what_next: bool = True) -> bool
         "neon": run_neon_wizard,
         "database": run_database_wizard,
         "sentry": run_sentry_wizard,
+        "axiom": run_axiom_wizard,
         "playwright": run_playwright_wizard,
         "cost-tracking": run_costs_wizard,
     }
