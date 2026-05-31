@@ -13,6 +13,16 @@ from vibe.integrations.pr_autopilot.prototype import (
     format_pr_autopilot_status,
     inspect_pr_autopilot,
 )
+from vibe.integrations.pr_autopilot.telemetry import (
+    DEFAULT_TELEMETRY_LOG_PATH,
+    CompositeTelemetrySink,
+    JsonlTelemetrySink,
+    LinearTelemetrySink,
+    PRAutopilotRunTelemetry,
+    PRAutopilotTelemetryEvent,
+    format_linear_telemetry_comment,
+    run_with_pr_autopilot_telemetry,
+)
 
 
 @dataclass(frozen=True)
@@ -79,4 +89,15 @@ integration = Integration(
     },
 )
 
-__all__ = ["PRAutopilotConfig", "integration"]
+__all__ = [
+    "DEFAULT_TELEMETRY_LOG_PATH",
+    "CompositeTelemetrySink",
+    "JsonlTelemetrySink",
+    "LinearTelemetrySink",
+    "PRAutopilotConfig",
+    "PRAutopilotRunTelemetry",
+    "PRAutopilotTelemetryEvent",
+    "format_linear_telemetry_comment",
+    "integration",
+    "run_with_pr_autopilot_telemetry",
+]

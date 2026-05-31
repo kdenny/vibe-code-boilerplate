@@ -168,12 +168,14 @@ reviews:
     - path: "vibe/integrations/**"
       instructions: >-
         Publishable integration modules (VIBE-86 seam). Each integration exposes
-        only its typed config class and `integration` registration object, declares
-        CLI verbs/entrypoints/extras through vibe.cli, and must not import
-        downstream app/repo-local code (app, src, lift, deal, etc.) or assume a
-        specific checkout layout. Flag missing __all__, optional provider imports
-        that happen at module import time instead of behind the extra gate, and
-        any change not covered by the guardrail tests.
+        an explicit package surface: normally its typed config class and
+        `integration` registration object; PR Autopilot also exposes its run
+        telemetry contract for the future engine. Integrations declare CLI
+        verbs/entrypoints/extras through vibe.cli, and must not import downstream
+        app/repo-local code (app, src, lift, deal, etc.) or assume a specific
+        checkout layout. Flag missing __all__, optional provider imports that
+        happen at module import time instead of behind the extra gate, and any
+        change not covered by the guardrail tests.
     - path: "bin/**"
       instructions: >-
         CLI wrappers. Confirm the PR description documents a per-subcommand

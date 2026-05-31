@@ -281,11 +281,12 @@ install. The structure choices above are chosen to move toward that:
    that run in isolation *and* prove its seams, so DEAL can trust it.
 3. **Validation contract (§3)** → `bin/ci-local` + module-scoped CI is the
    reusable "does this change pass?" gate the autopilot leans on.
-4. **VIBE-86 integration seam + VIBE-179 configuration DX** → the live registry,
-   reference `pr_autopilot` skeleton, extra-gated engine dispatch,
-   pre-engine configure/status/inspect/enable/disable verbs, layered `.vibe/`
-   TOML artifacts, and app-code import guardrail give VIBE-128 a package boundary
-   and operator-facing desired-state contract to plug into.
+4. **VIBE-86 integration seam + VIBE-179 configuration DX + VIBE-146 telemetry**
+   → the live registry, reference `pr_autopilot` skeleton, extra-gated engine
+   dispatch, pre-engine configure/status/inspect/enable/disable verbs, layered
+   `.vibe/` TOML artifacts, Linear-visible run telemetry, and app-code import
+   guardrail give VIBE-128 a package boundary, operator-facing desired-state
+   contract, and failure-observability contract to plug into.
 
 The packaging spec and milestone live in VIBE-83/88 and the
 [packaged-vibe publish milestone](https://linear.app/2wrist/issue/VIBE-83). This
