@@ -1,5 +1,42 @@
 {
   "$schema": "./provider-docs-index.schema.json",
-  "_comment": "Repo-stored provider docs index. The Index tickets in each external-service milestone populate this; the doc-drift automation reads it. Format + drift contract: docs/review/external-service-milestone-pattern.md. Seeded empty — providers are added per Index ticket, not in VIBE-141.",
-  "providers": {}
+  "_comment": "Repo-stored provider docs index. The Index tickets in each external-service milestone populate this; the doc-drift automation reads it. Format + drift contract: docs/review/external-service-milestone-pattern.md. Seeded empty — providers are added per Index ticket, not in VIBE-141. content_signature is intentionally omitted on first index; F2's drift automation captures it on its first verification run.",
+  "providers": {
+    "neon": {
+      "milestone": "Database Tooling (Neon)",
+      "last_indexed": "2026-05-30",
+      "features": {
+        "project-setup": {
+          "docs_url": "https://neon.com/docs/manage/projects",
+          "local_ref": "recipes/integrations/neon.md",
+          "last_verified": "2026-05-30"
+        },
+        "database-branching": {
+          "docs_url": "https://neon.com/docs/introduction/branching",
+          "local_ref": "recipes/integrations/neon.md",
+          "last_verified": "2026-05-30"
+        },
+        "connection-strings": {
+          "docs_url": "https://neon.com/docs/connect/connect-from-any-app",
+          "local_ref": "recipes/integrations/neon.md",
+          "last_verified": "2026-05-30"
+        },
+        "roles": {
+          "docs_url": "https://neon.com/docs/manage/roles",
+          "local_ref": "recipes/integrations/neon.md",
+          "last_verified": "2026-05-30"
+        },
+        "migrations": {
+          "docs_url": "https://neon.com/docs/guides/prisma-migrations",
+          "local_ref": "recipes/integrations/neon.md",
+          "last_verified": "2026-05-30"
+        },
+        "neon-cli-install": {
+          "docs_url": "https://neon.com/docs/reference/neon-cli",
+          "local_ref": "recipes/integrations/neon.md",
+          "last_verified": "2026-05-30"
+        }
+      }
+    }
+  }
 }
