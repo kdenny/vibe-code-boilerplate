@@ -37,6 +37,32 @@
           "last_verified": "2026-05-30"
         }
       }
+    },
+    "axiom": {
+      "milestone": "Logs & Axiom",
+      "last_indexed": "2026-05-30",
+      "features": {
+        "account-dataset-setup": {
+          "docs_url": "https://axiom.co/docs/reference/datasets",
+          "local_ref": "recipes/observability/axiom.md",
+          "last_verified": "2026-05-30"
+        },
+        "api-tokens": {
+          "docs_url": "https://axiom.co/docs/reference/tokens",
+          "local_ref": "recipes/observability/axiom.md",
+          "last_verified": "2026-05-30"
+        },
+        "log-ingestion": {
+          "docs_url": "https://axiom.co/docs/send-data/ingest",
+          "local_ref": "recipes/observability/axiom.md",
+          "last_verified": "2026-05-30"
+        },
+        "apl-query": {
+          "docs_url": "https://axiom.co/docs/apl/introduction",
+          "local_ref": "docs/operations/logs-cli-reference.md",
+          "last_verified": "2026-05-30"
+        }
+      }
     }
   }
 }
