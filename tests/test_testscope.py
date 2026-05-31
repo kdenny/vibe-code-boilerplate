@@ -146,6 +146,11 @@ class TestExplicitCrossFileMappings:
     def test_cli_registry_maps_to_registry_suite(self) -> None:
         assert select("vibe/cli/registry.py") == ["tests/test_cli_registry.py"]
 
+    def test_run_event_cli_maps_to_its_events_suite(self) -> None:
+        # run_event.py breaks the cli_* convention (its suite is test_events_cli),
+        # so an explicit mapping must still scope it to its own suite.
+        assert select("vibe/cli/run_event.py") == ["tests/test_events_cli.py"]
+
     def test_linear_change_includes_views(self) -> None:
         # linear.py is also a participant in the events↔linear seam, so a change
         # to it runs that seam suite on top of its own unit + views suites.
