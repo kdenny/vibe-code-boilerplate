@@ -311,10 +311,11 @@ package DEAL can install:
    isolation *and* prove its seams.
 3. **Validation contract** → `bin/ci-local` + module-scoped CI is the reusable
    "does this change pass?" gate the autopilot leans on.
-4. **Integration registration seam** → `vibe.cli` exposes the VIBE-86
-   `Integration`/`verb` registry API and `vibe.integrations.pr_autopilot`
-   is the extra-gated skeleton VIBE-128 plugs into (re-homed to `vibe.*` by
-   VIBE-182).
+4. **Integration registration seam + run telemetry** → `vibe.cli` exposes the
+ VIBE-86 `Integration`/`verb` registry API and
+ `vibe.integrations.pr_autopilot` is the extra-gated skeleton VIBE-128 plugs
+ into (re-homed to `vibe.*` by VIBE-182), including the VIBE-146 structured run
+ telemetry contract for Linear-visible failures.
 
 Physical extraction/packaging is owned by the **VIBE-86 line** and the publish
 milestone (**VIBE-83/88**), not by structural PRs. See the plan doc §7.

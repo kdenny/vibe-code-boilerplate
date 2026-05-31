@@ -112,6 +112,7 @@ class TestPackageScoping:
         assert select("vibe/integrations/pr_autopilot/__init__.py") == [
             "tests/test_integrations.py",
             "tests/test_integrations_guardrails.py",
+            "tests/test_integrations_pr_autopilot_telemetry.py",
         ]
 
 

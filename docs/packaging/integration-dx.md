@@ -125,3 +125,23 @@ bin/vibe pr-autopilot run
 
 That split lets Claude prove the configuration experience now while M2 owns the
 production PR automation runner.
+
+## PR Autopilot telemetry contract
+
+VIBE-146 adds the structured run telemetry contract that the production runner
+uses behind the integration seam:
+
+- every run emits `pr_autopilot.run.started` before work begins;
+- a successful run emits exactly one terminal `pr_autopilot.run.completed` event
+  with `outcome = "success"`;
+- a crashed run emits exactly one terminal `pr_autopilot.run.failed` event with
+  `outcome = "failure"` and error fields;
+- a budget-exhausted run emits exactly one terminal
+  `pr_autopilot.run.timed_out` event with `outcome = "timeout"`;
+- completion means the single terminal event for a run, regardless of whether
+  the outcome is success, failure, or timeout.
+
+Failed and timed-out terminal events must be visible in Linear first. Optional
+forwarding to Axiom or another analytics backend can subscribe to the same
+structured events, but it is secondary to the Linear-visible record humans use
+for triage.

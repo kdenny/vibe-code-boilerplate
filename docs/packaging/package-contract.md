@@ -339,7 +339,11 @@ expressible against the contract without referencing app/repo-local code," here 
 the full surface of `vibe[pr-autopilot]` stated only in this contract's terms:
 
 - **Install:** `uv pip install 'vibe[pr-autopilot]'`.
-- **Import:** `from vibe.integrations.pr_autopilot import integration, PRAutopilotConfig`.
+- **Import:** `from vibe.integrations.pr_autopilot import integration,
+  PRAutopilotConfig`. PR Autopilot also exposes
+  `PRAutopilotRunTelemetry`, `PRAutopilotTelemetryEvent`,
+  `JsonlTelemetrySink`, and `LinearTelemetrySink` as the structured run
+  telemetry contract the future engine uses.
 - **Config (injected):** `PRAutopilotConfig(github_owner=..., linear_team=...,
   anthropic_api_key=...)` — or loaded from `.vibe/pr-autopilot.toml` (presence =
   enabled) with `anthropic_api_key = "gh:ANTHROPIC_API_KEY"`.
@@ -347,6 +351,11 @@ the full surface of `vibe[pr-autopilot]` stated only in this contract's terms:
   `disable`, and engine-gated `run`; status is also surfaced under `vibe status`.
 - **Missing extra:** bare `vibe pr-autopilot run` →
   `MissingExtraError: install 'vibe[pr-autopilot]'`.
+- **Telemetry:** every engine run emits one `pr_autopilot.run.started` event and
+  exactly one terminal event: `pr_autopilot.run.completed` (`success`),
+  `pr_autopilot.run.failed` (`failure`), or `pr_autopilot.run.timed_out`
+  (`timeout`). Failed and timed-out terminal events are formatted for Linear
+  comments so humans can inspect failures without Axiom.
 - **No LIFT/DEAL import** anywhere in the surface above. The engine (VIBE-128) lands
   *behind* this seam; nothing here references app/repo-local code.
 
