@@ -7,12 +7,16 @@ on:
     paths:
       - '**.py'
       - 'pyproject.toml'
+      - 'uv.lock'
+      - 'requirements.lock'
       - '.github/workflows/lint.yml'
   pull_request:
     branches: [main]
     paths:
       - '**.py'
       - 'pyproject.toml'
+      - 'uv.lock'
+      - 'requirements.lock'
       - '.github/workflows/lint.yml'
 
 concurrency:
@@ -34,12 +38,18 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
       - name: Install linting tools
-        # Pin to the versions in requirements.lock so CI lint matches local. An
-        # unpinned `pip install ruff mypy` drifts (e.g. CI's newer ruff and an
-        # older local ruff disagree on import sorting). Keep in sync with
-        # requirements.lock — that file is the source of truth.
-        run: pip install ruff==0.15.15 mypy==2.1.0
+        # Sync from uv.lock so CI lint matches local. An unpinned tool install
+        # drifts (e.g. newer ruff in CI and older ruff locally disagree).
+        run: |
+          UV_PROJECT_ENVIRONMENT=.venv uv sync --frozen --group dev --extra pr-autopilot
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
 
       - name: Run ruff check
         run: ruff check . --output-format=github

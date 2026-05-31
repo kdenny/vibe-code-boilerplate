@@ -167,9 +167,11 @@ fast safety net. An agent must be able to trust one command.
 | `PYTHONPATH=. python -m vibe.testscope <paths>` | Prints exactly which suites CI will run for a change (`ALL` / paths / empty) | lets an agent predict CI scope before pushing |
 | `bin/<cli> --help` + per-subcommand live smoke test | CLI behavior proof (CLI doctrine) | live runs only; documented matrix in the PR |
 
-**Minimal bootstrap:** Python ≥3.11, `pip install -e ".[dev]"` (pytest, mypy,
-ruff). Everything else (gitleaks, npm, mypy) degrades to a SKIP. No service
-account or network needed to validate a change locally.
+**Minimal bootstrap:** Python ≥3.11,
+`UV_PROJECT_ENVIRONMENT=.venv uv sync --frozen --group dev --extra pr-autopilot`
+(pytest, mypy, ruff from `uv.lock`; `requirements.lock` remains the pip fallback).
+Everything else (gitleaks, npm, optional CLIs) degrades to a SKIP. No service
+account or network beyond the package index needed to validate a change locally.
 
 ### 3.2 Module-scoped CI (the speed rail, from VIBE-137)
 
@@ -261,7 +263,7 @@ to *not* be a big-bang. Steps are independent unless noted.
 | 7 | **Per-module test re-leveling** | apply the thinning targets from the VIBE-137 audit *as each module is rewritten* | per `modular-testing.md`; no separate gutting PR | ⏭️ ongoing |
 | 8 | **Integration registration seam** | `vibe/cli/registry.py`, `vibe/integrations/`, packaging docs, guardrail tests | integration declares config/verbs/entrypoints/extra; missing extra is actionable; app-code imports fail guardrail | ✅ VIBE-86; VIBE-179 extends this with pre-engine configure/status verbs |
 | 9 | **Package namespace scaffold** | move the import package from `lib/vibe` to top-level `vibe`, add `vibe.__main__`, and wire packaging/CI selectors to the new path | `import vibe`, `python -m vibe`, and the `vibe` console entry work; no code imports `lib.vibe`; module scoping still selects the right suites | ✅ VIBE-182 |
-| — | **Module extraction → package** | provider packages first; PR Autopilot engine lands behind the VIBE-86 seam | owned by **VIBE-128/VIBE-85 follow-ups**, not this structural plan | 🔗 |
+| 10 | **uv package/release rail** | dist name `vibe`, `uv.lock`, dependency groups/extras, build-gated release workflow | owned by **VIBE-85**; `uv build` proves wheel/sdist and `v0.1.0` tag publish is gated by tests | ✅ VIBE-85 |
 
 > **Non-destructive discipline:** no step relocates working code without a test
 > proving behavior is preserved. Steps 2–6 are each small enough to review in
@@ -281,16 +283,20 @@ install. The structure choices above are chosen to move toward that:
    that run in isolation *and* prove its seams, so DEAL can trust it.
 3. **Validation contract (§3)** → `bin/ci-local` + module-scoped CI is the
    reusable "does this change pass?" gate the autopilot leans on.
-4. **VIBE-86 integration seam + VIBE-179 configuration DX + VIBE-146 telemetry**
+4. **VIBE-85 uv package/release rail** → the package is built as dist `vibe`,
+   locked by `uv.lock`, and release-gated by tests plus `uv build` before a
+   private `vX.Y.Z` tag can become the v0 publish artifact.
+5. **VIBE-86 integration seam + VIBE-179 configuration DX + VIBE-146 telemetry**
    → the live registry, reference `pr_autopilot` skeleton, extra-gated engine
    dispatch, pre-engine configure/status/inspect/enable/disable verbs, layered
    `.vibe/` TOML artifacts, Linear-visible run telemetry, and app-code import
    guardrail give VIBE-128 a package boundary, operator-facing desired-state
    contract, and failure-observability contract to plug into.
 
-The packaging spec and milestone live in VIBE-83/88 and the
+The packaging specs and milestone live in VIBE-83/84/87/88 and the
 [packaged-vibe publish milestone](https://linear.app/2wrist/issue/VIBE-83). This
-plan is the *structural enabler*; it does not itself publish the package.
+plan is the *structural enabler*; VIBE-85 adds the build/release rail, while the
+actual publish event remains gated by the release workflow and the VIBE-89 gate.
 
 ---
 

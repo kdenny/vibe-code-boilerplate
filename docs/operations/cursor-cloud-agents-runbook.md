@@ -144,7 +144,7 @@ You are working in the VIBE repo: github.com/kevin-earl-denny/vibe-code-boilerpl
 Read CLAUDE.md first — it is the live contract; this is only a pointer to it.
 
 - Branch per ticket: VIBE-123-short-slug, base = main. If you depend on unmerged work, open a DRAFT PR with the DNM label, wire the Linear blocked-by edge, and rebase onto main once it lands — never stack on a non-main base.
-- The VM bootstraps via .cursor/environment.json (uv venv + requirements.lock). Validate with `bin/ci-local` (or `bin/ci-local --scope` for a one-module change) and make it green before pushing.
+- The VM bootstraps via .cursor/environment.json (`uv sync --frozen` from uv.lock; requirements.lock is the pip fallback). Validate with `bin/ci-local` (or `bin/ci-local --scope` for a one-module change) and make it green before pushing.
 - Open the PR per the agent-PR contract in CLAUDE.md: what changed & why, the staged step, test proof (CLI changes need a per-subcommand smoke matrix), isolation confirmation, and sync confirmation.
 - Sync rule: a structural / run-flow / agent-contract change must update .coderabbit.yaml AND docs/architecture/VIBE-174-modular-restructure-plan.md in the same PR.
 - You never merge. PR-policy bot + CodeRabbit + human review is the gate.

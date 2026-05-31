@@ -193,8 +193,8 @@ contract VIBE-85 implements:
 3. **No index push, no asset upload** for v0. The publish step is "create + push
    tag," not "upload wheel." (If flip-point 2 is hit, VIBE-85 adds an *additional*
    `gh release upload` of the already-built wheel — additive, non-breaking.)
-4. **Changelog stamp.** The workflow records the tag's changes in `CHANGELOG.md` so
-   §5.5's sync contract has a source.
+4. **Changelog gate.** The workflow requires a matching `CHANGELOG.md` section so
+   §5.5's sync contract has a source before a tag is published.
 
 VIBE-89's gate exercises the acceptance criterion below against this wiring.
 

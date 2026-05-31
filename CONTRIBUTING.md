@@ -89,7 +89,7 @@ into the project automatically:
 
 ```bash
 direnv allow            # one-time, in the project root
-pip install -e ".[dev]" # into the direnv-managed venv
+uv sync --active --frozen --group dev --extra pr-autopilot
 ```
 
 direnv is optional — without it, `bin/*` and `vibe/env.py` still load
@@ -100,7 +100,7 @@ manage your own virtualenv. `bin/vibe doctor` reports direnv status either way.
 
 ```bash
 # Install dev dependencies
-pip install -e ".[dev]"
+UV_PROJECT_ENVIRONMENT=.venv uv sync --frozen --group dev --extra pr-autopilot
 
 # Run tests
 pytest

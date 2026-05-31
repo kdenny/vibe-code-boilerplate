@@ -1,5 +1,13 @@
 # Changelog
 
+All notable changes to the private `vibe` package are recorded here.
+
+## 0.1.0
+
+- Establish the first Packaged Vibe release rail: dist name `vibe`, import
+  package `vibe`, uv-locked installs, and build-gated private git-tag releases.
+# Changelog
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),

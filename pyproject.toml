@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "vibe-boilerplate"
+name = "vibe"
 dynamic = ["version"]
-description = "Framework-agnostic project boilerplate for AI-assisted development"
+description = "Local-first workflow automation toolkit for agent-managed development"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.11"
@@ -24,6 +24,22 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Integration extras: bare `vibe` stays core-only; provider/runtime deps live here.
+pr-autopilot = []
+fly = [
+    "tomli>=2.0.0",
+]
+batch = [
+    "pyyaml>=6.0.3",
+]
+
+[project.scripts]
+vibe = "vibe.cli.main:main"
+
+[project.entry-points."vibe.integrations"]
+pr-autopilot = "vibe.integrations.pr_autopilot:integration"
+
+[dependency-groups]
 dev = [
     "pytest>=9.0.3",
     "pytest-cov>=7.1.0",
@@ -33,21 +49,6 @@ dev = [
     # the schema's maxLength limits (an over-limit field silently disables the config).
     "pyyaml>=6.0.3",
 ]
-# Optional: Better TOML parsing for fly.toml (falls back to simple parsing if not installed)
-fly = [
-    "tomli>=2.0.0",
-]
-# Optional: YAML support for batch ticket operations
-batch = [
-    "pyyaml>=6.0.3",
-]
-pr-autopilot = []
-
-[project.scripts]
-vibe = "vibe.cli.main:main"
-
-[project.entry-points."vibe.integrations"]
-pr-autopilot = "vibe.integrations.pr_autopilot:integration"
 
 [tool.setuptools.dynamic]
 version = {file = "VERSION"}

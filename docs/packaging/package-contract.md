@@ -17,15 +17,15 @@
 ## 0. Naming note — target vs. current
 
 VIBE-182 moved the repository to the v0 import package (`vibe`) and console
-entrypoint (`vibe.cli.main:main`). The distribution name is still
-`vibe-boilerplate` until VIBE-85 finalizes the release/build mechanics:
+entrypoint (`vibe.cli.main:main`). VIBE-85 finalizes the release/build mechanics
+and aligns the distribution name with that surface:
 
 | | After VIBE-182 | v0 target (this contract) |
 |---|---|---|
-| Distribution name | `vibe-boilerplate` | `vibe` |
+| Distribution name | `vibe` | `vibe` |
 | Import package | `vibe` | `vibe` |
 | Console script | `vibe = vibe.cli.main:main` | `vibe = vibe.cli.main:main` |
-| Build backend | setuptools | finalized by VIBE-85 |
+| Build backend | setuptools | `setuptools.build_meta` |
 
 VIBE-85 now builds against the existing `vibe` package skeleton instead of
 performing a code move.

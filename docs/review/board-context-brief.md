@@ -52,7 +52,7 @@ one from scratch is mis-scoped.
 |---|---|
 | `vibe/testscope.py` | Single source of module-scoped test selection (`INTEGRATION_SEAMS`, "main is the backstop"). Consumed identically by `bin/ci-local --scope`, `tests.yml`, and the cloud QA path. |
 | `bin/ci-local` (`--scope`, `--fast`) | One-command local validation; the source of truth (CI mirrors it). |
-| `.envrc` + `requirements.lock` | direnv activation (`direnv allow`) + pinned, cacheable install (VIBE-176/185). |
+| `.envrc` + `uv.lock`/`requirements.lock` | direnv activation (`direnv allow`) + pinned, cacheable uv install with pip fallback (VIBE-176/185). |
 | `.vibe/.venv` + `.deps_installed` | Worktree Python env + readiness marker, already wired in `bin/vibe` (lines 83-86). |
 | `docs/review/agent-ready-rubric.md`, `triage-intelligence.md`, `external-service-milestone-pattern.md` | The label contract, the triage operating model, the external-service milestone shape (+ `.vibe/provider-docs-index.schema.json`, `.vibe/handoff-state.schema.json`). |
 | `docs/decisions/ADR-001-cloud-coding-agent-selection.md`, `docs/architecture/VIBE-140-cloud-coding-environment.md` | The binding cloud-agent decision + the cloud program plan. |
@@ -111,7 +111,7 @@ repo doc, that placement gap is flagged — it is actionable VIBE-178 substance.
 7. **Local validation contract** (settled, partly shipped). `bin/ci-local` is the
    one-command source of truth (CI mirrors local, not the reverse);
    `testscope.py` is the single module-scoped selector consumed by
-   `--scope` / `tests.yml` / cloud QA; `testscope`, `.envrc`, `requirements.lock`
+   `--scope` / `tests.yml` / cloud QA; `testscope`, `.envrc`, `uv.lock`
    already exist — compose, don't reinvent. *(VIBE-34/186/176/185.)*
 
 8. **Instruction model is Claude-first and co-owned** (CLAUDE.md + skills, no
