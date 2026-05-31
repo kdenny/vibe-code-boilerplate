@@ -75,7 +75,9 @@ and keep the committed `fly.toml` as the source of truth:
 fly apps create vibe-claude-runner --org <vibe-org>
 ```
 
-Record: app `vibe-claude-runner` · org `<fill in>` · created `<date>` by `<who>`.
+Record: app `vibe-claude-runner` · org `personal` · created `2026-05-31` by `kdenny37`.
+(No machine runs yet — the app is provisioned but not deployed; the machine lands
+with the runner image in VIBE-191.)
 
 ---
 
@@ -110,8 +112,8 @@ fly volumes list -a vibe-claude-runner        # confirm it exists + region match
 ```
 
 Keep the volume **region == `primary_region`** (`iad`); a volume in another
-region won't attach to the machine. Record: volume `vibe_runner_data` · 10 GB ·
-`iad` · created `<date>`.
+region won't attach to the machine. Record: volume `vibe_runner_data`
+(`vol_rnzmp1j5kek9gmpr`) · 10 GB · `iad` · encrypted · created `2026-05-31`.
 
 ---
 
@@ -148,6 +150,17 @@ pushes feature branches and opens PRs; it must not be able to push to or merge
 `main` (matches the trust boundary). Record token grant + rotation date with the
 rest of the VIBE-184/secret inventory.
 
+> **As-built (2026-05-31).** 4 of 6 secrets imported from `.env.local` via
+> `grep '^(LINEAR_API_KEY|SLACK_*)=' .env.local | fly secrets import -a
+> vibe-claude-runner` (Staged — they apply on the first deploy in VIBE-191):
+> `LINEAR_API_KEY`, `SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET`, `SLACK_APP_TOKEN`.
+> The two **not** in `.env.local` remain unset and are tracked as their own HUMAN
+> tickets: `ANTHROPIC_API_KEY` → [VIBE-210](https://linear.app/2wrist/issue/VIBE-210),
+> branch-scoped `GITHUB_TOKEN` → [VIBE-211](https://linear.app/2wrist/issue/VIBE-211).
+> (`bin/secrets sync -p fly` was not used: it resolves the app from project config,
+> not this new app, and syncs the whole env file with no key subset — a DX gap
+> worth a follow-up if env→Fly sync becomes routine.)
+
 ---
 
 ## 5. Verify the provisioning (proof, not trust)
@@ -164,6 +177,12 @@ fly secrets list -a vibe-claude-runner        # NAMES + digests only — never v
 `GITHUB_TOKEN`, `SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET`, `SLACK_APP_TOKEN`
 (it prints names + content digests, never the secret values). Record the
 verification: `<date>` by `<who>` — result `<ok>`.
+
+> **As-built (2026-05-31).** `fly secrets list` shows **4 of 6** Staged
+> (`LINEAR_API_KEY`, `SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET`, `SLACK_APP_TOKEN`);
+> `ANTHROPIC_API_KEY` (VIBE-210) + `GITHUB_TOKEN` (VIBE-211) still pending. App +
+> volume confirmed via `fly status` / `fly volumes list`. All six present is the
+> bar before VIBE-191's first deploy.
 
 ---
 
