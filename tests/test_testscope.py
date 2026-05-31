@@ -49,6 +49,7 @@ KNOWN = {
     "import_surface",
     "integrations",
     "integrations_guardrails",
+    "integrations_pr_autopilot_telemetry",
     "retrofit",
 }
 
