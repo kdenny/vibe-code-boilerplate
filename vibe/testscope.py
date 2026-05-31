@@ -77,6 +77,9 @@ SOURCE_TEST_MAP: dict[str, tuple[str, ...]] = {
     # cli/ticket.py drives the --view/--unblocked surface tested in test_views.
     "vibe/cli/ticket.py": ("cli_ticket", "views"),
     "vibe/cli/costs.py": ("costs_cli",),
+    # run_event.py's suite is named for the events feature it fronts
+    # (test_events_cli), not the cli_* convention, so map it explicitly.
+    "vibe/cli/run_event.py": ("events_cli",),
     # The Linear views feature is implemented in trackers/linear.py.
     "vibe/trackers/linear.py": ("trackers_linear", "views"),
     "vibe/trackers/shortcut.py": ("trackers_shortcut",),
@@ -114,6 +117,12 @@ INTEGRATION_SEAMS: dict[str, tuple[str, ...]] = {
     "tests/integration/test_worktree_state.py": (
         "vibe/git/worktrees.py",
         "vibe/state.py",
+    ),
+    # The events emitter drives the real Linear tracker to make a failed run
+    # visible as a comment on its ticket — the seam VIBE-146 depends on.
+    "tests/integration/test_events_linear.py": (
+        "vibe/events/",
+        "vibe/trackers/linear.py",
     ),
 }
 
