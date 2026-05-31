@@ -130,6 +130,13 @@ INTEGRATION_SEAMS: dict[str, tuple[str, ...]] = {
         "vibe/integrations/pr_autopilot/",
         "vibe/ui/validation.py",
     ),
+    # The remediation closes the preflight loop: the assets setup.run_preflight
+    # flags as missing are exactly the ones remediation writes from its bundled
+    # templates, so a second preflight passes.
+    "tests/integration/test_pr_autopilot_remediation.py": (
+        "vibe/integrations/pr_autopilot/remediation.py",
+        "vibe/integrations/pr_autopilot/setup.py",
+    ),
 }
 
 

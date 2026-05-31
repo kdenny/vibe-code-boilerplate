@@ -13,6 +13,12 @@ from vibe.integrations.pr_autopilot.prototype import (
     format_pr_autopilot_status,
     inspect_pr_autopilot,
 )
+from vibe.integrations.pr_autopilot.remediation import (
+    RemediableAsset,
+    RemediationPlan,
+    detect_remediation_plan,
+    remediate_pr_autopilot,
+)
 from vibe.integrations.pr_autopilot.setup import setup_pr_autopilot
 from vibe.integrations.pr_autopilot.telemetry import (
     DEFAULT_TELEMETRY_LOG_PATH,
@@ -68,6 +74,12 @@ integration = Integration(
             help="Disable the prototype PR Autopilot integration",
             requires_extra=False,
         ),
+        verb(
+            "remediate",
+            handler=remediate_pr_autopilot,
+            help="Open an opt-in PR adding any missing PR Autopilot config/workflow assets",
+            requires_extra=False,
+        ),
         verb("run", handler=_engine_not_installed, help="Run the PR Autopilot loop"),
         verb(
             "status",
@@ -91,6 +103,7 @@ integration = Integration(
         "configure": configure_pr_autopilot,
         "enable": enable_pr_autopilot,
         "disable": disable_pr_autopilot,
+        "remediate": remediate_pr_autopilot,
         "run": _engine_not_installed,
         "status": format_pr_autopilot_status,
         "inspect": inspect_pr_autopilot,
@@ -105,7 +118,11 @@ __all__ = [
     "PRAutopilotConfig",
     "PRAutopilotRunTelemetry",
     "PRAutopilotTelemetryEvent",
+    "RemediableAsset",
+    "RemediationPlan",
+    "detect_remediation_plan",
     "format_linear_telemetry_comment",
     "integration",
+    "remediate_pr_autopilot",
     "run_with_pr_autopilot_telemetry",
 ]
