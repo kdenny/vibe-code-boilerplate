@@ -13,6 +13,7 @@ from vibe.integrations.pr_autopilot.prototype import (
     format_pr_autopilot_status,
     inspect_pr_autopilot,
 )
+from vibe.integrations.pr_autopilot.setup import setup_pr_autopilot
 from vibe.integrations.pr_autopilot.telemetry import (
     DEFAULT_TELEMETRY_LOG_PATH,
     CompositeTelemetrySink,
@@ -43,6 +44,12 @@ integration = Integration(
     name="pr_autopilot",
     config_cls=PRAutopilotConfig,
     verbs=(
+        verb(
+            "setup",
+            handler=setup_pr_autopilot,
+            help="Guided preflight: infer, validate prerequisites, then gate enablement",
+            requires_extra=False,
+        ),
         verb(
             "configure",
             handler=configure_pr_autopilot,
@@ -80,6 +87,7 @@ integration = Integration(
     check=_engine_not_installed,
     description="Package seam for the PR Autopilot engine.",
     entrypoints={
+        "setup": setup_pr_autopilot,
         "configure": configure_pr_autopilot,
         "enable": enable_pr_autopilot,
         "disable": disable_pr_autopilot,

@@ -54,6 +54,7 @@ KNOWN = {
     "import_surface",
     "integrations",
     "integrations_guardrails",
+    "integrations_pr_autopilot_setup",
     "integrations_pr_autopilot_telemetry",
     "retrofit",
 }
@@ -116,8 +117,10 @@ class TestPackageScoping:
 
     def test_integrations_package_maps_to_guardrail_and_shape_suites(self) -> None:
         assert select("vibe/integrations/pr_autopilot/__init__.py") == [
+            "tests/integration/test_pr_autopilot_setup.py",
             "tests/test_integrations.py",
             "tests/test_integrations_guardrails.py",
+            "tests/test_integrations_pr_autopilot_setup.py",
             "tests/test_integrations_pr_autopilot_telemetry.py",
         ]
 

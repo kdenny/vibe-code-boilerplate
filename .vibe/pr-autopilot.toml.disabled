@@ -1,0 +1,15 @@
+[automation]
+base_branch = "main"
+human_merge_gate = true
+max_watch_minutes = 90
+
+[integration]
+enabled = false
+name = "pr-autopilot"
+prototype = true
+
+[providers]
+github_cli = "gh"
+
+[secrets]
+anthropic_api_key = "gh:ANTHROPIC_API_KEY"
