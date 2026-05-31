@@ -63,6 +63,69 @@
           "last_verified": "2026-05-30"
         }
       }
+    },
+    "fly-secrets": {
+      "milestone": "Secrets",
+      "last_indexed": "2026-05-30",
+      "features": {
+        "cli-install": {
+          "docs_url": "https://fly.io/docs/flyctl/install/",
+          "local_ref": "recipes/security/secret-management.md",
+          "last_verified": "2026-05-30"
+        },
+        "auth": {
+          "docs_url": "https://fly.io/docs/getting-started/sign-up-sign-in/",
+          "local_ref": "recipes/security/secret-management.md",
+          "last_verified": "2026-05-30"
+        },
+        "secret-sync": {
+          "docs_url": "https://fly.io/docs/apps/secrets/",
+          "local_ref": "recipes/environments/env-syncing.md",
+          "last_verified": "2026-05-30"
+        }
+      }
+    },
+    "github-secrets": {
+      "milestone": "Secrets",
+      "last_indexed": "2026-05-30",
+      "features": {
+        "cli-install": {
+          "docs_url": "https://github.com/cli/cli#installation",
+          "local_ref": "recipes/security/secret-management.md",
+          "last_verified": "2026-05-30"
+        },
+        "auth": {
+          "docs_url": "https://cli.github.com/manual/gh_auth_login",
+          "local_ref": "recipes/security/secret-management.md",
+          "last_verified": "2026-05-30"
+        },
+        "secret-sync": {
+          "docs_url": "https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions",
+          "local_ref": "recipes/environments/env-syncing.md",
+          "last_verified": "2026-05-30"
+        }
+      }
+    },
+    "vercel-env": {
+      "milestone": "Secrets",
+      "last_indexed": "2026-05-30",
+      "features": {
+        "cli-install": {
+          "docs_url": "https://vercel.com/docs/cli",
+          "local_ref": "recipes/security/secret-management.md",
+          "last_verified": "2026-05-30"
+        },
+        "auth": {
+          "docs_url": "https://vercel.com/docs/cli/login",
+          "local_ref": "recipes/security/secret-management.md",
+          "last_verified": "2026-05-30"
+        },
+        "secret-sync": {
+          "docs_url": "https://vercel.com/docs/cli/env",
+          "local_ref": "recipes/environments/env-syncing.md",
+          "last_verified": "2026-05-30"
+        }
+      }
     }
   }
 }
