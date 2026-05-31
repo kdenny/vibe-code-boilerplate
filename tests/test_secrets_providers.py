@@ -178,6 +178,83 @@ class TestFlyProviderProperties:
             provider.delete_secret("KEY", "production")
 
 
+class TestFlySyncFromLocal:
+    """Tests for the Fly atomic `fly secrets import` sync path."""
+
+    @staticmethod
+    def _provider() -> FlySecretsProvider:
+        provider = FlySecretsProvider.__new__(FlySecretsProvider)
+        provider._app_name = "vibe-claude-runner"
+        provider._fly_cmd = "fly"
+        return provider
+
+    def test_sync_uses_single_import(self, tmp_path: Path) -> None:
+        """Pushes all keys in one `fly secrets import` call via stdin."""
+        env_file = tmp_path / ".env"
+        env_file.write_text("A=1\nB=2\n")
+        provider = self._provider()
+
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 0
+            results = provider.sync_from_local(str(env_file), "production")
+
+        assert results == {"A": True, "B": True}
+        mock_run.assert_called_once()
+        cmd = mock_run.call_args.args[0]
+        assert cmd == ["fly", "secrets", "import", "-a", "vibe-claude-runner"]
+        assert mock_run.call_args.kwargs["input"] == "A=1\nB=2\n"
+
+    def test_only_filters_to_named_keys(self, tmp_path: Path) -> None:
+        """`only` syncs just the named keys, skipping the rest."""
+        env_file = tmp_path / ".env"
+        env_file.write_text("LINEAR_API_KEY=lin\nSLACK_BOT_TOKEN=slack\nVERCEL_TOKEN=vt\n")
+        provider = self._provider()
+
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 0
+            results = provider.sync_from_local(
+                str(env_file), "production", only=["LINEAR_API_KEY", "SLACK_BOT_TOKEN"]
+            )
+
+        assert results == {"LINEAR_API_KEY": True, "SLACK_BOT_TOKEN": True}
+        assert mock_run.call_args.kwargs["input"] == "LINEAR_API_KEY=lin\nSLACK_BOT_TOKEN=slack\n"
+
+    def test_only_empty_selection_skips_import(self, tmp_path: Path) -> None:
+        """An `only` list matching no keys does not invoke fly."""
+        env_file = tmp_path / ".env"
+        env_file.write_text("A=1\n")
+        provider = self._provider()
+
+        with patch("subprocess.run") as mock_run:
+            results = provider.sync_from_local(str(env_file), "production", only=["MISSING"])
+
+        assert results == {}
+        mock_run.assert_not_called()
+
+    def test_failed_import_marks_all_keys_failed(self, tmp_path: Path) -> None:
+        """A non-zero fly exit marks every key as failed (atomic)."""
+        env_file = tmp_path / ".env"
+        env_file.write_text("A=1\nB=2\n")
+        provider = self._provider()
+
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 1
+            results = provider.sync_from_local(str(env_file), "production")
+
+        assert results == {"A": False, "B": False}
+
+    def test_import_requires_app_name(self, tmp_path: Path) -> None:
+        """Importing without an app name raises."""
+        env_file = tmp_path / ".env"
+        env_file.write_text("A=1\n")
+        provider = FlySecretsProvider.__new__(FlySecretsProvider)
+        provider._app_name = None
+        provider._fly_cmd = "fly"
+
+        with pytest.raises(RuntimeError, match="App name not configured"):
+            provider.sync_from_local(str(env_file), "production")
+
+
 class TestGitHubProviderProperties:
     """Tests for GitHub provider initialization and properties."""
 

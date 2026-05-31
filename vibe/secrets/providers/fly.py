@@ -139,25 +139,57 @@ class FlySecretsProvider(SecretProvider):
                 "Fly CLI not found. Install from https://fly.io/docs/hands-on/install-flyctl/"
             )
 
-    def sync_from_local(self, env_file: str, environment: str) -> dict[str, bool]:
+    def sync_from_local(
+        self,
+        env_file: str,
+        environment: str,
+        only: list[str] | None = None,
+    ) -> dict[str, bool]:
         """
         Sync secrets from a local env file to Fly.io.
 
-        Returns a dict mapping secret names to success status.
-        """
-        results: dict[str, bool] = {}
+        Pushes the selected keys in a single atomic ``fly secrets import``
+        (one release) rather than one ``fly secrets set`` per key.
 
-        # Parse the env file
+        Args:
+            env_file: Path to the local env file.
+            environment: Unused by Fly (kept for the SecretProvider contract).
+            only: If given, sync only these key names; missing keys are skipped.
+
+        Returns a dict mapping secret names to success status. Because the
+        import is atomic, every synced key shares the same success value.
+        """
         secrets = self._parse_env_file(env_file)
 
-        for name, value in secrets.items():
-            try:
-                success = self.set_secret(name, value, environment)
-                results[name] = success
-            except (subprocess.CalledProcessError, OSError, RuntimeError):
-                results[name] = False
+        if only is not None:
+            selected = set(only)
+            secrets = {k: v for k, v in secrets.items() if k in selected}
 
-        return results
+        if not secrets:
+            return {}
+
+        return self._import_secrets(secrets)
+
+    def _import_secrets(self, secrets: dict[str, str]) -> dict[str, bool]:
+        """
+        Push secrets to Fly atomically via a single ``fly secrets import``.
+
+        Reads ``KEY=value`` pairs from stdin and applies them in one release.
+        """
+        if not self._app_name:
+            raise RuntimeError("App name not configured. Set app_name in provider config.")
+
+        payload = "".join(f"{name}={value}\n" for name, value in secrets.items())
+        cmd = [self._fly_cmd, "secrets", "import", "-a", self._app_name]
+
+        try:
+            result = subprocess.run(cmd, input=payload, capture_output=True, text=True)
+            success = result.returncode == 0
+            return {name: success for name in secrets}
+        except FileNotFoundError:
+            raise RuntimeError(
+                "Fly CLI not found. Install from https://fly.io/docs/hands-on/install-flyctl/"
+            )
 
     def _parse_env_file(self, env_file: str) -> dict[str, str]:
         """Parse a .env file into a dict."""

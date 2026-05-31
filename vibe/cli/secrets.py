@@ -111,12 +111,19 @@ def allowlist_add(pattern: str, reason: str, added_by: str, file: str | None) ->
 @click.argument("env_file", default=".env.local")
 @click.option("--provider", "-p", help="Target provider (github, vercel, fly)")
 @click.option("--environment", "-e", default="production", help="Target environment")
+@click.option("--app", "-a", help="Override the config-resolved app (fly provider only)")
+@click.option(
+    "--only",
+    help="Comma-separated key names to sync (fly provider only); others are skipped",
+)
 @click.option("--dry-run", is_flag=True, help="Show what would be synced")
 @click.option("--interactive", "-i", is_flag=True, help="Interactive mode with provider selection")
 def sync(
     env_file: str,
     provider: str | None,
     environment: str,
+    app: str | None,
+    only: str | None,
     dry_run: bool,
     interactive: bool,
 ) -> None:
@@ -148,6 +155,14 @@ def sync(
             )
             sys.exit(1)
 
+    # --app and --only are fly-specific; reject them for other providers rather
+    # than silently ignoring (they would otherwise have no effect).
+    if (app or only) and provider != "fly":
+        click.echo("Error: --app/--only are only supported for the fly provider.", err=True)
+        sys.exit(1)
+
+    only_keys = [k.strip() for k in only.split(",") if k.strip()] if only else None
+
     # Parse env file
     secrets_to_sync = {}
     with open(env_path) as f:
@@ -159,16 +174,31 @@ def sync(
                 key, value = line.split("=", 1)
                 secrets_to_sync[key.strip()] = value.strip().strip("\"'")
 
+    if only_keys is not None:
+        missing = [k for k in only_keys if k not in secrets_to_sync]
+        if missing:
+            click.echo(f"Warning: keys not found in {env_file}: {', '.join(missing)}", err=True)
+        secrets_to_sync = {k: v for k, v in secrets_to_sync.items() if k in only_keys}
+
     if not secrets_to_sync:
         click.echo(f"No secrets found in {env_file}")
         return
+
+    # Resolve the fly app (flag overrides config) for display and sync.
+    resolved_app = app
+    if provider == "fly" and not resolved_app:
+        config = load_config()
+        resolved_app = config.get("deployment", {}).get("fly", {}).get("app_name")
 
     click.echo(f"Found {len(secrets_to_sync)} secrets to sync:")
     for key in secrets_to_sync:
         click.echo(f"  - {key}")
 
     if dry_run:
-        click.echo(f"\n(dry run - would sync to {provider}/{environment})")
+        if provider == "fly":
+            click.echo(f"\n(dry run - would sync to fly app '{resolved_app}')")
+        else:
+            click.echo(f"\n(dry run - would sync to {provider}/{environment})")
         return
 
     # Instantiate the provider
@@ -191,9 +221,7 @@ def sync(
     elif provider == "fly":
         from vibe.secrets.providers.fly import FlySecretsProvider
 
-        config = load_config()
-        app_name = config.get("deployment", {}).get("fly", {}).get("app_name")
-        prov = FlySecretsProvider(app_name=app_name)
+        prov = FlySecretsProvider(app_name=resolved_app)
     else:
         click.echo(f"Unknown provider: {provider}", err=True)
         sys.exit(1)
@@ -202,7 +230,12 @@ def sync(
         click.echo(f"Not authenticated with {provider}. Check your credentials.", err=True)
         sys.exit(1)
 
-    results = prov.sync_from_local(env_file, environment)
+    from vibe.secrets.providers.fly import FlySecretsProvider
+
+    if isinstance(prov, FlySecretsProvider):
+        results = prov.sync_from_local(env_file, environment, only=only_keys)
+    else:
+        results = prov.sync_from_local(env_file, environment)
     succeeded = sum(1 for v in results.values() if v)
     failed = sum(1 for v in results.values() if not v)
     click.echo(f"\nSynced {succeeded}/{len(results)} secrets to {provider}.")
