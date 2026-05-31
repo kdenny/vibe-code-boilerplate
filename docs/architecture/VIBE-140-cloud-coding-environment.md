@@ -167,7 +167,11 @@ Linear.
 - A **persistent volume** holding the cloned repo + dependency cache — this is
   what makes warm runs cheap (feeds VIBE-185's warm/cold contract).
 - Secrets via `fly secrets`. **Kill switch** = `fly scale count 0` / `fly machine
-  stop`, documented in VIBE-198.
+  stop`. The provisioning skeleton + human steps (app, size, volume, secrets,
+  day-one kill switch + spend cap) live in
+  [`deploy/fly/runner/fly.toml`](../../deploy/fly/runner/fly.toml) +
+  [`docs/operations/fly-runner-runbook.md`](../operations/fly-runner-runbook.md)
+  (VIBE-190); ongoing observability + per-run spend tracking is VIBE-198.
 
 ---
 
@@ -259,7 +263,11 @@ hardening step reveals a faster path, surface it.
   secret store, spend cap, kill switch, and the Linear agent-guidance blocks —
   are operationalized in
   [`docs/operations/cursor-cloud-agents-runbook.md`](../operations/cursor-cloud-agents-runbook.md)
-  (VIBE-187).
+  (VIBE-187). The Fly (Phase-2) provisioning controls — machine, volume,
+  `fly secrets`, the `fly scale count 0` kill switch, and the day-one spend cap —
+  are operationalized in
+  [`docs/operations/fly-runner-runbook.md`](../operations/fly-runner-runbook.md)
+  (VIBE-190), with ongoing tracking deferred to VIBE-198.
 - **Reviewer overload is the binding constraint** (ADR-001): a max in-flight PR
   cap protects the solo reviewer. More PRs than one human can review is negative
   value — VIBE-195 enforces the cap.

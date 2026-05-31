@@ -1,0 +1,61 @@
+# fly.toml — self-hosted Claude Code runner (VIBE-190, Phase 2 of VIBE-140)
+#
+# This is the PROVISIONING skeleton for the headless Claude Code runner: the
+# Fly app identity, machine size, persistent volume, and non-secret config.
+# It is the "technical half" of VIBE-190; the human steps (app/billing/secret
+# creation, kill switch, spend cap) are the "operational half" in
+#   docs/operations/fly-runner-runbook.md
+#
+# SEAMS — what this file intentionally does NOT define:
+#   * The runtime image + process (Dockerfile, entrypoint, the headless
+#     `claude -p` issue→PR loop and its secret CONSUMPTION) is owned by
+#     VIBE-191. The [build]/[processes] blocks below stay commented until then;
+#     `fly deploy` against this file is not expected to work until VIBE-191
+#     lands the image. Provision with `fly launch --no-deploy` / `fly machine`.
+#   * Observability, per-run spend tracking, and alerting automation are owned
+#     by VIBE-198. This file + the runbook document only the day-one kill
+#     switch and hard spend cap that provisioning must guarantee.
+#
+# Secrets are injected out-of-band via `fly secrets set` (see the runbook),
+# never declared here. Nothing in this file is a secret.
+
+app            = "vibe-claude-runner"
+primary_region = "iad"
+
+# Runtime image + process — OWNED BY VIBE-191. Uncomment when the runner image
+# exists. Until then this app is provisioned (app + volume + secrets) but not
+# deployable.
+# [build]
+#   dockerfile = "deploy/fly/runner/Dockerfile"   # VIBE-191
+#
+# [processes]
+#   runner = "bin/cloud-runner"                    # VIBE-191 (headless loop)
+
+# No [http_service]: the runner is a WORKER, not a web service. Its Slack
+# trigger (VIBE-192) uses Socket Mode — an OUTBOUND websocket via
+# SLACK_APP_TOKEN — so no inbound port is exposed. Scale-to-zero when idle is
+# the resting state and the first kill switch (see runbook §6).
+
+# Machine size — start small, sized for ONE Claude Code session + `bin/ci-local`
+# (Node-based CLI + a uv venv + pytest). 256 MB (the generic recipe default) is
+# far too small; 4 GB is the documented starting point. Resize with
+# `fly scale vm` and record the new size in the runbook if it changes.
+[[vm]]
+  size      = "shared-cpu-2x"
+  cpus      = 2
+  cpu_kind  = "shared"
+  memory_mb = 4096
+
+# Persistent volume for the cloned repo + dependency cache. This is what makes
+# warm runs cheap — it feeds the warm/cold bootstrap contract in
+# recipes/environments/cloud-bootstrap.md (VIBE-185). Create it once with:
+#   fly volumes create vibe_runner_data --size 10 --region iad
+[mounts]
+  source      = "vibe_runner_data"
+  destination = "/data"
+
+# Non-secret config only. The escalation/reply-back channel name is config, not
+# a secret (the SLACK_* tokens are; those go through `fly secrets set`). Keep
+# this in sync with .env.example and recipes/integrations/slack.md (VIBE-184).
+[env]
+  SLACK_CHANNEL = "#_vibe-cloud-agents"
