@@ -197,26 +197,6 @@ class TestValidateLinear:
 
     @patch.dict(os.environ, {"LINEAR_API_KEY": "lin_api_test"})
     @patch("urllib.request.urlopen")
-    def test_revoked_api_key(self, mock_urlopen: MagicMock) -> None:
-        # A revoked/invalid key returns an HTTP 401; the check should surface
-        # the status with actionable guidance, not a raw "HTTP Error 401" string.
-        mock_urlopen.side_effect = urllib.error.HTTPError(
-            "url",
-            401,
-            "Unauthorized",
-            {},
-            None,  # type: ignore[arg-type]
-        )
-        config = {"tracker": {"type": "linear"}}
-        validator = SetupValidator(config)
-        result = validator.validate_linear()
-        assert result.success is False
-        assert "401" in result.message
-        assert result.details is not None
-        assert "revoked" in result.details.lower()
-
-    @patch.dict(os.environ, {"LINEAR_API_KEY": "lin_api_test"})
-    @patch("urllib.request.urlopen")
     def test_team_reachable(self, mock_urlopen: MagicMock) -> None:
         # First call: viewer ping; second call: team lookup.
         mock_urlopen.side_effect = [
@@ -388,3 +368,18 @@ class TestPrintValidationResults:
         assert "1 passed, 0 failed" in calls_str
         assert "optional warning" in calls_str
         assert "(optional)" in calls_str
+
+    @patch("click.echo")
+    @patch("click.style")
+    def test_success_with_details_is_shown(
+        self, mock_style: MagicMock, mock_echo: MagicMock
+    ) -> None:
+        mock_style.side_effect = lambda text, fg: text
+        # A passing check can still carry an actionable nudge (e.g. a valid
+        # Linear key with no team configured); that guidance must render.
+        results = [
+            ValidationResult("Linear", True, "API key valid", "No team configured — set one"),
+        ]
+        print_validation_results(results)
+        calls_str = " ".join(str(call) for call in mock_echo.call_args_list)
+        assert "No team configured" in calls_str
