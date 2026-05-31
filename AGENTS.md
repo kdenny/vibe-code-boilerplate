@@ -37,7 +37,7 @@ Canonical bootstrap contract: [`recipes/environments/cloud-bootstrap.md`](recipe
 
 ### Dependency install (preferred)
 
-Python **≥ 3.11** required. Use the pinned lockfile and **uv** when available
+Python **≥ 3.11** required. Use `uv.lock` and **uv** when available
 (this mirrors the `install` step in `.cursor/environment.json`):
 
 ```bash
@@ -45,9 +45,7 @@ Python **≥ 3.11** required. Use the pinned lockfile and **uv** when available
 command -v uv >/dev/null 2>&1 || curl -LsSf https://astral.sh/uv/install.sh | sh
 export PATH="$HOME/.local/bin:$PATH"
 
-test -d .venv || uv venv .venv
-UV_PROJECT_ENVIRONMENT=.venv uv pip sync requirements.lock
-UV_PROJECT_ENVIRONMENT=.venv uv pip install -e . --no-deps
+UV_PROJECT_ENVIRONMENT=.venv uv sync --frozen --group dev --extra pr-autopilot
 export PATH="$PWD/.venv/bin:$PATH"
 git config core.hooksPath .githooks   # activate the pre-push lint/mypy gate
 ```
@@ -60,6 +58,8 @@ even when the venv is not on `PATH`, so a missing-from-`PATH` mypy can no longer
 silently skip — it either runs or warns **loudly**.
 
 Fallback (no uv): `pip install -r requirements.lock` then `pip install -e . --no-deps`.
+The fallback lock is regenerated from the uv dependency graph and exists only for
+non-uv environments; the default workflow is `uv sync` from `uv.lock`.
 
 `bin/vibe` uses its own `.vibe/.venv/`; on Debian/Ubuntu install **`python3.12-venv`** (or matching version) if `bin/vibe doctor` fails creating a venv.
 

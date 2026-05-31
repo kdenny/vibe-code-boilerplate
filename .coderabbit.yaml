@@ -211,11 +211,11 @@ reviews:
         store (e.g. LINEAR_API_KEY + Slack-related keys; explicitly exclude
         ANTHROPIC_API_KEY — Cursor agents run on Cursor's model billing). Its
         install step MUST resolve to
-        the same pinned versions as the local path — install from requirements.lock
-        via uv (pip fallback), never an unpinned `pip install`, and MUST activate
-        the local lint gate (git config core.hooksPath .githooks) so the pre-push
-        hook fires. Flag: any secret or
-        token literal, an install that drifts from requirements.lock /
+        the same pinned versions as the local path — default to `uv sync --frozen`
+        from uv.lock (requirements.lock is the pip fallback), never an unpinned
+        `pip install`, and MUST activate the local lint gate (git config
+        core.hooksPath .githooks) so the pre-push hook fires. Flag: any secret or
+        token literal, an install that drifts from uv.lock / requirements.lock /
         recipes/environments/cloud-bootstrap.md, or anything implying the agent can
         merge or push to main (the token is branch-only; merge is human-gated).
     - path: "AGENTS.md"
@@ -226,8 +226,8 @@ reviews:
         or agent-PR contract must update both in the same PR. Flag drift between
         the two (e.g. a draft/DNM or base-branch rule stated differently), and any
         bootstrap snippet here that diverges from .cursor/environment.json /
-        requirements.lock. Keep it a fast quickstart that defers to CLAUDE.md for
-        the contract, not a second copy of the rules.
+        uv.lock / requirements.lock. Keep it a fast quickstart that defers to
+        CLAUDE.md for the contract, not a second copy of the rules.
     - path: "tests/**"
       instructions: >-
         Require tests at the right level per recipes/testing/modular-testing.md:
@@ -262,24 +262,25 @@ reviews:
     - path: "pyproject.toml"
       instructions: >-
         The dependency source of truth, and part of the cacheable bootstrap
-        contract (VIBE-185, recipes/environments/cloud-bootstrap.md). Any change
-        to [project.dependencies] or [project.optional-dependencies] MUST be
-        matched by a regenerated requirements.lock in the same PR
-        (`uv pip compile pyproject.toml --extra dev --generate-hashes -o
-        requirements.lock`) so the pinned/hashed install stays in sync and the
-        dependency cache key (hash of requirements.lock) is valid. Flag a deps
-        change that doesn't update the lock, and any new dependency that isn't
-        clearly justified. pyproject is also in SHARED_PREFIXES — confirm the PR
-        author expects it to trigger the full test suite.
+        contract (VIBE-85/185, recipes/environments/cloud-bootstrap.md). Any
+        change to [project.dependencies], [project.optional-dependencies], or
+        [dependency-groups] MUST be matched by regenerated uv.lock and
+        requirements.lock in the same PR (`uv lock` plus
+        `uv pip compile pyproject.toml --group dev --all-extras --generate-hashes
+        -o requirements.lock`) so uv sync and the pip fallback stay in sync.
+        Flag a deps change that doesn't update both locks, and any new dependency
+        that isn't clearly justified. pyproject is also in SHARED_PREFIXES —
+        confirm the PR author expects it to trigger the full test suite.
     - path: ".github/workflows/**"
       instructions: >-
         CI must stay fast and local-first. CI is scoped per-module on PRs via
         vibe/testscope.py (full suite on main and shared-file changes); flag
         any change that could let a PR skip tests for a module it actually
         touched. The Python install is the cached, locked uv path (sync from
-        requirements.lock, cache keyed on its hash) with a pip fallback — keep
-        both paths resolving to the same pinned versions; flag a change that
-        breaks the cache key or drops the lock. Flag pinning/permission
+        uv.lock, cache keyed on its hash) with requirements.lock as the pip
+        fallback — keep both paths resolving to the same pinned versions; flag a
+        change that breaks the cache key or drops either lock. Flag
+        pinning/permission
         regressions, secrets in plaintext, and any attempt to make CLI tests in
         CI the primary verification (local live tests are the source of truth).
         Surface any opportunity to make CI faster.

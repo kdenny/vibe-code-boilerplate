@@ -1,4 +1,4 @@
 {
-  "install": "command -v uv >/dev/null 2>&1 || curl -LsSf https://astral.sh/uv/install.sh | sh; export PATH=\"$HOME/.local/bin:$PATH\"; test -d .venv || uv venv .venv; UV_PROJECT_ENVIRONMENT=.venv uv pip sync requirements.lock && UV_PROJECT_ENVIRONMENT=.venv uv pip install -e . --no-deps && git config core.hooksPath .githooks",
+  "install": "command -v uv >/dev/null 2>&1 || curl -LsSf https://astral.sh/uv/install.sh | sh; export PATH=\"$HOME/.local/bin:$PATH\"; UV_PROJECT_ENVIRONMENT=.venv uv sync --frozen --group dev --extra pr-autopilot && git config core.hooksPath .githooks",
   "terminals": []
 }

@@ -147,7 +147,7 @@ automatically — in these cases, and you should reach for an unscoped
 
 - **Push to `main`** — the release backstop always runs everything (workflow).
 - **A shared/contract file changed** — exactly the `SHARED_PREFIXES` list
-  (`pyproject.toml`, `requirements.lock`'s closure via it, `vibe/config.py`,
+  (`pyproject.toml`, the lockfile closures via it, `vibe/config.py`,
   `vibe/config_schema.py`, `vibe/env.py`, `vibe/utils/`, `vibe/testscope.py`, the workflow). Their
   blast radius is the whole package, so `testscope.py` returns `ALL` and
   `--scope` expands to the full run on its own.

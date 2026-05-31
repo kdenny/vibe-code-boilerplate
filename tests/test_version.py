@@ -24,6 +24,9 @@ class TestBumpVersion:
     def test_minor_resets_patch(self):
         assert bump_version("1.2.3", "minor") == "1.3.0"
 
+    def test_major_resets_minor_and_patch(self):
+        assert bump_version("1.2.3", "major") == "2.0.0"
+
     def test_patch_increment(self):
         assert bump_version("1.2.3", "patch") == "1.2.4"
 
@@ -32,3 +35,11 @@ class TestBumpVersion:
 
     def test_minor_double_digit(self):
         assert bump_version("1.9.9", "minor") == "1.10.0"
+
+    def test_rejects_unknown_bump_type(self):
+        try:
+            bump_version("1.2.3", "build")
+        except ValueError as exc:
+            assert "Invalid bump type" in str(exc)
+        else:
+            raise AssertionError("expected invalid bump type to fail")

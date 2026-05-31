@@ -10,7 +10,7 @@ in [`ADR-001`](../../docs/decisions/ADR-001-cloud-coding-agent-selection.md)).
 
 | Phase | What it means | Target | What pays for it |
 |-------|---------------|--------|------------------|
-| **Cold** | Fresh clone, empty dep cache → deps installed → `bin/ci-local` green | **< 60s** | pinned `requirements.lock` + uv |
+| **Cold** | Fresh clone, empty dep cache → deps installed → `bin/ci-local` green | **< 60s** | pinned `uv.lock` + uv |
 | **Warm** | Dep cache restored (volume / CI cache) → scoped `bin/ci-local --scope` green | **< 10s** | restored uv cache + module-scoped pytest |
 
 "Warm" is the steady state of an agent loop: the dependency cache is already on
@@ -19,17 +19,17 @@ test run for the files the agent just touched.
 
 ## The two levers
 
-### 1. Pinned, cacheable install — `requirements.lock`
+### 1. Pinned, cacheable install — `uv.lock`
 
-`requirements.lock` is the fully-pinned, hash-locked closure of the runtime +
-`dev` dependencies, generated from `pyproject.toml`. It is the single artifact
-the dependency cache is keyed on, and **both uv and pip install from it
-identically** — so the fast path and the fallback resolve to the same versions.
+`uv.lock` is the fully-pinned project lock generated from `pyproject.toml`,
+including dependency groups and optional extras. It is the single artifact the
+default dependency cache is keyed on. `requirements.lock` is regenerated from the
+same graph only for non-uv fallback environments, so both paths resolve to the
+same versions.
 
 ```bash
-# Fast path (preferred): uv, hash-verified
-uv pip sync requirements.lock          # exact locked closure
-uv pip install -e . --no-deps          # + the editable project (deps already locked)
+# Fast path (preferred): uv, frozen project sync
+UV_PROJECT_ENVIRONMENT=.venv uv sync --frozen --group dev --extra pr-autopilot
 
 # Fallback (no uv): plain pip, same lock, same hashes
 pip install -r requirements.lock
@@ -40,7 +40,8 @@ Regenerate the lock whenever you change dependencies in `pyproject.toml`
 (this is a contract change — it forces the full test suite, see below):
 
 ```bash
-uv pip compile pyproject.toml --extra dev --generate-hashes -o requirements.lock
+uv lock
+uv pip compile pyproject.toml --group dev --all-extras --generate-hashes -o requirements.lock
 ```
 
 ### 2. Module-scoped validation — `bin/ci-local --scope`
@@ -56,11 +57,11 @@ for the selection rules and when a full-tree run is still required.
 Restore/save the dependency cache on this key:
 
 ```text
-hash(requirements.lock) + python-version + runner-os
+hash(uv.lock) + python-version + runner-os
 ```
 
 - **GitHub Actions:** handled by `astral-sh/setup-uv` with `enable-cache: true`
-  and `cache-dependency-glob: requirements.lock` (it also folds in the uv
+  and `cache-dependency-glob: uv.lock` (it also folds in the uv
   version and runner OS). When the lock is unchanged, the install is a cache
   restore, not a download.
 - **Cloud runner (Fly volume / Cursor cache):** persist uv's cache directory
@@ -69,7 +70,7 @@ hash(requirements.lock) + python-version + runner-os
   it and triggers one cold re-download.
 
 The key is deliberately the lock **content hash**, not a timestamp or branch:
-two checkouts with the same `requirements.lock` share a cache, and the only
+two checkouts with the same `uv.lock` share a cache, and the only
 thing that busts it is an actual dependency change.
 
 ## Measured baseline (record per-PR; these are the VIBE-185 numbers)

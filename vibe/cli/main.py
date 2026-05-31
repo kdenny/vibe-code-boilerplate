@@ -123,9 +123,9 @@ def version_cmd() -> None:
 
 
 @main.command()
-@click.argument("bump_type", type=click.Choice(["patch", "minor"]))
+@click.argument("bump_type", type=click.Choice(["patch", "minor", "major"]))
 def bump(bump_type: str) -> None:
-    """Bump the project version (patch or minor)."""
+    """Bump the project version (patch, minor, or major)."""
     current = get_version()
     new = bump_version(current, bump_type)
     write_version(new)

@@ -168,12 +168,13 @@ its rewrite.
 | `python -m vibe.testscope <paths>` | Prints exactly which suites CI will run (`ALL` / paths / empty). |
 | `bin/<cli> --help` + live smoke test | CLI behavior proof (live runs only). |
 
-Minimal bootstrap: Python ≥3.11, then install the pinned, cacheable closure —
-`uv pip sync requirements.lock && uv pip install -e . --no-deps` (or, without uv,
-`pip install -r requirements.lock && pip install -e . --no-deps`). No service
-account or network beyond the package index needed to validate a change locally.
-Regenerate the lock after a `pyproject.toml` deps change:
-`uv pip compile pyproject.toml --extra dev --generate-hashes -o requirements.lock`.
+Minimal bootstrap: Python ≥3.11, then install the pinned, cacheable uv project —
+`UV_PROJECT_ENVIRONMENT=.venv uv sync --frozen --group dev --extra pr-autopilot`
+(or, without uv, `pip install -r requirements.lock && pip install -e . --no-deps`
+from the fallback lock). No service account or network beyond the package index
+needed to validate a change locally. Regenerate locks after a `pyproject.toml`
+dependency change:
+`uv lock && uv pip compile pyproject.toml --group dev --all-extras --generate-hashes -o requirements.lock`.
 
 ---
 

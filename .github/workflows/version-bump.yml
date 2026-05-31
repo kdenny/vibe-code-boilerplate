@@ -1,9 +1,17 @@
 name: Version Bump
 
 on:
-  pull_request:
-    types: [closed]
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Semver bump to apply when version is omitted"
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+      version:
+        description: "Exact version to write (optional, e.g. 0.1.0)"
+        required: false
+        type: string
 
 concurrency:
   group: version-bump
@@ -14,7 +22,6 @@ permissions:
 
 jobs:
   bump:
-    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -23,34 +30,38 @@ jobs:
           ref: main
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Determine bump type
-        id: bump
-        env:
-          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
-        run: |
-          if echo "$LABELS" | grep -q '"Bug"'; then
-            echo "type=patch" >> "$GITHUB_OUTPUT"
-          elif echo "$LABELS" | grep -qE '"Feature"|"Chore"|"Refactor"'; then
-            echo "type=minor" >> "$GITHUB_OUTPUT"
-          else
-            echo "type=patch" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Bump version
         env:
-          BUMP_TYPE: ${{ steps.bump.outputs.type }}
+          BUMP_TYPE: ${{ inputs.bump }}
+          EXACT_VERSION: ${{ inputs.version }}
         run: |
           CURRENT=$(cat VERSION)
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
-          if [ "$BUMP_TYPE" = "minor" ]; then
-            MINOR=$((MINOR + 1))
-            PATCH=0
+          if [ -n "$EXACT_VERSION" ]; then
+            NEW="$EXACT_VERSION"
           else
-            PATCH=$((PATCH + 1))
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+            if [ "$BUMP_TYPE" = "major" ]; then
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+            elif [ "$BUMP_TYPE" = "minor" ]; then
+              MINOR=$((MINOR + 1))
+              PATCH=0
+            else
+              PATCH=$((PATCH + 1))
+            fi
+            NEW="$MAJOR.$MINOR.$PATCH"
           fi
-          NEW="$MAJOR.$MINOR.$PATCH"
+          python - <<'PY' "$NEW"
+          import re
+          import sys
+
+          version = sys.argv[1]
+          if not re.fullmatch(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)", version):
+              raise SystemExit(f"Invalid version: {version}")
+          PY
           echo "$NEW" > VERSION
-          echo "Bumped $CURRENT → $NEW ($BUMP_TYPE)"
+          echo "Bumped $CURRENT -> $NEW"
 
       - name: Commit and push
         run: |
