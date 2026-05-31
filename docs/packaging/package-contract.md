@@ -194,8 +194,12 @@ integration = Integration(
     name="pr_autopilot",
     config_cls=PRAutopilotConfig,         # typed config schema (§3.1)
     verbs=[                               # CLI verbs (§5)
+        verb("configure", handler=configure_handler, requires_extra=False),
+        verb("status", handler=status_handler, requires_extra=False),
+        verb("inspect", handler=inspect_handler, requires_extra=False),
+        verb("enable", handler=enable_handler, requires_extra=False),
+        verb("disable", handler=disable_handler, requires_extra=False),
         verb("run", handler=run_handler, help="Run the PR autopilot loop"),
-        verb("status", handler=status_handler, help="Show drift vs. desired state"),
     ],
     extra="pr-autopilot",                 # the optional-dependency extra (§6)
     check=reconcile,                      # desired-state → reality, feeds `vibe status`
@@ -213,6 +217,9 @@ integration = Integration(
 - **`extra_module` (implementation detail)** names the importable runtime module
   used to prove the optional dependency is actually available. The PR Autopilot
   skeleton uses `vibe_pr_autopilot` until VIBE-128 supplies the real engine.
+- **`requires_extra=False` (implementation detail)** lets pre-engine operator
+  verbs (`configure`, `status`, `inspect`, `enable`, `disable`) run in bare core
+  while engine verbs such as `run` keep the default extra gate.
 - **One-way coupling.** The integration imports `Integration`/`verb` from core; core
   never imports the integration module by name. Discovery is the only edge.
 
@@ -334,11 +341,11 @@ the full surface of `vibe[pr-autopilot]` stated only in this contract's terms:
 
 - **Install:** `uv pip install 'vibe[pr-autopilot]'`.
 - **Import:** `from vibe.integrations.pr_autopilot import integration, PRAutopilotConfig`.
-- **Config (injected):** `PRAutopilotConfig(github_owner=…, linear_team=…,
-  anthropic_api_key=…)` — or loaded from `.vibe/pr_autopilot.toml` (presence =
+- **Config (injected):** `PRAutopilotConfig(github_owner=..., linear_team=...,
+  anthropic_api_key=...)` — or loaded from `.vibe/pr-autopilot.toml` (presence =
   enabled) with `anthropic_api_key = "gh:ANTHROPIC_API_KEY"`.
-- **CLI:** `vibe pr-autopilot run`, `vibe pr-autopilot status`, surfaced under
-  `vibe status`.
+- **CLI:** `vibe pr-autopilot configure`, `status`, `inspect`, `enable`,
+  `disable`, and engine-gated `run`; status is also surfaced under `vibe status`.
 - **Missing extra:** bare `vibe pr-autopilot run` →
   `MissingExtraError: install 'vibe[pr-autopilot]'`.
 - **No LIFT/DEAL import** anywhere in the surface above. The engine (VIBE-128) lands

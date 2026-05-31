@@ -259,7 +259,7 @@ to *not* be a big-bang. Steps are independent unless noted.
 | 5 | **Cover the next seams** | add `wizards.setup ↔ *` and `cli ↔ trackers` integration suites | each seam runs real collaborators, boundary-only mocks | ⏭️ |
 | 6 | **Fix the worktree/state base_path asymmetry** (F5) | thread `base_path` through `cleanup_worktree` | a cleanup-from-elsewhere integration test passes | ⏭️ |
 | 7 | **Per-module test re-leveling** | apply the thinning targets from the VIBE-137 audit *as each module is rewritten* | per `modular-testing.md`; no separate gutting PR | ⏭️ ongoing |
-| 8 | **Integration registration seam** | `lib/vibe/cli/registry.py`, `lib/vibe/integrations/`, packaging docs, guardrail tests | integration declares config/verbs/entrypoints/extra; missing extra is actionable; app-code imports fail guardrail | ✅ VIBE-86 |
+| 8 | **Integration registration seam** | `lib/vibe/cli/registry.py`, `lib/vibe/integrations/`, packaging docs, guardrail tests | integration declares config/verbs/entrypoints/extra; missing extra is actionable; app-code imports fail guardrail | ✅ VIBE-86; VIBE-179 extends this with pre-engine configure/status verbs |
 | — | **Module extraction → package** | provider packages first; PR Autopilot engine lands behind the VIBE-86 seam | owned by **VIBE-128/VIBE-85 follow-ups**, not this structural plan | 🔗 |
 
 > **Non-destructive discipline:** no step relocates working code without a test
@@ -280,9 +280,11 @@ install. The structure choices above are chosen to move toward that:
    that run in isolation *and* prove its seams, so DEAL can trust it.
 3. **Validation contract (§3)** → `bin/ci-local` + module-scoped CI is the
    reusable "does this change pass?" gate the autopilot leans on.
-4. **VIBE-86 integration seam** → the live registry, reference
-   `pr_autopilot` skeleton, extra-gated CLI dispatch, and app-code import
-   guardrail give VIBE-128 a package boundary to plug into.
+4. **VIBE-86 integration seam + VIBE-179 configuration DX** → the live registry,
+   reference `pr_autopilot` skeleton, extra-gated engine dispatch,
+   pre-engine configure/status/inspect/enable/disable verbs, layered `.vibe/`
+   TOML artifacts, and app-code import guardrail give VIBE-128 a package boundary
+   and operator-facing desired-state contract to plug into.
 
 The packaging spec and milestone live in VIBE-83/88 and the
 [packaged-vibe publish milestone](https://linear.app/2wrist/issue/VIBE-83). This

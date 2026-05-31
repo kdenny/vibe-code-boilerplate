@@ -54,6 +54,30 @@ def test_missing_extra_is_actionable_cli_error() -> None:
     assert "Traceback" not in result.output
 
 
+def test_integration_verb_can_skip_extra_gate() -> None:
+    root = click.Group()
+    integration = Integration(
+        name="pr_autopilot",
+        config_cls=SampleConfig,
+        verbs=(
+            verb(
+                "status",
+                handler=lambda: "prototype status",
+                help="Show prototype status",
+                requires_extra=False,
+            ),
+        ),
+        extra="pr-autopilot",
+        extra_module="definitely_missing_vibe_pr_autopilot_extra",
+    )
+    register_integration_commands(root, [integration])
+
+    result = CliRunner().invoke(root, ["pr-autopilot", "status"])
+
+    assert result.exit_code == 0
+    assert result.output.strip() == "prototype status"
+
+
 def test_registry_rejects_core_verb_shadowing() -> None:
     registry = IntegrationRegistry()
     integration = Integration(

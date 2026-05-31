@@ -30,7 +30,15 @@ class ExampleConfig:
 integration = Integration(
     name="example",
     config_cls=ExampleConfig,
-    verbs=(verb("status", handler=status_handler, help="Show example status"),),
+    verbs=(
+        verb(
+            "status",
+            handler=status_handler,
+            help="Show example status",
+            requires_extra=False,
+        ),
+        verb("run", handler=run_handler, help="Run the packaged engine"),
+    ),
     extra="example",
     extra_module="vibe_example",
     check=status_handler,
@@ -42,6 +50,9 @@ __all__ = ["ExampleConfig", "integration"]
 
 - `config_cls` is the typed config schema consumed by core and downstream callers.
 - `verbs` declares the `vibe <integration> <verb>` CLI surface.
+- `verb(..., requires_extra=False)` is for configuration/status/inspect verbs
+  that must work before the packaged engine extra is installed. Engine verbs keep
+  the default extra gate.
 - `entrypoints` names callable engine hooks for embedded use.
 - `extra` names the install extra shown to users.
 - `extra_module` is the importable module that proves the extra's runtime
@@ -56,6 +67,10 @@ parses integration imports and fails if a deliberate app-code import is added.
 
 ## Reference consumer
 
-`lib.vibe.integrations.pr_autopilot` is the reference skeleton for VIBE-128. It
-exports `PRAutopilotConfig` and `integration`, declares `run` / `status` verbs,
-and is gated by the `pr-autopilot` extra until the real engine package lands.
+`lib.vibe.integrations.pr_autopilot` is the reference skeleton for VIBE-128 and
+the VIBE-179 Claude Code configuration-DX prototype. It exports
+`PRAutopilotConfig` and `integration`, declares prototype
+`configure` / `status` / `inspect` / `enable` / `disable` verbs that work without
+the engine extra, and keeps `run` gated by the `pr-autopilot` extra until the real
+engine package lands. The reusable DX conventions live in
+[`docs/packaging/integration-dx.md`](integration-dx.md).

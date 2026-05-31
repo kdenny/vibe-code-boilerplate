@@ -6,6 +6,13 @@ from dataclasses import dataclass
 
 from lib.vibe.cli import Integration, verb
 from lib.vibe.errors import IntegrationError
+from lib.vibe.integrations.pr_autopilot.prototype import (
+    configure_pr_autopilot,
+    disable_pr_autopilot,
+    enable_pr_autopilot,
+    format_pr_autopilot_status,
+    inspect_pr_autopilot,
+)
 
 
 @dataclass(frozen=True)
@@ -26,14 +33,50 @@ integration = Integration(
     name="pr_autopilot",
     config_cls=PRAutopilotConfig,
     verbs=(
+        verb(
+            "configure",
+            handler=configure_pr_autopilot,
+            help="Configure the prototype PR Autopilot integration",
+            requires_extra=False,
+        ),
+        verb(
+            "enable",
+            handler=enable_pr_autopilot,
+            help="Enable the prototype PR Autopilot integration",
+            requires_extra=False,
+        ),
+        verb(
+            "disable",
+            handler=disable_pr_autopilot,
+            help="Disable the prototype PR Autopilot integration",
+            requires_extra=False,
+        ),
         verb("run", handler=_engine_not_installed, help="Run the PR Autopilot loop"),
-        verb("status", handler=_engine_not_installed, help="Show PR Autopilot status"),
+        verb(
+            "status",
+            handler=format_pr_autopilot_status,
+            help="Show PR Autopilot prototype status",
+            requires_extra=False,
+        ),
+        verb(
+            "inspect",
+            handler=inspect_pr_autopilot,
+            help="Inspect the reviewable PR Autopilot artifacts",
+            requires_extra=False,
+        ),
     ),
     extra="pr-autopilot",
     extra_module="vibe_pr_autopilot",
     check=_engine_not_installed,
     description="Package seam for the PR Autopilot engine.",
-    entrypoints={"run": _engine_not_installed, "status": _engine_not_installed},
+    entrypoints={
+        "configure": configure_pr_autopilot,
+        "enable": enable_pr_autopilot,
+        "disable": disable_pr_autopilot,
+        "run": _engine_not_installed,
+        "status": format_pr_autopilot_status,
+        "inspect": inspect_pr_autopilot,
+    },
 )
 
 __all__ = ["PRAutopilotConfig", "integration"]

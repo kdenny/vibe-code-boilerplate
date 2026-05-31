@@ -26,6 +26,7 @@ class IntegrationVerb:
     name: str
     handler: Callable[..., Any]
     help: str = ""
+    requires_extra: bool = True
 
     @property
     def cli_name(self) -> str:
@@ -62,10 +63,21 @@ class Integration:
             raise MissingExtraError(self.cli_name, self.extra)
 
 
-def verb(name: str, handler: Callable[..., Any], help: str = "") -> IntegrationVerb:
+def verb(
+    name: str,
+    handler: Callable[..., Any],
+    help: str = "",
+    *,
+    requires_extra: bool = True,
+) -> IntegrationVerb:
     """Declare one CLI verb for an integration."""
 
-    return IntegrationVerb(name=name, handler=handler, help=help)
+    return IntegrationVerb(
+        name=name,
+        handler=handler,
+        help=help,
+        requires_extra=requires_extra,
+    )
 
 
 class IntegrationRegistry:

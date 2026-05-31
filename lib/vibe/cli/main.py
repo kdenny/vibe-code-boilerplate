@@ -105,7 +105,8 @@ def _integration_command(
     @click.command(name=integration_verb.cli_name, help=integration_verb.help)
     def command() -> None:
         try:
-            integration.ensure_extra_available()
+            if integration_verb.requires_extra:
+                integration.ensure_extra_available()
             result = integration_verb.handler()
         except (MissingExtraError, IntegrationError) as exc:
             raise click.ClickException(str(exc)) from exc
@@ -302,6 +303,31 @@ def doctor(verbose: bool, live: bool) -> None:
     """
     results = run_doctor(verbose=verbose, live_checks=live)
     sys.exit(print_results(results))
+
+
+@main.command("status")
+def status_cmd() -> None:
+    """Show configured Vibe integrations and drift status."""
+
+    integrations = get_registry().all()
+    status_outputs: list[str] = []
+    for integration in integrations:
+        for integration_verb in integration.verbs:
+            if integration_verb.name != "status" or integration_verb.requires_extra:
+                continue
+            try:
+                result = integration_verb.handler()
+            except (MissingExtraError, IntegrationError) as exc:
+                result = f"{integration.cli_name}: {exc}"
+            if result is not None:
+                status_outputs.append(str(result))
+            break
+
+    if not status_outputs:
+        click.echo("No configured Vibe integrations found.")
+        return
+
+    click.echo("\n\n".join(status_outputs))
 
 
 @main.command("sync-labels")
