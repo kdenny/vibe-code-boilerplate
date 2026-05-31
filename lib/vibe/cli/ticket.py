@@ -619,6 +619,85 @@ def _interactive_create() -> tuple[str, str, list[str]]:
 
 HUMAN_FOLLOWUP_LABELS = ["Chore", "Infra", "HUMAN"]
 
+# Labels every auto-filed tooling-fault ticket carries (see file-tooling-issue).
+TOOLING_ISSUE_LABELS = ["Bug", "DX"]
+
+_TERMINAL_STATES = {"Done", "Canceled", "Deployed", "Closed", "Cancelled"}
+
+
+def _find_existing_open_ticket(
+    tracker,
+    title: str,
+    labels: list[str] | None = None,
+    terminal_states: set[str] | None = None,
+) -> Ticket | None:
+    """Return the first open (non-terminal) ticket matching ``title``, or None.
+
+    Optionally scopes the search to ``labels``. Returns ``None`` (proceed to
+    create) on any tracker error — never raises.
+    """
+    states = terminal_states or _TERMINAL_STATES
+    try:
+        existing: list[Ticket] = tracker.list_tickets(labels=labels, limit=100)
+    except (requests.RequestException, RuntimeError):
+        return None
+    for ticket in existing:
+        if ticket.title == title and getattr(ticket, "status", "") not in states:
+            return ticket
+    return None
+
+
+def _find_existing_tooling_ticket(tracker, title: str, signature: str) -> Ticket | None:
+    """Find an open DX ticket for the same fault, by title or embedded signature.
+
+    The signature match (a ``vibe-fault-signature`` marker in the description)
+    catches re-files where the summary wording drifted but the underlying fault
+    is the same. Returns ``None`` on tracker error.
+    """
+    try:
+        existing: list[Ticket] = tracker.list_tickets(labels=["DX"], limit=100)
+    except (requests.RequestException, RuntimeError):
+        return None
+    marker = f"vibe-fault-signature: {signature}"
+    for ticket in existing:
+        if getattr(ticket, "status", "") in _TERMINAL_STATES:
+            continue
+        if ticket.title == title:
+            return ticket
+        if signature and marker in (getattr(ticket, "description", "") or ""):
+            return ticket
+    return None
+
+
+def _wire_relations(
+    tracker,
+    ticket_id: str,
+    blocked_by: tuple,
+    blocks: tuple,
+    relates_to: tuple,
+) -> None:
+    """Wire blocking / relates-to edges, echoing each result. Best-effort."""
+    if not hasattr(tracker, "create_relation"):
+        return
+    for blocker_id in blocked_by:
+        try:
+            tracker.create_relation(blocker_id, ticket_id, "blocks")
+            click.echo(f"  ✓ {blocker_id} blocks {ticket_id}")
+        except RuntimeError as e:
+            click.echo(f"  ✗ Failed to create relation: {e}", err=True)
+    for blocked_id in blocks:
+        try:
+            tracker.create_relation(ticket_id, blocked_id, "blocks")
+            click.echo(f"  ✓ {ticket_id} blocks {blocked_id}")
+        except RuntimeError as e:
+            click.echo(f"  ✗ Failed to create relation: {e}", err=True)
+    for related_id in relates_to:
+        try:
+            tracker.add_relation(ticket_id, related_id, "related")
+            click.echo(f"  ✓ {ticket_id} relates to {related_id}")
+        except (RuntimeError, NotImplementedError) as e:
+            click.echo(f"  ✗ Failed to create relation: {e}", err=True)
+
 
 @main.command("create-human-followup")
 @click.option(
@@ -681,21 +760,13 @@ def create_human_followup(
 
     tracker = ensure_tracker_configured()
 
-    # Deduplication: check if an open ticket with the same title already exists
-    terminal_states = {"Done", "Canceled", "Deployed", "Closed", "Cancelled"}
-    try:
-        existing_tickets = tracker.list_tickets(labels=["HUMAN"], limit=100)
-        for existing in existing_tickets:
-            if existing.title == title and getattr(existing, "status", "") not in terminal_states:
-                click.echo(f"HUMAN follow-up ticket already exists: {existing.id}")
-                click.echo(f"URL: {existing.url}")
-                click.echo("Skipping duplicate creation.")
-                return
-    except (requests.RequestException, RuntimeError):
-        click.echo(
-            "Warning: could not check for existing tickets, proceeding with creation.",
-            err=True,
-        )
+    # Deduplication: skip if an open ticket with the same title already exists.
+    existing = _find_existing_open_ticket(tracker, title, labels=["HUMAN"])
+    if existing:
+        click.echo(f"HUMAN follow-up ticket already exists: {existing.id}")
+        click.echo(f"URL: {existing.url}")
+        click.echo("Skipping duplicate creation.")
+        return
 
     try:
         ticket = tracker.create_ticket(
@@ -711,6 +782,113 @@ def create_human_followup(
     except RuntimeError as e:
         click.echo(str(e), err=True)
         sys.exit(1)
+
+
+@main.command("file-tooling-issue")
+@click.option(
+    "--cli",
+    "cli_name",
+    required=True,
+    help="The VIBE CLI/module at fault (e.g. bin/ticket, lib.vibe.cli.ticket)",
+)
+@click.option("--summary", required=True, help="One-line description of the fault")
+@click.option("--detail", default="", help="Longer explanation (observed vs expected)")
+@click.option("--repro", default="", help="Repro steps / the command(s) that trigger it")
+@click.option(
+    "--signature",
+    default="",
+    help="Stable dedup signature (auto-derived from --summary if omitted)",
+)
+@click.option("--area", default="Backend", help="Area label to add (default: Backend)")
+@click.option("--blocked-by", multiple=True, help="Ticket IDs that block this ticket")
+@click.option("--blocks", multiple=True, help="Ticket IDs that this ticket blocks")
+@click.option("--relates-to", multiple=True, help="Ticket IDs this ticket relates to")
+@click.option("--dry-run", is_flag=True, help="Print what would be filed; do not create")
+def file_tooling_issue(
+    cli_name: str,
+    summary: str,
+    detail: str,
+    repro: str,
+    signature: str,
+    area: str,
+    blocked_by: tuple,
+    blocks: tuple,
+    relates_to: tuple,
+    dry_run: bool,
+) -> None:
+    """File (or de-dup onto) an Urgent DX ticket for a VIBE tooling fault.
+
+    Executes the ``agent_instructions/CLI.md`` "CLI's-fault" doctrine as one
+    command: deterministic title, ``Bug`` + ``DX`` labels at Urgent priority, a
+    normalized-signature duplicate guard, and optional dependency wiring. The
+    companion PostToolUse hook calls this automatically when a VIBE CLI emits
+    the ``VIBE_TOOLING_FAULT`` marker, so papercuts get filed without the agent
+    having to remember the steps.
+    """
+    from lib.vibe.cli.errors import normalize_signature
+
+    sig = normalize_signature(signature or summary)
+    title = f"[DX] {cli_name}: {summary}"
+    labels = [*TOOLING_ISSUE_LABELS]
+    if area and area not in labels:
+        labels.append(area)
+
+    body_lines = [
+        "## Tooling fault (auto-filed)",
+        "",
+        f"**CLI/module:** `{cli_name}`",
+        f"**Summary:** {summary}",
+    ]
+    if detail:
+        body_lines += ["", "### Detail", detail]
+    if repro:
+        body_lines += ["", "### Repro", "```", repro, "```"]
+    body_lines += [
+        "",
+        f"<!-- vibe-fault-signature: {sig} -->",
+        "_Filed per `agent_instructions/CLI.md` (CLI's-fault doctrine) via "
+        "`bin/ticket file-tooling-issue`._",
+    ]
+    body = "\n".join(body_lines)
+
+    if dry_run:
+        click.echo("[dry-run] Would file Urgent tooling-fault ticket:")
+        click.echo(f"  Title:     {title}")
+        click.echo(f"  Labels:    {', '.join(labels)} (priority: urgent)")
+        click.echo(f"  Signature: {sig}")
+        return
+
+    tracker = ensure_tracker_configured()
+
+    # Duplicate guard: same title, or matching signature, among open DX tickets.
+    existing = _find_existing_tooling_ticket(tracker, title, sig)
+    if existing:
+        click.echo(f"Tooling-fault ticket already open: {existing.id}")
+        click.echo(f"URL: {existing.url}")
+        if hasattr(tracker, "comment_ticket"):
+            try:
+                tracker.comment_ticket(existing.id, "Seen again — auto-filed duplicate suppressed.")
+            except (RuntimeError, NotImplementedError):
+                pass
+        click.echo("Skipping duplicate creation.")
+        return
+
+    try:
+        ticket = tracker.create_ticket(
+            title=title,
+            description=body,
+            labels=labels,
+            priority="urgent",
+        )
+    except (NotImplementedError, RuntimeError) as e:
+        click.echo(str(e), err=True)
+        sys.exit(1)
+
+    click.echo(f"Filed tooling-fault ticket: {ticket.id}")
+    click.echo(f"URL: {ticket.url}")
+    if blocked_by or blocks or relates_to:
+        click.echo()
+        _wire_relations(tracker, ticket.id, blocked_by, blocks, relates_to)
 
 
 @main.command()
@@ -1514,4 +1692,6 @@ def print_ticket_summary(ticket: Ticket) -> None:
 
 
 if __name__ == "__main__":
-    main()
+    from lib.vibe.cli.errors import run_cli
+
+    run_cli(main, "lib.vibe.cli.ticket")

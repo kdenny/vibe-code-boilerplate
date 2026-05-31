@@ -23,6 +23,17 @@
             "async": true
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/file-tooling-fault.sh",
+            "statusMessage": "Checking for VIBE tooling faults...",
+            "async": true
+          }
+        ]
       }
     ]
   }
