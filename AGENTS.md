@@ -98,6 +98,26 @@ Live tracker/API flows need credentials in `.env.local` (gitignored); not requir
 
 Same tools as `bin/ci-local`: `ruff check .`, `ruff format . --check`, `mypy vibe/`, `pytest`. See [`CLAUDE.md`](CLAUDE.md) validation contract table.
 
+### Shell command hygiene (avoid the cascading-failure trap)
+
+`grep` exits **1 when it finds nothing** — that's "no match," not an error — and
+`cmd 2>/dev/null && …` keeps going after a silently-failed command. Inside an
+`&&` chain that non-zero exit **aborts the rest of the chain**, and because the
+harness runs sibling Bash calls as a **parallel batch, one aborted command cancels
+every other call in the turn** (`Cancelled: parallel tool call … errored`). One
+empty `grep` can throw away a whole turn of exploration.
+
+- Don't put `grep` / `test` / `cd …` in an `&&` chain when a no-match or missing
+  path is a normal outcome. Separate with `;`, append `|| true`, or add an
+  `|| echo …` fallback so the failure path is handled.
+- When `grep` is filtering *for display*, end the command at the grep — don't
+  chain more `&&` steps after it.
+- Don't batch fragile exploratory commands as parallel siblings; run anything that
+  may legitimately exit non-zero as its **own** call so it can't cancel the others.
+
+The local `guard-bash-and-chains` hookify rule warns on this pattern (an `||`
+fallback in the command suppresses the warning).
+
 ### When the VIBE tooling itself breaks
 
 If one of **our** CLIs (`bin/*`, `vibe/`) misbehaves — silent failure, confusing error, missing flag, wrong output — file it, don't work around it silently:
