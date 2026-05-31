@@ -92,7 +92,7 @@ direnv allow            # one-time, in the project root
 pip install -e ".[dev]" # into the direnv-managed venv
 ```
 
-direnv is optional — without it, `bin/*` and `lib/vibe/env.py` still load
+direnv is optional — without it, `bin/*` and `vibe/env.py` still load
 `.env.local` on their own; you just run commands via the `bin/` prefix and
 manage your own virtualenv. `bin/vibe doctor` reports direnv status either way.
 
@@ -106,7 +106,7 @@ pip install -e ".[dev]"
 pytest
 
 # Run with coverage
-pytest --cov=lib/vibe
+pytest --cov=vibe
 ```
 
 ### Code Style
@@ -123,7 +123,7 @@ ruff check .
 ruff format .
 
 # Type check
-mypy lib/vibe
+mypy vibe
 ```
 
 ## Project Structure
@@ -131,7 +131,7 @@ mypy lib/vibe
 ```
 .
 ├── bin/           # CLI scripts
-├── lib/vibe/      # Python library
+├── vibe/      # Python library
 │   ├── cli/       # Click commands
 │   ├── trackers/  # Linear, Shortcut integrations
 │   ├── git/       # Git operations

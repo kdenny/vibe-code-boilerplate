@@ -79,17 +79,15 @@ the rubric warns about. **Fix:** add wall→{84,85,86,87,88,89} blocking edges (
 below). This is the main thing standing between the current board and a clean wall.
 
 ### F2 — ✅ Missing "scaffold the package" ticket → filed **VIBE-182**
-No existing ticket owns making `import vibe` / `python -m vibe` actually work.
-Verified against the repo:
-- `import lib.vibe` works; **`import vibe` raises `ModuleNotFoundError`**.
-- No top-level `vibe/` package; code lives in `lib/vibe/`.
-- `pyproject.toml`: console script `vibe = "lib.vibe.cli.main:main"`, `packages.find`
-  includes `lib*` — the built dist exposes `lib`, not `vibe`.
+Resolved by VIBE-182: the repo now has a top-level `vibe/` package,
+`python -m vibe`, `vibe = "vibe.cli.main:main"`, and `packages.find` includes
+`vibe*`.
 
-VIBE-84 is a *spec* (ships no code); VIBE-85 is *build/release config* and only lists
-"import package `vibe`" as metadata; VIBE-86 is the *integration seam*. The concrete
-code-move (`lib/vibe/` → `vibe/`, fix imports, console entry) — which is also entangled
-with VIBE-174's restructure — was unowned. **Action taken:** created
+Before VIBE-182, VIBE-84 was a *spec* (ships no code); VIBE-85 was
+*build/release config* and only listed "import package `vibe`" as metadata; and
+VIBE-86 was the *integration seam*. The concrete code-move (`lib/vibe/` →
+`vibe/`, fix imports, console entry) — which was also entangled with VIBE-174's
+restructure — was unowned. **Action taken:** created
 [**VIBE-182**](https://linear.app/2wrist/issue/VIBE-182) *(agent-ready, infra/architecture/critical-path)*:
 blocked-by 83, 84, 174; blocks 85, 89.
 **Follow-up:** trim VIBE-85 deliverable #1 so it stops claiming the namespace code-move

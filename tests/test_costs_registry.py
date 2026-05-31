@@ -4,8 +4,8 @@ import json
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
-from lib.vibe.costs.base import CostReport
-from lib.vibe.costs.registry import (
+from vibe.costs.base import CostReport
+from vibe.costs.registry import (
     get_all_providers,
     get_budget_config,
     get_cached_report,
@@ -114,7 +114,7 @@ class TestCacheOperations:
         cache_dir = tmp_path / "cache"
         report = CostReport(provider="test", plan_cost=10, overage=5, total=15)
 
-        with patch("lib.vibe.costs.registry.CACHE_DIR", cache_dir):
+        with patch("vibe.costs.registry.CACHE_DIR", cache_dir):
             save_cached_report(report, "2026-02")
             loaded = get_cached_report("test", "2026-02")
 
@@ -123,7 +123,7 @@ class TestCacheOperations:
         assert loaded.total == 15.0
 
     def test_cache_miss(self, tmp_path):
-        with patch("lib.vibe.costs.registry.CACHE_DIR", tmp_path):
+        with patch("vibe.costs.registry.CACHE_DIR", tmp_path):
             assert get_cached_report("nonexistent", "2026-02") is None
 
     def test_expired_cache(self, tmp_path):
@@ -139,14 +139,14 @@ class TestCacheOperations:
             )
         )
 
-        with patch("lib.vibe.costs.registry.CACHE_DIR", tmp_path):
+        with patch("vibe.costs.registry.CACHE_DIR", tmp_path):
             assert get_cached_report("test", "2026-02") is None
 
     def test_corrupted_cache(self, tmp_path):
         cache_file = tmp_path / "test_2026-02.json"
         cache_file.write_text("not json")
 
-        with patch("lib.vibe.costs.registry.CACHE_DIR", tmp_path):
+        with patch("vibe.costs.registry.CACHE_DIR", tmp_path):
             assert get_cached_report("test", "2026-02") is None
 
 

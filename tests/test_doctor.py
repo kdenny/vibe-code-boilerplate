@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from lib.vibe.doctor import (
+from vibe.doctor import (
     CheckResult,
     Status,
     check_config_exists,

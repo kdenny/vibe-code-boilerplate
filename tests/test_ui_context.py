@@ -1,6 +1,6 @@
 """Tests for UI context module."""
 
-from lib.vibe.ui.context import WizardContext
+from vibe.ui.context import WizardContext
 
 
 class TestWizardContext:

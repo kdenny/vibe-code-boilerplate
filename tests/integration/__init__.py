@@ -6,6 +6,6 @@ The suites in this package cover *seams* — two or more modules that are
 mocking only the true I/O boundary (network, subprocess, filesystem edge).
 
 Add a suite here only for a seam that actually exists in the product, and wire
-it into ``lib/vibe/testscope.py``'s ``INTEGRATION_SEAMS`` so a change to either
+it into ``vibe/testscope.py``'s ``INTEGRATION_SEAMS`` so a change to either
 side runs it. See ``recipes/testing/modular-testing.md``.
 """

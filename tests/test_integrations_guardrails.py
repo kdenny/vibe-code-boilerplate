@@ -38,7 +38,7 @@ def _forbidden_import_roots(source: str, filename: str = "<source>") -> list[str
 
 def test_integrations_do_not_import_downstream_app_code() -> None:
     repo_root = Path(__file__).resolve().parent.parent
-    integration_files = sorted((repo_root / "lib/vibe/integrations").rglob("*.py"))
+    integration_files = sorted((repo_root / "vibe/integrations").rglob("*.py"))
     violations = {
         str(path.relative_to(repo_root)): _forbidden_import_roots(path.read_text(), str(path))
         for path in integration_files
@@ -52,7 +52,7 @@ def test_deliberate_app_code_import_is_caught() -> None:
     source = """
 import app.models
 from lift_with_lou.prs import runner
-from lib.vibe.cli import Integration
+from vibe.cli import Integration
 """
 
     assert _forbidden_import_roots(source) == ["app.models", "lift_with_lou.prs"]

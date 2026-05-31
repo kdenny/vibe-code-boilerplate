@@ -77,7 +77,7 @@ Links to official docs (Vercel, Fly.io) are included.
 ## 4. Customization
 
 - **Env path:** Use `--env-path` if your template is not `.env.example` (e.g. `apps/web/.env.example`).
-- **Template:** The body is built in `lib/vibe/deployment_followup.py`; you can extend `DEPLOYMENT_INDICATORS` or `build_human_followup_body()` for more platforms (e.g. Neon, Supabase).
+- **Template:** The body is built in `vibe/deployment_followup.py`; you can extend `DEPLOYMENT_INDICATORS` or `build_human_followup_body()` for more platforms (e.g. Neon, Supabase).
 
 ---
 

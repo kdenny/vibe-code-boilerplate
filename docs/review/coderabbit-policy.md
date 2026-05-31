@@ -51,7 +51,7 @@ configured — via the global `**` instruction, `path_instructions`, and
 > format hygiene, not a defect future PRs inherit, so the contract `pre_merge_checks`
 > run at `warning`. The *substance* behind them (tests actually exist, modules
 > actually run in isolation, the sync edit is actually present) is still blocking,
-> enforced via `path_instructions` on `tests/**`, `lib/vibe/**`, and `CLAUDE.md`.
+> enforced via `path_instructions` on `tests/**`, `vibe/**`, and `CLAUDE.md`.
 
 ## Stay open / quiet about (author's judgment)
 
@@ -105,6 +105,6 @@ should explicitly defer (not guess) on these.
 
 Per the originating ticket (VIBE-138), this config deliberately **does not**:
 overfit to one temporary directory layout (instructions key off durable seams like
-`lib/vibe/**`, `bin/**`, `tests/**`); encode personal style preferences; raise
+`vibe/**`, `bin/**`, `tests/**`); encode personal style preferences; raise
 review latency to the point of slowing agent loops; or encourage destructive
 rewrites without staged validation.

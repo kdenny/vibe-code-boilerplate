@@ -6,14 +6,14 @@ from unittest.mock import patch
 
 import pytest
 
-from lib.vibe.secrets.allowlist import (
+from vibe.secrets.allowlist import (
     AllowlistEntry,
     validate_allowlist,
 )
-from lib.vibe.secrets.providers.base import Secret
-from lib.vibe.secrets.providers.fly import FlySecretsProvider
-from lib.vibe.secrets.providers.github import GitHubSecretsProvider
-from lib.vibe.secrets.providers.vercel import VercelSecretsProvider
+from vibe.secrets.providers.base import Secret
+from vibe.secrets.providers.fly import FlySecretsProvider
+from vibe.secrets.providers.github import GitHubSecretsProvider
+from vibe.secrets.providers.vercel import VercelSecretsProvider
 
 
 class TestVercelParseEnvFile:
@@ -231,7 +231,7 @@ class TestAllowlistValidation:
         monkeypatch.chdir(tmp_path)
         # Patch load_config so get_allowlist_path returns a path in tmp_path
         with patch(
-            "lib.vibe.secrets.allowlist.load_config",
+            "vibe.secrets.allowlist.load_config",
             return_value={
                 "secrets": {"allowlist_path": str(tmp_path / ".vibe" / "secrets.allowlist.json")}
             },
@@ -248,7 +248,7 @@ class TestAllowlistValidation:
         data = {"entries": [{"pattern": "test-key", "reason": "Test key", "added_by": "test"}]}
         allowlist_file.write_text(json.dumps(data))
 
-        with patch("lib.vibe.secrets.allowlist.get_allowlist_path", return_value=allowlist_file):
+        with patch("vibe.secrets.allowlist.get_allowlist_path", return_value=allowlist_file):
             valid, issues = validate_allowlist()
         assert valid is True
         assert issues == []
@@ -259,7 +259,7 @@ class TestAllowlistValidation:
         data = {"entries": [{"pattern": "test-key", "added_by": "test"}]}
         allowlist_file.write_text(json.dumps(data))
 
-        with patch("lib.vibe.secrets.allowlist.get_allowlist_path", return_value=allowlist_file):
+        with patch("vibe.secrets.allowlist.get_allowlist_path", return_value=allowlist_file):
             valid, issues = validate_allowlist()
         assert valid is False
         assert any("reason" in issue for issue in issues)
@@ -269,7 +269,7 @@ class TestAllowlistValidation:
         allowlist_file = tmp_path / "allowlist.json"
         allowlist_file.write_text("not json")
 
-        with patch("lib.vibe.secrets.allowlist.get_allowlist_path", return_value=allowlist_file):
+        with patch("vibe.secrets.allowlist.get_allowlist_path", return_value=allowlist_file):
             valid, issues = validate_allowlist()
         assert valid is False
         assert any("Invalid JSON" in issue for issue in issues)
@@ -279,7 +279,7 @@ class TestAllowlistValidation:
         allowlist_file = tmp_path / "allowlist.json"
         allowlist_file.write_text(json.dumps({"other": "data"}))
 
-        with patch("lib.vibe.secrets.allowlist.get_allowlist_path", return_value=allowlist_file):
+        with patch("vibe.secrets.allowlist.get_allowlist_path", return_value=allowlist_file):
             valid, issues = validate_allowlist()
         assert valid is False
         assert any("entries" in issue for issue in issues)

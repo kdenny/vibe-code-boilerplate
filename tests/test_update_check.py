@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from lib.vibe.update_check import (
+from vibe.update_check import (
     _compare_versions,
     _should_check,
     check_for_update,
@@ -71,11 +71,11 @@ class TestCheckForUpdate:
     def test_disabled_via_env(self):
         assert check_for_update() is None
 
-    @patch("lib.vibe.update_check.load_state")
-    @patch("lib.vibe.update_check.save_state")
-    @patch("lib.vibe.update_check._fetch_upstream_version")
-    @patch("lib.vibe.update_check.get_version", return_value="1.0.0")
-    @patch("lib.vibe.update_check.load_config", return_value={})
+    @patch("vibe.update_check.load_state")
+    @patch("vibe.update_check.save_state")
+    @patch("vibe.update_check._fetch_upstream_version")
+    @patch("vibe.update_check.get_version", return_value="1.0.0")
+    @patch("vibe.update_check.load_config", return_value={})
     def test_update_available(self, mock_config, mock_ver, mock_fetch, mock_save, mock_load):
         mock_load.return_value = {}
         mock_fetch.return_value = "1.1.0"
@@ -84,22 +84,22 @@ class TestCheckForUpdate:
         assert result["current_version"] == "1.0.0"
         assert result["upstream_version"] == "1.1.0"
 
-    @patch("lib.vibe.update_check.load_state")
-    @patch("lib.vibe.update_check.save_state")
-    @patch("lib.vibe.update_check._fetch_upstream_version")
-    @patch("lib.vibe.update_check.get_version", return_value="1.0.0")
-    @patch("lib.vibe.update_check.load_config", return_value={})
+    @patch("vibe.update_check.load_state")
+    @patch("vibe.update_check.save_state")
+    @patch("vibe.update_check._fetch_upstream_version")
+    @patch("vibe.update_check.get_version", return_value="1.0.0")
+    @patch("vibe.update_check.load_config", return_value={})
     def test_already_up_to_date(self, mock_config, mock_ver, mock_fetch, mock_save, mock_load):
         mock_load.return_value = {}
         mock_fetch.return_value = "1.0.0"
         result = check_for_update(force=True)
         assert result is None
 
-    @patch("lib.vibe.update_check.load_state")
-    @patch("lib.vibe.update_check.save_state")
-    @patch("lib.vibe.update_check._fetch_upstream_version")
-    @patch("lib.vibe.update_check.get_version", return_value="1.0.0")
-    @patch("lib.vibe.update_check.load_config", return_value={})
+    @patch("vibe.update_check.load_state")
+    @patch("vibe.update_check.save_state")
+    @patch("vibe.update_check._fetch_upstream_version")
+    @patch("vibe.update_check.get_version", return_value="1.0.0")
+    @patch("vibe.update_check.load_config", return_value={})
     def test_network_failure_returns_none(
         self, mock_config, mock_ver, mock_fetch, mock_save, mock_load
     ):
@@ -108,37 +108,37 @@ class TestCheckForUpdate:
         result = check_for_update(force=True)
         assert result is None
 
-    @patch("lib.vibe.update_check.load_state")
-    @patch("lib.vibe.update_check.save_state")
+    @patch("vibe.update_check.load_state")
+    @patch("vibe.update_check.save_state")
     def test_cached_update_returned_within_interval(self, mock_save, mock_load):
         recent = (datetime.now() - timedelta(hours=1)).isoformat()
         mock_load.return_value = {
             "boilerplate_last_check": recent,
             "boilerplate_upstream_version": "2.0.0",
         }
-        with patch("lib.vibe.update_check.get_version", return_value="1.0.0"):
+        with patch("vibe.update_check.get_version", return_value="1.0.0"):
             result = check_for_update()
         assert result is not None
         assert result["cached"] is True
         assert result["upstream_version"] == "2.0.0"
 
-    @patch("lib.vibe.update_check.load_state")
-    @patch("lib.vibe.update_check.save_state")
+    @patch("vibe.update_check.load_state")
+    @patch("vibe.update_check.save_state")
     def test_no_cached_update_when_versions_match(self, mock_save, mock_load):
         recent = (datetime.now() - timedelta(hours=1)).isoformat()
         mock_load.return_value = {
             "boilerplate_last_check": recent,
             "boilerplate_upstream_version": "1.0.0",
         }
-        with patch("lib.vibe.update_check.get_version", return_value="1.0.0"):
+        with patch("vibe.update_check.get_version", return_value="1.0.0"):
             result = check_for_update()
         assert result is None
 
-    @patch("lib.vibe.update_check.load_state")
-    @patch("lib.vibe.update_check.save_state")
-    @patch("lib.vibe.update_check._fetch_upstream_version")
-    @patch("lib.vibe.update_check.get_version", return_value="1.0.0")
-    @patch("lib.vibe.update_check.load_config", return_value={})
+    @patch("vibe.update_check.load_state")
+    @patch("vibe.update_check.save_state")
+    @patch("vibe.update_check._fetch_upstream_version")
+    @patch("vibe.update_check.get_version", return_value="1.0.0")
+    @patch("vibe.update_check.load_config", return_value={})
     def test_saves_state_after_check(self, mock_config, mock_ver, mock_fetch, mock_save, mock_load):
         mock_load.return_value = {}
         mock_fetch.return_value = "1.1.0"
@@ -149,15 +149,15 @@ class TestCheckForUpdate:
         assert saved_state["boilerplate_upstream_version"] == "1.1.0"
         assert saved_state["boilerplate_current_version"] == "1.0.0"
 
-    @patch("lib.vibe.update_check.load_state")
-    @patch("lib.vibe.update_check.save_state")
-    @patch("lib.vibe.update_check._fetch_upstream_version")
-    @patch("lib.vibe.update_check.get_version", return_value="1.0.0")
+    @patch("vibe.update_check.load_state")
+    @patch("vibe.update_check.save_state")
+    @patch("vibe.update_check._fetch_upstream_version")
+    @patch("vibe.update_check.get_version", return_value="1.0.0")
     def test_uses_custom_upstream_repo(self, mock_ver, mock_fetch, mock_save, mock_load):
         mock_load.return_value = {}
         mock_fetch.return_value = "1.0.0"
         with patch(
-            "lib.vibe.update_check.load_config",
+            "vibe.update_check.load_config",
             return_value={"boilerplate": {"source_repo": "custom/repo"}},
         ):
             check_for_update(force=True)
@@ -165,8 +165,8 @@ class TestCheckForUpdate:
 
 
 class TestSkipUpdateCheck:
-    @patch("lib.vibe.update_check.load_state")
-    @patch("lib.vibe.update_check.save_state")
+    @patch("vibe.update_check.load_state")
+    @patch("vibe.update_check.save_state")
     def test_resets_timer_and_clears_upstream(self, mock_save, mock_load):
         mock_load.return_value = {
             "boilerplate_last_check": "2020-01-01T00:00:00",
@@ -210,14 +210,14 @@ class TestUpdateNoticeGating:
     UPDATE = {"current_version": "1.0.0", "upstream_version": "2.0.0", "cached": True}
 
     def test_notice_suppressed_when_stderr_not_a_tty(self) -> None:
-        from lib.vibe.cli import main as main_mod
+        from vibe.cli import main as main_mod
 
         fake_sys = MagicMock()
         fake_sys.stderr.isatty.return_value = False
         with (
             patch.object(main_mod, "sys", fake_sys),
-            patch("lib.vibe.update_check.check_for_update", return_value=self.UPDATE) as mock_check,
-            patch("lib.vibe.cli.main.click.echo") as mock_echo,
+            patch("vibe.update_check.check_for_update", return_value=self.UPDATE) as mock_check,
+            patch("vibe.cli.main.click.echo") as mock_echo,
         ):
             main_mod.main.callback()
 
@@ -226,14 +226,14 @@ class TestUpdateNoticeGating:
         mock_echo.assert_not_called()
 
     def test_notice_shown_when_stderr_is_a_tty(self) -> None:
-        from lib.vibe.cli import main as main_mod
+        from vibe.cli import main as main_mod
 
         fake_sys = MagicMock()
         fake_sys.stderr.isatty.return_value = True
         with (
             patch.object(main_mod, "sys", fake_sys),
-            patch("lib.vibe.update_check.check_for_update", return_value=self.UPDATE),
-            patch("lib.vibe.cli.main.click.echo") as mock_echo,
+            patch("vibe.update_check.check_for_update", return_value=self.UPDATE),
+            patch("vibe.cli.main.click.echo") as mock_echo,
         ):
             main_mod.main.callback()
 
@@ -248,7 +248,7 @@ class TestUpdateNoticeGating:
 
         from click.testing import CliRunner
 
-        from lib.vibe.cli import main as main_mod
+        from vibe.cli import main as main_mod
 
         mock_tracker = MagicMock()
         mock_tracker.list_labels.return_value = [{"name": "Bug", "id": "1"}]
@@ -258,20 +258,20 @@ class TestUpdateNoticeGating:
         runner = CliRunner()
         with (
             patch.object(main_mod, "sys", fake_sys),
-            patch("lib.vibe.update_check.check_for_update", return_value=self.UPDATE) as mock_check,
+            patch("vibe.update_check.check_for_update", return_value=self.UPDATE) as mock_check,
             patch(
-                "lib.vibe.config.load_config",
+                "vibe.config.load_config",
                 return_value={
                     "tracker": {"type": "linear", "config": {"team_id": "t1"}},
                     "labels": {},
                 },
             ),
-            patch("lib.vibe.trackers.linear.LinearTracker", return_value=mock_tracker),
+            patch("vibe.trackers.linear.LinearTracker", return_value=mock_tracker),
             patch(
-                "lib.vibe.label_sync.load_config",
+                "vibe.label_sync.load_config",
                 return_value={"tracker": {"type": "linear", "config": {}}, "labels": {}},
             ),
-            patch("lib.vibe.label_sync.save_config"),
+            patch("vibe.label_sync.save_config"),
             patch.dict("os.environ", {"LINEAR_API_KEY": "test-key"}),
         ):
             result = runner.invoke(main_mod.main, ["sync-labels", "--json"])

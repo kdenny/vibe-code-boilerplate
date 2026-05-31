@@ -7,15 +7,15 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from lib.vibe.retrofit.analyzer import (
+from vibe.retrofit.analyzer import (
     ActionPriority,
     ActionType,
     RetrofitAction,
     RetrofitAnalyzer,
     RetrofitPlan,
 )
-from lib.vibe.retrofit.applier import RetrofitApplier
-from lib.vibe.retrofit.detector import DetectionResult, ProjectDetector, ProjectProfile
+from vibe.retrofit.applier import RetrofitApplier
+from vibe.retrofit.detector import DetectionResult, ProjectDetector, ProjectProfile
 
 
 class TestDetectionResult:

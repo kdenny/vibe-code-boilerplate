@@ -157,7 +157,7 @@ reviews:
         out-of-scope restructuring must never block a merge. When you DO request
         changes, name the specific compounding thing future work would inherit so
         the author knows why this one blocks.
-    - path: "lib/vibe/**"
+    - path: "vibe/**"
       instructions: >-
         Core Python package. Enforce clear module seams and explicit interfaces
         over hidden coupling. Flag: cross-module reach-through, new global state,
@@ -165,11 +165,11 @@ reviews:
         and structural churn not justified by the modular target architecture in
         CLAUDE.md. Require that behavior is preserved (non-destructive) and that
         the change is a staged extraction, not a big-bang rewrite.
-    - path: "lib/vibe/integrations/**"
+    - path: "vibe/integrations/**"
       instructions: >-
         Publishable integration modules (VIBE-86 seam). Each integration exposes
         only its typed config class and `integration` registration object, declares
-        CLI verbs/entrypoints/extras through lib.vibe.cli, and must not import
+        CLI verbs/entrypoints/extras through vibe.cli, and must not import
         downstream app/repo-local code (app, src, lift, deal, etc.) or assume a
         specific checkout layout. Flag missing __all__, optional provider imports
         that happen at module import time instead of behind the extra gate, and
@@ -229,8 +229,8 @@ reviews:
     - path: "tests/**"
       instructions: >-
         Require tests at the right level per recipes/testing/modular-testing.md:
-        one module = one unit test file (lib/vibe/<name>.py -> tests/test_<name>.py;
-        lib/vibe/<pkg>/ -> tests/test_<pkg>_*.py), module-level unit tests for
+        one module = one unit test file (vibe/<name>.py -> tests/test_<name>.py;
+        vibe/<pkg>/ -> tests/test_<pkg>_*.py), module-level unit tests for
         isolated changes, and combinatorial/integration tests (under
         tests/integration/) only where modules are intentionally designed to
         compose. Flag behavior that ships without a corresponding test, tests that
@@ -245,18 +245,18 @@ reviews:
         (network/subprocess/filesystem) and run the real collaborating modules —
         never mock the collaborator itself (that's a unit test, and it proves the
         modules compose for real). Request changes if a suite here mocks a sibling
-        lib/vibe module, exercises a seam the product doesn't actually have, or is
-        not registered in INTEGRATION_SEAMS in lib/vibe/testscope.py. Flag any
+        vibe module, exercises a seam the product doesn't actually have, or is
+        not registered in INTEGRATION_SEAMS in vibe/testscope.py. Flag any
         suite that needs live network/services — it doesn't belong here.
-    - path: "lib/vibe/testscope.py"
+    - path: "vibe/testscope.py"
       instructions: >-
         The module-scoped CI selector: maps changed files to pytest targets so
         PRs run only affected modules while main and shared-file changes run the
         full suite. Changing SOURCE_TEST_MAP, SHARED_PREFIXES, or INTEGRATION_SEAMS
         alters which tests gate a PR — require that test_testscope.py is updated
-        alongside, that the change keeps the fail-safe (unmapped lib/vibe/ paths ->
+        alongside, that the change keeps the fail-safe (unmapped vibe/ paths ->
         full suite), and that every INTEGRATION_SEAMS entry points at an existing
-        suite with >=2 participants under lib/vibe/.
+        suite with >=2 participants under vibe/.
     - path: "pyproject.toml"
       instructions: >-
         The dependency source of truth, and part of the cacheable bootstrap
@@ -272,7 +272,7 @@ reviews:
     - path: ".github/workflows/**"
       instructions: >-
         CI must stay fast and local-first. CI is scoped per-module on PRs via
-        lib/vibe/testscope.py (full suite on main and shared-file changes); flag
+        vibe/testscope.py (full suite on main and shared-file changes); flag
         any change that could let a PR skip tests for a module it actually
         touched. The Python install is the cached, locked uv path (sync from
         requirements.lock, cache keyed on its hash) with a pip fallback — keep

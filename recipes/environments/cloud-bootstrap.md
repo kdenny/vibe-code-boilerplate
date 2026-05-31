@@ -46,7 +46,7 @@ uv pip compile pyproject.toml --extra dev --generate-hashes -o requirements.lock
 ### 2. Module-scoped validation — `bin/ci-local --scope`
 
 A warm loop doesn't re-run 800+ tests for a one-file change. `bin/ci-local
---scope` pipes the changed files through `lib/vibe/testscope.py` (the same
+--scope` pipes the changed files through `vibe/testscope.py` (the same
 selector `.github/workflows/tests.yml` uses — one source of truth) and runs only
 the affected suites. See [`recipes/testing/modular-testing.md`](../testing/modular-testing.md)
 for the selection rules and when a full-tree run is still required.

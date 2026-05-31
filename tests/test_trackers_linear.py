@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import requests
 
-from lib.vibe.trackers.linear import LINEAR_API_URL, LinearTracker
+from vibe.trackers.linear import LINEAR_API_URL, LinearTracker
 
 
 class TestLinearTrackerInit:
@@ -88,9 +88,7 @@ class TestLinearTrackerExecuteQuery:
         mock_response.json.return_value = {"data": {"viewer": {"id": "123"}}}
         mock_response.raise_for_status = MagicMock()
 
-        with patch(
-            "lib.vibe.trackers.linear.requests.post", return_value=mock_response
-        ) as mock_post:
+        with patch("vibe.trackers.linear.requests.post", return_value=mock_response) as mock_post:
             result = tracker._execute_query("query { viewer { id } }")
 
         mock_post.assert_called_once_with(
@@ -107,9 +105,7 @@ class TestLinearTrackerExecuteQuery:
         mock_response.json.return_value = {"data": {"issue": {"id": "abc"}}}
         mock_response.raise_for_status = MagicMock()
 
-        with patch(
-            "lib.vibe.trackers.linear.requests.post", return_value=mock_response
-        ) as mock_post:
+        with patch("vibe.trackers.linear.requests.post", return_value=mock_response) as mock_post:
             _result = tracker._execute_query(
                 "query GetIssue($id: String!) { issue(id: $id) { id } }", {"id": "TEST-1"}
             )
@@ -943,7 +939,7 @@ class TestLinearTrackerGetLabelIds:
         tracker = LinearTracker(api_key="test-fake-key")
 
         # Clear cache to avoid stale data from prior tests
-        from lib.vibe.utils.cache import get_cache
+        from vibe.utils.cache import get_cache
 
         get_cache().invalidate("linear_labels_team_abc")
 
@@ -1006,7 +1002,7 @@ class TestLinearTrackerGetLabelIdsCaseInsensitive:
             {"name": "Frontend", "id": "label-2"},
         ]
 
-        with patch("lib.vibe.trackers.linear.get_cache") as mock_get_cache:
+        with patch("vibe.trackers.linear.get_cache") as mock_get_cache:
             mock_cache = MagicMock()
             mock_cache.get.return_value = cached_data
             mock_get_cache.return_value = mock_cache
@@ -1055,7 +1051,7 @@ class TestLinearTrackerGetOrCreateLabelIdsCaseInsensitive:
         mock_response = {"data": {"team": {"labels": {"nodes": mock_labels}}}}
         with patch.object(tracker, "_execute_query", return_value=mock_response):
             with patch.object(tracker, "_create_label", return_value=None):
-                with patch("lib.vibe.trackers.linear.logger") as mock_logger:
+                with patch("vibe.trackers.linear.logger") as mock_logger:
                     label_ids = tracker._get_or_create_label_ids("team_abc", ["Bug", "FailLabel"])
 
         assert label_ids == ["label-1"]
@@ -1073,7 +1069,7 @@ class TestLinearTrackerGetOrCreateLabelIdsCaseInsensitive:
                 "_execute_query",
                 side_effect=requests.RequestException("API error"),
             ):
-                with patch("lib.vibe.trackers.linear.logger") as mock_logger:
+                with patch("vibe.trackers.linear.logger") as mock_logger:
                     label_ids = tracker._get_or_create_label_ids("team_abc", ["Bug"])
 
         assert label_ids == []
@@ -1142,7 +1138,7 @@ class TestLinearTrackerGetWorkflowStateId:
         tracker = LinearTracker(api_key="test-fake-key")
 
         # Clear cache to avoid stale data from prior tests
-        from lib.vibe.utils.cache import get_cache
+        from vibe.utils.cache import get_cache
 
         get_cache().invalidate("linear_states_team_abc")
 
@@ -1168,7 +1164,7 @@ class TestLinearTrackerGetWorkflowStateId:
         tracker = LinearTracker(api_key="test-fake-key")
 
         # Clear cache to avoid stale data from prior tests
-        from lib.vibe.utils.cache import get_cache
+        from vibe.utils.cache import get_cache
 
         get_cache().invalidate("linear_states_team_abc")
 

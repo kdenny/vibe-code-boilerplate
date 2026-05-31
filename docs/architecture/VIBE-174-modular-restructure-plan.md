@@ -29,7 +29,7 @@ files. The fastest path to "reliable one-shot agent work" is:
 
 **What this PR executes (staged step 1 of the sequence in §6):** the integration
 -test seam layer — `tests/integration/`, `INTEGRATION_SEAMS` in
-`lib/vibe/testscope.py`, the first real seam suite (`git.worktrees ↔ state`), and
+`vibe/testscope.py`, the first real seam suite (`git.worktrees ↔ state`), and
 the policy update in `recipes/testing/modular-testing.md`. Everything else is
 sequenced below as agent-ready follow-ups. This mirrors VIBE-137's "build the
 rail + demonstrate once" pattern instead of a big-bang rewrite.
@@ -42,7 +42,7 @@ rail + demonstrate once" pattern instead of a big-bang rewrite.
 
 ```
 bin/                 # thin CLI wrappers: vibe, ticket, costs, secrets, doctor, logs, ci-local
-lib/vibe/            # the package
+vibe/            # the package
   cli/               # click entrypoints (main, ticket, costs, secrets, figma)
   trackers/          # Linear / Shortcut / GitHub-issues (+ base)
   costs/             # cost model + providers/* (8, dynamically loaded)
@@ -117,16 +117,16 @@ held to, plus the existing layout made explicit.
 
 ### 2.1 The module contract
 
-Every `lib/vibe/<module>` (a package *or* a top-level `.py`) must satisfy:
+Every `vibe/<module>` (a package *or* a top-level `.py`) must satisfy:
 
 1. **Explicit public surface.** A package declares `__all__` in its `__init__.py`;
    that list *is* the module's API. Callers import from the package
-   (`from lib.vibe.trackers import LinearTracker`), never a deep submodule.
+   (`from vibe.trackers import LinearTracker`), never a deep submodule.
 2. **Declared dependencies.** A module imports only the core tier and the public
    surfaces of its declared collaborators — no reach-through into another
    package's internals, no new global state.
-3. **One unit suite.** `lib/vibe/<name>.py → tests/test_<name>.py`;
-   `lib/vibe/<pkg>/ → tests/test_<pkg>_*.py`. (Already enforced by `testscope`.)
+3. **One unit suite.** `vibe/<name>.py → tests/test_<name>.py`;
+   `vibe/<pkg>/ → tests/test_<pkg>_*.py`. (Already enforced by `testscope`.)
 4. **Runs and tests in isolation.** The module can be imported and its unit suite
    run without standing up the whole app.
 5. **Declared compose seams.** Where a module is *designed* to compose with
@@ -162,9 +162,9 @@ fast safety net. An agent must be able to trust one command.
 
 | Command | Guarantee | Speed lever |
 |---------|-----------|-------------|
-| `bin/ci-local` | Runs every locally-runnable check (ruff check + format, mypy on `lib/vibe/`, full pytest, gitleaks, project hooks). Exit 0 **with no `⚠ … SKIPPED` warning** ⇒ safe to push. Resolves ruff/mypy/pytest from the project venv (`.venv`/`.direnv`) even when it's off `PATH`. | `--fast` skips frontend tests; non-core tools **skip** (yellow `–`); a missing **core linter** (ruff/mypy) warns **loudly** (`⚠ … SKIPPED`, "not a clean pass") — never silent, never fatal, but a warned run is **not** a clean pass |
+| `bin/ci-local` | Runs every locally-runnable check (ruff check + format, mypy on `vibe/`, full pytest, gitleaks, project hooks). Exit 0 **with no `⚠ … SKIPPED` warning** ⇒ safe to push. Resolves ruff/mypy/pytest from the project venv (`.venv`/`.direnv`) even when it's off `PATH`. | `--fast` skips frontend tests; non-core tools **skip** (yellow `–`); a missing **core linter** (ruff/mypy) warns **loudly** (`⚠ … SKIPPED`, "not a clean pass") — never silent, never fatal, but a warned run is **not** a clean pass |
 | `bin/ci-local --fast` | Same, minus slow frontend tests | for tight inner loops |
-| `PYTHONPATH=. python -m lib.vibe.testscope <paths>` | Prints exactly which suites CI will run for a change (`ALL` / paths / empty) | lets an agent predict CI scope before pushing |
+| `PYTHONPATH=. python -m vibe.testscope <paths>` | Prints exactly which suites CI will run for a change (`ALL` / paths / empty) | lets an agent predict CI scope before pushing |
 | `bin/<cli> --help` + per-subcommand live smoke test | CLI behavior proof (CLI doctrine) | live runs only; documented matrix in the PR |
 
 **Minimal bootstrap:** Python ≥3.11, `pip install -e ".[dev]"` (pytest, mypy,
@@ -173,7 +173,7 @@ account or network needed to validate a change locally.
 
 ### 3.2 Module-scoped CI (the speed rail, from VIBE-137)
 
-`lib/vibe/testscope.py` maps a diff → the minimal set of suites. PRs run only
+`vibe/testscope.py` maps a diff → the minimal set of suites. PRs run only
 affected modules; `main` and shared-file changes run the full suite. **This PR
 extends it to integration seams** (§5) without changing that contract.
 
@@ -230,7 +230,7 @@ tests in the same PR as its rewrite.
   top of the participants' unit suites. Fail-safe and `main`-runs-all semantics
   are preserved.
 - **Integrity guards** (`tests/test_testscope.py`): every seam suite file must
-  exist; every participant must live under `lib/vibe/`; a seam needs ≥2
+  exist; every participant must live under `vibe/`; a seam needs ≥2
   participants (a 1-participant "seam" is just a unit test).
 - **First suite:** `tests/integration/test_worktree_state.py` exercises
   `git.worktrees ↔ state` with the real `state` module and only the git
@@ -253,13 +253,14 @@ to *not* be a big-bang. Steps are independent unless noted.
 | # | Step | Scope | Acceptance | Status |
 |---|------|-------|-----------|--------|
 | **1** | **Integration-seam test layer** | `tests/integration/`, `INTEGRATION_SEAMS`, first seam suite, recipe + CLAUDE.md/`.coderabbit.yaml` | seam suite runs on either side's change; integrity tests pass; `ci-local` green | **✅ this PR** |
-| 2 | **Codify the module contract** | A short `docs/architecture/module-contract.md` + a lightweight check (test) that every `lib/vibe/<pkg>/__init__.py` declares `__all__` | check passes for all packages; documented exceptions (`cli`, `utils`) listed | ⏭️ next |
-| 3 | **Close public-API gaps** (F2–F4) | export `ShortcutTracker`; decide `wizards`/`cli` surfaces | `from lib.vibe.trackers import ShortcutTracker` works; importers updated; tests at boundary | ⏭️ |
+| 2 | **Codify the module contract** | A short `docs/architecture/module-contract.md` + a lightweight check (test) that every `vibe/<pkg>/__init__.py` declares `__all__` | check passes for all packages; documented exceptions (`cli`, `utils`) listed | ⏭️ next |
+| 3 | **Close public-API gaps** (F2–F4) | export `ShortcutTracker`; decide `wizards`/`cli` surfaces | `from vibe.trackers import ShortcutTracker` works; importers updated; tests at boundary | ⏭️ |
 | 4 | **Hub scoping decision** (F1/S2) | add `ui/` and/or `tools.py` to `SHARED_PREFIXES` *or* document why not | `testscope` change + `test_testscope` update | ⏭️ |
 | 5 | **Cover the next seams** | add `wizards.setup ↔ *` and `cli ↔ trackers` integration suites | each seam runs real collaborators, boundary-only mocks | ⏭️ |
 | 6 | **Fix the worktree/state base_path asymmetry** (F5) | thread `base_path` through `cleanup_worktree` | a cleanup-from-elsewhere integration test passes | ⏭️ |
 | 7 | **Per-module test re-leveling** | apply the thinning targets from the VIBE-137 audit *as each module is rewritten* | per `modular-testing.md`; no separate gutting PR | ⏭️ ongoing |
-| 8 | **Integration registration seam** | `lib/vibe/cli/registry.py`, `lib/vibe/integrations/`, packaging docs, guardrail tests | integration declares config/verbs/entrypoints/extra; missing extra is actionable; app-code imports fail guardrail | ✅ VIBE-86; VIBE-179 extends this with pre-engine configure/status verbs |
+| 8 | **Integration registration seam** | `vibe/cli/registry.py`, `vibe/integrations/`, packaging docs, guardrail tests | integration declares config/verbs/entrypoints/extra; missing extra is actionable; app-code imports fail guardrail | ✅ VIBE-86; VIBE-179 extends this with pre-engine configure/status verbs |
+| 9 | **Package namespace scaffold** | move the import package from `lib/vibe` to top-level `vibe`, add `vibe.__main__`, and wire packaging/CI selectors to the new path | `import vibe`, `python -m vibe`, and the `vibe` console entry work; no code imports `lib.vibe`; module scoping still selects the right suites | ✅ VIBE-182 |
 | — | **Module extraction → package** | provider packages first; PR Autopilot engine lands behind the VIBE-86 seam | owned by **VIBE-128/VIBE-85 follow-ups**, not this structural plan | 🔗 |
 
 > **Non-destructive discipline:** no step relocates working code without a test
@@ -297,10 +298,10 @@ plan is the *structural enabler*; it does not itself publish the package.
 | ID | Finding | Recommendation | Where |
 |----|---------|----------------|-------|
 | F1 | `ui/` and `tools.py` are hubs not in `SHARED_PREFIXES` | Step 4: promote to shared, or document the accepted under-scoping | `testscope.py` |
-| F2 | `trackers/__init__.py` omits `ShortcutTracker` | Step 3 | `lib/vibe/trackers/__init__.py` |
-| F3 | `cli/__init__.py` empty (no declared surface) | Step 2/3: decide if CLI needs a surface | `lib/vibe/cli/__init__.py` |
-| F4 | `wizards/__init__.py` exports only `run_setup` | Step 3: export the feature wizards or accept reach-through | `lib/vibe/wizards/__init__.py` |
-| F5 | `create_worktree` (repo-root state) vs `cleanup_worktree` (CWD-relative state) base_path asymmetry | Step 6: thread `base_path`; add a cleanup integration test | `lib/vibe/git/worktrees.py` |
+| F2 | `trackers/__init__.py` omits `ShortcutTracker` | Step 3 | `vibe/trackers/__init__.py` |
+| F3 | `cli/__init__.py` empty (no declared surface) | Step 2/3: decide if CLI needs a surface | `vibe/cli/__init__.py` |
+| F4 | `wizards/__init__.py` exports only `run_setup` | Step 3: export the feature wizards or accept reach-through | `vibe/wizards/__init__.py` |
+| F5 | `create_worktree` (repo-root state) vs `cleanup_worktree` (CWD-relative state) base_path asymmetry | Step 6: thread `base_path`; add a cleanup integration test | `vibe/git/worktrees.py` |
 
 > Each becomes a Linear follow-up with a Low/Medium risk label when scheduled.
 > F5 should be filed Medium (latent state-corruption when cwd ≠ repo root).
@@ -309,8 +310,9 @@ plan is the *structural enabler*; it does not itself publish the package.
 
 ## 9. Risks & non-goals
 
-- **Non-goal: relocating working code.** The repo is already modular; churn
-  without a behavior-preserving proof is explicitly out of scope.
+- **Non-goal: unplanned code relocation.** VIBE-182 performed the planned
+  namespace move to `vibe/`; future relocation churn without a
+  behavior-preserving proof is explicitly out of scope.
 - **Non-goal: PR Autopilot engine extraction.** VIBE-86 provides the seam; the
   actual engine remains owned by VIBE-128 and release packaging by VIBE-85.
 - **Risk: testscope churn vs VIBE-137.** This PR is branched off VIBE-137 (in

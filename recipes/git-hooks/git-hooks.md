@@ -36,7 +36,7 @@ Runs in this order, aggregating failures:
 
 1. `ruff check . --output-format=concise`
 2. `ruff format . --check --diff --quiet`
-3. `mypy lib/vibe/` (only if mypy is installed and `lib/vibe/` exists)
+3. `mypy vibe/` (only if mypy is installed and `vibe/` exists)
 4. `pytest --tb=short -q` (opt-in via `VIBE_PRE_PUSH_PYTEST=1` — slow by default)
 5. Every executable in `.githooks/pre-push.d/*.sh` (project-specific)
 

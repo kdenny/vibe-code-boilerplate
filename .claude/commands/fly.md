@@ -80,7 +80,7 @@ fly deploy --no-cache
 2. Use the Fly secrets provider:
 
 ```python
-from lib.vibe.secrets.providers.fly import FlySecretsProvider
+from vibe.secrets.providers.fly import FlySecretsProvider
 
 provider = FlySecretsProvider(app_name="app-name-from-fly-toml")
 results = provider.sync_from_local(".env.local", "production")

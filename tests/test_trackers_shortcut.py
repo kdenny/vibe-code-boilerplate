@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import requests
 
-from lib.vibe.trackers.shortcut import ShortcutTracker
+from vibe.trackers.shortcut import ShortcutTracker
 
 
 class TestShortcutTrackerInit:
@@ -49,7 +49,7 @@ class TestShortcutTrackerAuthenticate:
         mock_response = MagicMock()
         mock_response.status_code = 200
 
-        with patch("lib.vibe.trackers.shortcut.requests.request", return_value=mock_response):
+        with patch("vibe.trackers.shortcut.requests.request", return_value=mock_response):
             result = tracker.authenticate(api_token="sc_valid_token")
 
         assert result is True
@@ -60,7 +60,7 @@ class TestShortcutTrackerAuthenticate:
         mock_response = MagicMock()
         mock_response.status_code = 401
 
-        with patch("lib.vibe.trackers.shortcut.requests.request", return_value=mock_response):
+        with patch("vibe.trackers.shortcut.requests.request", return_value=mock_response):
             result = tracker.authenticate(api_token="sc_invalid_token")
 
         assert result is False
@@ -69,7 +69,7 @@ class TestShortcutTrackerAuthenticate:
         tracker = ShortcutTracker()
 
         with patch(
-            "lib.vibe.trackers.shortcut.requests.request",
+            "vibe.trackers.shortcut.requests.request",
             side_effect=requests.RequestException("Network error"),
         ):
             result = tracker.authenticate(api_token="sc_token")
@@ -100,7 +100,7 @@ class TestShortcutTrackerGetTicket:
         mock_response.json.return_value = mock_story
         mock_response.raise_for_status = MagicMock()
 
-        with patch("lib.vibe.trackers.shortcut.requests.request", return_value=mock_response):
+        with patch("vibe.trackers.shortcut.requests.request", return_value=mock_response):
             ticket = tracker.get_ticket("123")
 
         assert ticket is not None
@@ -123,7 +123,7 @@ class TestShortcutTrackerGetTicket:
         mock_response.raise_for_status = MagicMock()
 
         with patch(
-            "lib.vibe.trackers.shortcut.requests.request", return_value=mock_response
+            "vibe.trackers.shortcut.requests.request", return_value=mock_response
         ) as mock_get:
             tracker.get_ticket("SC-456")
 
@@ -145,7 +145,7 @@ class TestShortcutTrackerGetTicket:
         mock_response.raise_for_status = MagicMock()
 
         with patch(
-            "lib.vibe.trackers.shortcut.requests.request", return_value=mock_response
+            "vibe.trackers.shortcut.requests.request", return_value=mock_response
         ) as mock_get:
             tracker.get_ticket("#789")
 
@@ -160,7 +160,7 @@ class TestShortcutTrackerGetTicket:
         http_error.response = mock_response
         mock_response.raise_for_status.side_effect = http_error
 
-        with patch("lib.vibe.trackers.shortcut.requests.request", return_value=mock_response):
+        with patch("vibe.trackers.shortcut.requests.request", return_value=mock_response):
             ticket = tracker.get_ticket("999999")
 
         assert ticket is None
@@ -169,7 +169,7 @@ class TestShortcutTrackerGetTicket:
         tracker = ShortcutTracker(api_token="sc_token")
 
         with patch(
-            "lib.vibe.trackers.shortcut.requests.request",
+            "vibe.trackers.shortcut.requests.request",
             side_effect=requests.RequestException("API error"),
         ):
             ticket = tracker.get_ticket("123")
@@ -204,7 +204,7 @@ class TestShortcutTrackerListTickets:
         mock_response.json.return_value = {"data": mock_stories}
         mock_response.raise_for_status = MagicMock()
 
-        with patch("lib.vibe.trackers.shortcut.requests.request", return_value=mock_response):
+        with patch("vibe.trackers.shortcut.requests.request", return_value=mock_response):
             tickets = tracker.list_tickets()
 
         assert len(tickets) == 2
@@ -219,7 +219,7 @@ class TestShortcutTrackerListTickets:
         mock_response.raise_for_status = MagicMock()
 
         with patch(
-            "lib.vibe.trackers.shortcut.requests.request", return_value=mock_response
+            "vibe.trackers.shortcut.requests.request", return_value=mock_response
         ) as mock_get:
             tracker.list_tickets(status="Done")
 
@@ -233,7 +233,7 @@ class TestShortcutTrackerListTickets:
         mock_response.raise_for_status = MagicMock()
 
         with patch(
-            "lib.vibe.trackers.shortcut.requests.request", return_value=mock_response
+            "vibe.trackers.shortcut.requests.request", return_value=mock_response
         ) as mock_get:
             tracker.list_tickets(labels=["Bug", "Critical"])
 
@@ -249,7 +249,7 @@ class TestShortcutTrackerListTickets:
         mock_response.raise_for_status = MagicMock()
 
         with patch(
-            "lib.vibe.trackers.shortcut.requests.request", return_value=mock_response
+            "vibe.trackers.shortcut.requests.request", return_value=mock_response
         ) as mock_get:
             tracker.list_tickets(limit=10)
 
@@ -263,7 +263,7 @@ class TestShortcutTrackerListTickets:
         mock_response.raise_for_status = MagicMock()
 
         with patch(
-            "lib.vibe.trackers.shortcut.requests.request", return_value=mock_response
+            "vibe.trackers.shortcut.requests.request", return_value=mock_response
         ) as mock_get:
             tracker.list_tickets()
 
@@ -306,7 +306,7 @@ class TestShortcutTrackerListTickets:
         page2_response.raise_for_status = MagicMock()
 
         with patch(
-            "lib.vibe.trackers.shortcut.requests.request",
+            "vibe.trackers.shortcut.requests.request",
             side_effect=[page1_response, page2_response],
         ) as mock_get:
             tickets = tracker.list_tickets(limit=100)
@@ -338,7 +338,7 @@ class TestShortcutTrackerListTickets:
         mock_response.raise_for_status = MagicMock()
 
         with patch(
-            "lib.vibe.trackers.shortcut.requests.request", return_value=mock_response
+            "vibe.trackers.shortcut.requests.request", return_value=mock_response
         ) as mock_get:
             tickets = tracker.list_tickets(limit=2)
 
@@ -365,7 +365,7 @@ class TestShortcutTrackerListTickets:
         page1_response.raise_for_status = MagicMock()
 
         with patch(
-            "lib.vibe.trackers.shortcut.requests.request",
+            "vibe.trackers.shortcut.requests.request",
             side_effect=[page1_response, requests.RequestException("API error")],
         ):
             tickets = tracker.list_tickets(limit=100)
@@ -378,7 +378,7 @@ class TestShortcutTrackerListTickets:
         tracker = ShortcutTracker(api_token="sc_token")
 
         with patch(
-            "lib.vibe.trackers.shortcut.requests.request",
+            "vibe.trackers.shortcut.requests.request",
             side_effect=requests.RequestException("API error"),
         ):
             tickets = tracker.list_tickets()
@@ -403,7 +403,7 @@ class TestShortcutTrackerCreateTicket:
         mock_response.json.return_value = mock_story
         mock_response.raise_for_status = MagicMock()
 
-        with patch("lib.vibe.trackers.shortcut.requests.request", return_value=mock_response):
+        with patch("vibe.trackers.shortcut.requests.request", return_value=mock_response):
             ticket = tracker.create_ticket("New Story", "New description")
 
         assert ticket.id == "SC-100"
@@ -424,7 +424,7 @@ class TestShortcutTrackerCreateTicket:
         mock_response.raise_for_status = MagicMock()
 
         with (
-            patch("lib.vibe.trackers.shortcut.requests.request", return_value=mock_response),
+            patch("vibe.trackers.shortcut.requests.request", return_value=mock_response),
             patch.object(tracker, "_get_or_create_label_ids", return_value=[1]) as mock_labels,
         ):
             ticket = tracker.create_ticket("Labeled Story", "Description", labels=["Bug"])
@@ -437,7 +437,7 @@ class TestShortcutTrackerCreateTicket:
         mock_response = MagicMock()
         mock_response.raise_for_status.side_effect = requests.HTTPError("400 Bad Request")
 
-        with patch("lib.vibe.trackers.shortcut.requests.request", return_value=mock_response):
+        with patch("vibe.trackers.shortcut.requests.request", return_value=mock_response):
             with pytest.raises(RuntimeError, match="Failed to create ticket"):
                 tracker.create_ticket("Title", "Description")
 
@@ -459,7 +459,7 @@ class TestShortcutTrackerUpdateTicket:
         mock_response.json.return_value = mock_story
         mock_response.raise_for_status = MagicMock()
 
-        with patch("lib.vibe.trackers.shortcut.requests.request", return_value=mock_response):
+        with patch("vibe.trackers.shortcut.requests.request", return_value=mock_response):
             ticket = tracker.update_ticket("123", title="Updated Title")
 
         assert ticket.title == "Updated Title"
@@ -480,7 +480,7 @@ class TestShortcutTrackerUpdateTicket:
 
         with patch.object(tracker, "_get_workflow_state_id", return_value=500001):
             with patch(
-                "lib.vibe.trackers.shortcut.requests.request", return_value=mock_response
+                "vibe.trackers.shortcut.requests.request", return_value=mock_response
             ) as mock_put:
                 ticket = tracker.update_ticket("123", status="Done")
 
@@ -500,7 +500,7 @@ class TestShortcutTrackerUpdateTicket:
         mock_response = MagicMock()
         mock_response.raise_for_status.side_effect = requests.HTTPError("404 Not Found")
 
-        with patch("lib.vibe.trackers.shortcut.requests.request", return_value=mock_response):
+        with patch("vibe.trackers.shortcut.requests.request", return_value=mock_response):
             with pytest.raises(RuntimeError, match="Failed to update ticket"):
                 tracker.update_ticket("123", title="New Title")
 
@@ -514,7 +514,7 @@ class TestShortcutTrackerCommentTicket:
         mock_response.raise_for_status = MagicMock()
 
         with patch(
-            "lib.vibe.trackers.shortcut.requests.request", return_value=mock_response
+            "vibe.trackers.shortcut.requests.request", return_value=mock_response
         ) as mock_post:
             tracker.comment_ticket("SC-123", "This is a comment")
 
@@ -528,7 +528,7 @@ class TestShortcutTrackerCommentTicket:
         mock_response = MagicMock()
         mock_response.raise_for_status.side_effect = requests.HTTPError("404 Not Found")
 
-        with patch("lib.vibe.trackers.shortcut.requests.request", return_value=mock_response):
+        with patch("vibe.trackers.shortcut.requests.request", return_value=mock_response):
             with pytest.raises(RuntimeError, match="Failed to add comment"):
                 tracker.comment_ticket("123", "Comment")
 
@@ -578,7 +578,7 @@ class TestShortcutTrackerGetLabelIds:
         mock_response.json.return_value = mock_labels
         mock_response.raise_for_status = MagicMock()
 
-        with patch("lib.vibe.trackers.shortcut.requests.request", return_value=mock_response):
+        with patch("vibe.trackers.shortcut.requests.request", return_value=mock_response):
             label_ids = tracker._get_label_ids(["Bug", "Feature"])
 
         assert label_ids == [1, 2]
@@ -590,7 +590,7 @@ class TestShortcutTrackerGetLabelIds:
         mock_response.json.return_value = mock_labels
         mock_response.raise_for_status = MagicMock()
 
-        with patch("lib.vibe.trackers.shortcut.requests.request", return_value=mock_response):
+        with patch("vibe.trackers.shortcut.requests.request", return_value=mock_response):
             label_ids = tracker._get_label_ids(["BUG"])
 
         assert label_ids == [1]
@@ -602,7 +602,7 @@ class TestShortcutTrackerGetLabelIds:
         mock_response.json.return_value = mock_labels
         mock_response.raise_for_status = MagicMock()
 
-        with patch("lib.vibe.trackers.shortcut.requests.request", return_value=mock_response):
+        with patch("vibe.trackers.shortcut.requests.request", return_value=mock_response):
             label_ids = tracker._get_label_ids(["Bug", "NonexistentLabel"])
 
         assert label_ids == [1]
@@ -616,7 +616,7 @@ class TestShortcutTrackerGetLabelIds:
         tracker = ShortcutTracker(api_token="sc_token")
 
         with patch(
-            "lib.vibe.trackers.shortcut.requests.request",
+            "vibe.trackers.shortcut.requests.request",
             side_effect=requests.RequestException("API error"),
         ):
             label_ids = tracker._get_label_ids(["Bug"])
@@ -637,7 +637,7 @@ class TestShortcutTrackerListLabels:
         mock_response.json.return_value = mock_labels
         mock_response.raise_for_status = MagicMock()
 
-        with patch("lib.vibe.trackers.shortcut.requests.request", return_value=mock_response):
+        with patch("vibe.trackers.shortcut.requests.request", return_value=mock_response):
             labels = tracker.list_labels()
 
         assert len(labels) == 2
@@ -648,7 +648,7 @@ class TestShortcutTrackerListLabels:
         tracker = ShortcutTracker(api_token="sc_token")
 
         with patch(
-            "lib.vibe.trackers.shortcut.requests.request",
+            "vibe.trackers.shortcut.requests.request",
             side_effect=requests.RequestException("API error"),
         ):
             labels = tracker.list_labels()
@@ -677,7 +677,7 @@ class TestShortcutTrackerGetWorkflowStateId:
         mock_response.json.return_value = mock_workflows
         mock_response.raise_for_status = MagicMock()
 
-        with patch("lib.vibe.trackers.shortcut.requests.request", return_value=mock_response):
+        with patch("vibe.trackers.shortcut.requests.request", return_value=mock_response):
             state_id = tracker._get_workflow_state_id("Done")
 
         assert state_id == 500004
@@ -691,7 +691,7 @@ class TestShortcutTrackerGetWorkflowStateId:
         mock_response.json.return_value = mock_workflows
         mock_response.raise_for_status = MagicMock()
 
-        with patch("lib.vibe.trackers.shortcut.requests.request", return_value=mock_response):
+        with patch("vibe.trackers.shortcut.requests.request", return_value=mock_response):
             state_id = tracker._get_workflow_state_id("in progress")
 
         assert state_id == 500001
@@ -706,7 +706,7 @@ class TestShortcutTrackerGetWorkflowStateId:
         mock_response.json.return_value = mock_workflows
         mock_response.raise_for_status = MagicMock()
 
-        with patch("lib.vibe.trackers.shortcut.requests.request", return_value=mock_response):
+        with patch("vibe.trackers.shortcut.requests.request", return_value=mock_response):
             state_id = tracker._get_workflow_state_id("Done")
 
         assert state_id == 200
@@ -720,7 +720,7 @@ class TestShortcutTrackerGetWorkflowStateId:
         mock_response.json.return_value = mock_workflows
         mock_response.raise_for_status = MagicMock()
 
-        with patch("lib.vibe.trackers.shortcut.requests.request", return_value=mock_response):
+        with patch("vibe.trackers.shortcut.requests.request", return_value=mock_response):
             state_id = tracker._get_workflow_state_id("NonexistentState")
 
         assert state_id is None
@@ -729,7 +729,7 @@ class TestShortcutTrackerGetWorkflowStateId:
         tracker = ShortcutTracker(api_token="sc_token")
 
         with patch(
-            "lib.vibe.trackers.shortcut.requests.request",
+            "vibe.trackers.shortcut.requests.request",
             side_effect=requests.RequestException("API error"),
         ):
             state_id = tracker._get_workflow_state_id("Done")
@@ -815,7 +815,7 @@ class TestShortcutTrackerSetParent:
         mock_response.raise_for_status = MagicMock()
 
         with patch(
-            "lib.vibe.trackers.shortcut.requests.request", return_value=mock_response
+            "vibe.trackers.shortcut.requests.request", return_value=mock_response
         ) as mock_req:
             tracker.set_parent("SC-101", "SC-100")
 
@@ -842,7 +842,7 @@ class TestShortcutTrackerSetParent:
                 mock_resp.raise_for_status = MagicMock()
                 return mock_resp
 
-        with patch("lib.vibe.trackers.shortcut.requests.request", side_effect=mock_request):
+        with patch("vibe.trackers.shortcut.requests.request", side_effect=mock_request):
             tracker.set_parent("SC-101", "SC-100")
 
         assert call_count["n"] == 2
@@ -857,7 +857,7 @@ class TestShortcutTrackerAddRelation:
         mock_response.raise_for_status = MagicMock()
 
         with patch(
-            "lib.vibe.trackers.shortcut.requests.request", return_value=mock_response
+            "vibe.trackers.shortcut.requests.request", return_value=mock_response
         ) as mock_req:
             tracker.add_relation("SC-101", "SC-102", "related")
 
@@ -874,7 +874,7 @@ class TestShortcutTrackerAddRelation:
         mock_response.raise_for_status = MagicMock()
 
         with patch(
-            "lib.vibe.trackers.shortcut.requests.request", return_value=mock_response
+            "vibe.trackers.shortcut.requests.request", return_value=mock_response
         ) as mock_req:
             tracker.add_relation("SC-101", "SC-102", "blocks")
 
@@ -886,6 +886,6 @@ class TestShortcutTrackerAddRelation:
         mock_response = MagicMock()
         mock_response.raise_for_status.side_effect = requests.HTTPError("500")
 
-        with patch("lib.vibe.trackers.shortcut.requests.request", return_value=mock_response):
+        with patch("vibe.trackers.shortcut.requests.request", return_value=mock_response):
             with pytest.raises(RuntimeError, match="Failed to create relation"):
                 tracker.add_relation("SC-101", "SC-102", "related")

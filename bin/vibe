@@ -103,7 +103,7 @@ main() {
 
     # Run the CLI
     cd "$REPO_ROOT"
-    python -m lib.vibe.cli.main "$@"
+    python -m vibe.cli.main "$@"
 }
 
 main "$@"

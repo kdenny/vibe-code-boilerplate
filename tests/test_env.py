@@ -1,9 +1,9 @@
-"""Tests for lib/vibe/env.py — env loading and direnv setup (VIBE-176)."""
+"""Tests for vibe/env.py — env loading and direnv setup (VIBE-176)."""
 
 import subprocess
 from pathlib import Path
 
-from lib.vibe.env import check_direnv_status, setup_direnv
+from vibe.env import check_direnv_status, setup_direnv
 
 
 def _git(root: Path, *args: str) -> None:

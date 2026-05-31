@@ -31,7 +31,7 @@ Findings that touch behavior were checked against the revamp contract in
 | **Defer** | 1 (regenerate instruction files post-revamp) | ⏸️ revamp-exit checklist |
 
 Plus the **modular-testing infrastructure** the audit's test findings depend on:
-module-scoped CI (`lib/vibe/testscope.py` + `tests.yml`) and the policy recipe.
+module-scoped CI (`vibe/testscope.py` + `tests.yml`) and the policy recipe.
 
 > **Scope note:** we support **Linear only** now, so the "tracker-aware" parsing
 > concern collapses to Linear-aware exact matching (below). The `bin/` venv
@@ -49,7 +49,7 @@ regeneration.
 |------|----------------|--------------|
 | `.cursorrules` | Legacy single-file Cursor format, **superseded** by the curated `.cursor/rules/*.mdc` rules. Contains only stale `(your project name)` template placeholders (`Generated: 2026-04-01`) that misrepresent this repo. | `.cursor/rules/` holds two real `.mdc` rules; Cursor reads that directory. The root file is dead drift. |
 | `.github/copilot-instructions.md` | Same stale `2026-04-01` template with placeholder content. Regeneration is **disabled during the revamp** (CLAUDE.md is the hand-authored source), so this file actively feeds misleading context to any agent/IDE that reads it. | Recoverable any time via `bin/vibe generate-agent-instructions` once the revamp ends. |
-| `docs/superpowers/specs/2026-04-01-cli-view-aliases-design.md` | One-off design spec for `--view` / `--unblocked` on `bin/ticket list`. **The feature shipped** — the spec is now stale scratch. | `--view`/`--unblocked` implemented in `lib/vibe/cli/ticket.py:139-205`. |
+| `docs/superpowers/specs/2026-04-01-cli-view-aliases-design.md` | One-off design spec for `--view` / `--unblocked` on `bin/ticket list`. **The feature shipped** — the spec is now stale scratch. | `--view`/`--unblocked` implemented in `vibe/cli/ticket.py:139-205`. |
 
 **Not deleted (considered, rejected as unsafe):**
 
@@ -68,7 +68,7 @@ regeneration.
 ## PR-AUTOMATION HARDENING — executed in this PR
 
 These are PR-automation edge cases (the ticket's fifth dimension) that produce
-"noisy or incorrect" PRs as remote agents scale. Both fixed in `lib/vibe/cli/main.py`
+"noisy or incorrect" PRs as remote agents scale. Both fixed in `vibe/cli/main.py`
 with tests in `tests/test_duplicate_pr_prevention.py`.
 
 | Fix | Before | After |
@@ -89,7 +89,7 @@ a competing ticket and keeps the module-boundary work in one place.
 
 | Candidate | Detail | Recommendation |
 |-----------|--------|----------------|
-| Cost-provider HTTP/auth boilerplate | All 8 providers under `lib/vibe/costs/providers/` repeat `_headers()` + `os.environ.get("<X>_API_KEY")` + ad-hoc `requests` error handling, with no shared retry. | Extract a thin `costs` HTTP helper **when** `costs/` is restructured. Note as a sub-item under VIBE-86's scope. |
+| Cost-provider HTTP/auth boilerplate | All 8 providers under `vibe/costs/providers/` repeat `_headers()` + `os.environ.get("<X>_API_KEY")` + ad-hoc `requests` error handling, with no shared retry. | Extract a thin `costs` HTTP helper **when** `costs/` is restructured. Note as a sub-item under VIBE-86's scope. |
 | Tracker HTTP/GraphQL execution | `trackers/*` repeat query-execution + auth patterns. | Already in VIBE-86's stated scope ("shared Linear/Neon/Axiom/Fly tooling"). No new ticket. |
 
 > Both are premature to extract before the module-boundary revamp stabilizes — a
@@ -121,7 +121,7 @@ reducible: **~2,000–2,500 lines** without losing real coverage.
 **What this PR does instead** — builds the rails so the per-rewrite thinning is
 cheap and enforced, and demonstrates the pattern once:
 
-- **Module-scoped CI** (`lib/vibe/testscope.py` + `tests.yml`): PRs run only the
+- **Module-scoped CI** (`vibe/testscope.py` + `tests.yml`): PRs run only the
   changed modules' tests; `main` + shared-file changes run the full suite.
 - **Policy** in [`recipes/testing/modular-testing.md`](../../recipes/testing/modular-testing.md),
   enforced by `.coderabbit.yaml` (`tests/**` path instruction).
@@ -177,5 +177,5 @@ native" preamble in both workflows (doc-only; **track as follow-up**).
 
 - `bin/ci-local --fast`: **786 passed, 9 skipped**; ruff check, ruff format, mypy,
   gitleaks all clean (after formatting).
-- `lib/vibe/testscope.py`: 25 unit tests; CLI entrypoint smoke-tested across
+- `vibe/testscope.py`: 25 unit tests; CLI entrypoint smoke-tested across
   full / scoped / empty / stdin / fail-safe modes.

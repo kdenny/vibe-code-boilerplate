@@ -32,4 +32,4 @@ fi
 # Activate venv and run
 source "$VENV_DIR/bin/activate"
 cd "$REPO_ROOT"
-python -m lib.vibe.cli.ticket "$@"
+python -m vibe.cli.ticket "$@"

@@ -90,7 +90,7 @@ Body:
     bin/logs query "level == 'error'" --since 24h --until 12h
   Expected: rows from 12-24h ago
   Actual:   rows from last 1h (default), --until is ignored
-  Source:   lib/vibe/cli/logs.py:queries.py:127 — only --since is forwarded
+  Source:   vibe/cli/logs.py:queries.py:127 — only --since is forwarded
 
   This blocks investigation of any incident older than ~1h via the CLI.
   Workaround: use bin/logs apl directly with explicit time bounds.

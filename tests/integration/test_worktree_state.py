@@ -21,8 +21,8 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from lib.vibe.git.worktrees import create_worktree
-from lib.vibe.state import load_state
+from vibe.git.worktrees import create_worktree
+from vibe.state import load_state
 
 
 def _fake_git(commit: str):
@@ -52,9 +52,9 @@ def test_create_worktree_persists_to_real_state(tmp_path: Path) -> None:
     worktree_base = tmp_path / "worktrees"
 
     with (
-        patch("lib.vibe.git.worktrees.get_primary_repo_root", return_value=repo_root),
-        patch("lib.vibe.git.worktrees.get_worktree_base_path", return_value=worktree_base),
-        patch("lib.vibe.git.worktrees.subprocess.run", side_effect=_fake_git("abc123def")),
+        patch("vibe.git.worktrees.get_primary_repo_root", return_value=repo_root),
+        patch("vibe.git.worktrees.get_worktree_base_path", return_value=worktree_base),
+        patch("vibe.git.worktrees.subprocess.run", side_effect=_fake_git("abc123def")),
     ):
         wt = create_worktree("VIBE-999", "main")
 

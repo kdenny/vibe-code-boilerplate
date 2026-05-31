@@ -16,26 +16,25 @@
 
 ## 0. Naming note — target vs. current
 
-The repository today ships dist name `vibe-boilerplate` with import package
-`lib.vibe` (see `pyproject.toml`, `[tool.setuptools.packages.find] include =
-["lib*"]`). **This contract specifies the v0 *target* surface**, not a migration
-step:
+VIBE-182 moved the repository to the v0 import package (`vibe`) and console
+entrypoint (`vibe.cli.main:main`). The distribution name is still
+`vibe-boilerplate` until VIBE-85 finalizes the release/build mechanics:
 
-| | Today (`main`) | v0 target (this contract) |
+| | After VIBE-182 | v0 target (this contract) |
 |---|---|---|
 | Distribution name | `vibe-boilerplate` | `vibe` |
-| Import package | `lib.vibe` | `vibe` |
-| Console script | `vibe = lib.vibe.cli.main:main` | `vibe = vibe.cli.main:main` |
+| Import package | `vibe` | `vibe` |
+| Console script | `vibe = vibe.cli.main:main` | `vibe = vibe.cli.main:main` |
 | Build backend | setuptools | finalized by VIBE-85 |
 
-The rename + layout move is **VIBE-85/VIBE-86 work**, sequenced behind this spec.
-This doc is the contract they migrate *toward*; it does not perform the migration.
+VIBE-85 now builds against the existing `vibe` package skeleton instead of
+performing a code move.
 
 > **VIBE-86 implementation note:** the registration seam now exists in the current
-> package as `lib.vibe.cli.{Integration, verb, register}` and
-> `lib.vibe.integrations.*`, with entry points in the `vibe.integrations` group.
-> VIBE-182 re-homes these paths to `vibe.*`; the names, CLI slug rules, extras
-> semantics, and decoupling guardrails are already the v0 target shape.
+> package as `vibe.cli.{Integration, verb, register}` and
+> `vibe.integrations.*`, with entry points in the `vibe.integrations` group.
+> VIBE-182 re-homed these paths to `vibe.*`; the names, CLI slug rules, extras
+> semantics, and decoupling guardrails are the v0 target shape.
 
 ---
 
@@ -79,8 +78,8 @@ symbols (and its registered verbs/config), never by reaching into its internals.
 > **Why `vibe.integrations.<name>` and not `vibe.<name>`:** it keeps the top-level
 > namespace small and stable, makes "what is an integration" answerable by listing
 > one package, and matches the à-la-carte enablement model (`ls .vibe/*.toml` ↔
-> `vibe.integrations.*`). The current repo's flat subpackages (`lib.vibe.trackers`,
-> `lib.vibe.secrets`, `lib.vibe.costs`, …) collapse into this namespace during the
+> `vibe.integrations.*`). The current repo's flat subpackages (`vibe.trackers`,
+> `vibe.secrets`, `vibe.costs`, …) collapse into this namespace during the
 > VIBE-86 move.
 
 ### 1.3 Public vs. internal — the rule

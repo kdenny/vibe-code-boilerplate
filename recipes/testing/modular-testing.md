@@ -15,8 +15,8 @@ when a module is rewritten.
 
 ## Five rules
 
-1. **One module = one test file.** `lib/vibe/<name>.py` is covered by
-   `tests/test_<name>.py`; a package `lib/vibe/<pkg>/` is covered by
+1. **One module = one test file.** `vibe/<name>.py` is covered by
+   `tests/test_<name>.py`; a package `vibe/<pkg>/` is covered by
    `tests/test_<pkg>_*.py`. Keep the mapping obvious — it's what makes
    module-scoped CI possible.
 2. **Test public behavior, not internals.** Exercise the functions other
@@ -75,17 +75,17 @@ module, **re-level its tests in the same PR**:
 
 ## Module-scoped CI
 
-`lib/vibe/testscope.py` decides which pytest targets a change needs, and
+`vibe/testscope.py` decides which pytest targets a change needs, and
 `.github/workflows/tests.yml` uses it:
 
 | Trigger | What runs |
 |---------|-----------|
 | Push to `main` | **Full suite** (the safety net before release) |
-| Change to a shared/core file — exactly the `SHARED_PREFIXES` list in `testscope.py`: `pyproject.toml`, `tests/conftest.py`, `tests/__init__.py`, `lib/vibe/__init__.py`, `config.py`, `config_schema.py`, `env.py`, `utils/`, the selector (`testscope.py`), the workflow | **Full suite** (blast radius is everything) |
+| Change to a shared/core file — exactly the `SHARED_PREFIXES` list in `testscope.py`: `pyproject.toml`, `tests/conftest.py`, `tests/__init__.py`, `vibe/__init__.py`, `vibe/config.py`, `vibe/config_schema.py`, `vibe/env.py`, `vibe/utils/`, the selector (`vibe/testscope.py`), the workflow | **Full suite** (blast radius is everything) |
 | PR touching one mapped module | **Only that module's** `tests/test_*.py` |
 | PR touching either side of a compose seam | that module's unit suite **plus** the seam's `tests/integration/test_*.py` |
-| Unmapped `lib/vibe/` **package** (`lib/vibe/<pkg>/…` with no convention-matching tests) | **Full suite** (fail-safe — a forgotten mapping costs time, never coverage) |
-| Unmapped top-level `lib/vibe/<name>.py` with no `tests/test_<name>.py` | **No pytest** (nothing to scope to; `main` is the backstop) |
+| Unmapped `vibe/` **package** (`vibe/<pkg>/…` with no convention-matching tests) | **Full suite** (fail-safe — a forgotten mapping costs time, never coverage) |
+| Unmapped top-level `vibe/<name>.py` with no `tests/test_<name>.py` | **No pytest** (nothing to scope to; `main` is the backstop) |
 | Docs / recipes / `bin/` only | **No pytest** (`bin/` wrappers are proven by the live smoke-test matrix) |
 
 The tradeoff is deliberate: PR runs are scoped for fast feedback; a cross-module
@@ -96,21 +96,21 @@ full suite; CI scoping is the fast safety net, not the primary verification.
 ### Keeping the map honest
 
 When you add a module or a test file, update `SOURCE_TEST_MAP` in
-`lib/vibe/testscope.py` only if the naming convention doesn't already connect
+`vibe/testscope.py` only if the naming convention doesn't already connect
 them (most don't need an entry). When you add an **integration suite**, add an
 entry to `INTEGRATION_SEAMS` listing its participant source paths.
 `tests/test_testscope.py` fails if either map references a test file that
-doesn't exist, if a seam participant isn't under `lib/vibe/`, or if a seam has
+doesn't exist, if a seam participant isn't under `vibe/`, or if a seam has
 fewer than two participants.
 
 Try it locally:
 
 ```bash
 # What would CI run for these changes?
-PYTHONPATH=. python -m lib.vibe.testscope lib/vibe/trackers/linear.py
+PYTHONPATH=. python -m vibe.testscope vibe/trackers/linear.py
 #   -> tests/test_trackers_linear.py tests/test_views.py
 
-git diff --name-only origin/main...HEAD | PYTHONPATH=. python -m lib.vibe.testscope
+git diff --name-only origin/main...HEAD | PYTHONPATH=. python -m vibe.testscope
 #   -> ALL | <space-separated paths> | <empty: no Python tests affected>
 ```
 
@@ -122,7 +122,7 @@ path invokes, and what you run locally to feel the same thing (VIBE-186).
 
 ```bash
 bin/ci-local --scope                      # auto-diff this branch vs origin/main
-bin/ci-local --scope lib/vibe/trackers/linear.py   # explicit changed-file list
+bin/ci-local --scope vibe/trackers/linear.py   # explicit changed-file list
 ```
 
 It maps the changed set → suites via `testscope.py` (no duplicated selection
@@ -147,11 +147,11 @@ automatically — in these cases, and you should reach for an unscoped
 
 - **Push to `main`** — the release backstop always runs everything (workflow).
 - **A shared/contract file changed** — exactly the `SHARED_PREFIXES` list
-  (`pyproject.toml`, `requirements.lock`'s closure via it, `config.py`,
-  `config_schema.py`, `env.py`, `utils/`, `testscope.py`, the workflow). Their
+  (`pyproject.toml`, `requirements.lock`'s closure via it, `vibe/config.py`,
+  `vibe/config_schema.py`, `vibe/env.py`, `vibe/utils/`, `vibe/testscope.py`, the workflow). Their
   blast radius is the whole package, so `testscope.py` returns `ALL` and
   `--scope` expands to the full run on its own.
-- **A new/unmapped `lib/vibe/` package** — fail-safe: `testscope.py` returns
+- **A new/unmapped `vibe/` package** — fail-safe: `testscope.py` returns
   `ALL` rather than risk skipping an untested change.
 - **A cross-cutting refactor** that touches many modules — `--scope` will run
   every affected suite, but when the change is broad enough that the *interaction*

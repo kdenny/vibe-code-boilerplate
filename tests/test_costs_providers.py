@@ -2,12 +2,12 @@
 
 from unittest.mock import MagicMock, patch
 
-from lib.vibe.costs.providers.anthropic import AnthropicCostProvider
-from lib.vibe.costs.providers.fly import FlyCostProvider
-from lib.vibe.costs.providers.github_actions import GitHubActionsCostProvider
-from lib.vibe.costs.providers.neon import NeonCostProvider
-from lib.vibe.costs.providers.sentry import SentryCostProvider
-from lib.vibe.costs.providers.supabase import SupabaseCostProvider
+from vibe.costs.providers.anthropic import AnthropicCostProvider
+from vibe.costs.providers.fly import FlyCostProvider
+from vibe.costs.providers.github_actions import GitHubActionsCostProvider
+from vibe.costs.providers.neon import NeonCostProvider
+from vibe.costs.providers.sentry import SentryCostProvider
+from vibe.costs.providers.supabase import SupabaseCostProvider
 
 
 class TestNeonCostProvider:
@@ -21,7 +21,7 @@ class TestNeonCostProvider:
             p = NeonCostProvider()
             assert p.check_credentials() is False
 
-    @patch("lib.vibe.costs.providers.neon.requests.get")
+    @patch("vibe.costs.providers.neon.requests.get")
     def test_get_current_costs(self, mock_get):
         api_response = {
             "projects": [
@@ -59,7 +59,7 @@ class TestSupabaseCostProvider:
         assert SupabaseCostProvider._default_plan_cost("pro") == 25.0
         assert SupabaseCostProvider._default_plan_cost("team") == 599.0
 
-    @patch("lib.vibe.costs.providers.supabase.requests.get")
+    @patch("vibe.costs.providers.supabase.requests.get")
     def test_get_current_costs(self, mock_get):
         mock_resp = MagicMock()
         mock_resp.json.return_value = [{"slug": "my-org"}]
@@ -86,7 +86,7 @@ class TestFlyCostProvider:
             p = FlyCostProvider()
             assert p.check_credentials() is True
 
-    @patch("lib.vibe.costs.providers.fly.subprocess.run")
+    @patch("vibe.costs.providers.fly.subprocess.run")
     def test_get_machines_empty(self, mock_run):
         mock_run.return_value = MagicMock(returncode=1, stdout="")
         with patch.dict("os.environ", {"FLY_API_TOKEN": "test"}):
@@ -102,7 +102,7 @@ class TestGitHubActionsCostProvider:
         assert p.name == "github"
         assert p.display_name == "GitHub Actions"
 
-    @patch("lib.vibe.costs.providers.github_actions.subprocess.run")
+    @patch("vibe.costs.providers.github_actions.subprocess.run")
     def test_parse_usage(self, mock_run):
         p = GitHubActionsCostProvider()
         usage = {

@@ -23,7 +23,7 @@ Every CLI invocation should succeed. When one errors, classify and act:
 
   This is the doctrine made executable: file the ticket with one command instead of remembering the labels, priority, and dedup check by hand. (Posting to the CLI/agent-DX Slack channel is wired separately — VIBE-208.)
 
-**You usually don't have to invoke it manually.** When a VIBE CLI hits an *unexpected* crash it emits a `VIBE_TOOLING_FAULT` marker (`lib/vibe/cli/errors.py`), and the `PostToolUse` hook (`.claude/hooks/file-tooling-fault.sh`, enabled via `.claude/settings.local.json`) auto-files the ticket. The marker fires only on genuine CLI crashes, never on ordinary usage errors, so it stays low-noise. Set `VIBE_NO_AUTOFILE=1` to disable. Invoke `file-tooling-issue` by hand for the faults a crash can't self-detect (silent wrong output, missing flags, confusing-but-non-crashing errors).
+**You usually don't have to invoke it manually.** When a VIBE CLI hits an *unexpected* crash it emits a `VIBE_TOOLING_FAULT` marker (`vibe/cli/errors.py`), and the `PostToolUse` hook (`.claude/hooks/file-tooling-fault.sh`, enabled via `.claude/settings.local.json`) auto-files the ticket. The marker fires only on genuine CLI crashes, never on ordinary usage errors, so it stays low-noise. Set `VIBE_NO_AUTOFILE=1` to disable. Invoke `file-tooling-issue` by hand for the faults a crash can't self-detect (silent wrong output, missing flags, confusing-but-non-crashing errors).
 
 The bar for "Urgent" is intentionally low: any DX papercut counts, not just blockers. The cost of agent friction compounds across sessions, so each papercut is worth fixing fast.
 
@@ -119,8 +119,8 @@ These four anti-patterns are codified in `CORE.md` § Anti-Patterns. Re-stated h
 
 When creating `bin/<new-cli>`:
 
-1. **Bash wrapper at `bin/<new-cli>`**, ~30 lines: ensure `.vibe/.venv` exists, activate it, exec `python -m lib.vibe.cli.<new-cli> "$@"`. Mirror the pattern in `bin/secrets`, `bin/ticket`.
-2. **Implementation at `lib/vibe/cli/<new_cli>.py`**, an `argparse`-based dispatcher with one function per subcommand. Subclass `CLIError`, `ParserDriftError`, `NetworkError` for the exit-code scheme.
+1. **Bash wrapper at `bin/<new-cli>`**, ~30 lines: ensure `.vibe/.venv` exists, activate it, exec `python -m vibe.cli.<new-cli> "$@"`. Mirror the pattern in `bin/secrets`, `bin/ticket`.
+2. **Implementation at `vibe/cli/<new_cli>.py`**, an `argparse`-based dispatcher with one function per subcommand. Subclass `CLIError`, `ParserDriftError`, `NetworkError` for the exit-code scheme.
 3. **Inline `--help`** for the top level + each subcommand, with at least one example per subcommand.
 4. **Output formats** — pretty (TTY), jsonl (pipe), `--format` override.
 5. **Exit codes** — 0/1/2/3 per the table above. Validate response shapes before parsing; emit `2` on drift.

@@ -48,4 +48,4 @@ jobs:
         run: ruff format . --check --diff
 
       - name: Run mypy type checking
-        run: mypy lib/vibe/
+        run: mypy vibe/

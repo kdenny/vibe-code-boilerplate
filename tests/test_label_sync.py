@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from click.testing import CliRunner
 
-from lib.vibe.label_sync import categorize_labels, sync_labels_to_config
+from vibe.label_sync import categorize_labels, sync_labels_to_config
 
 
 class TestCategorizeLabels:
@@ -258,7 +258,7 @@ class TestSyncLabelsCommand:
     }
 
     def test_sync_labels_command_success(self) -> None:
-        from lib.vibe.cli.main import main
+        from vibe.cli.main import main
 
         mock_tracker = MagicMock()
         mock_tracker.list_labels.return_value = [
@@ -268,10 +268,10 @@ class TestSyncLabelsCommand:
 
         runner = CliRunner()
         with (
-            patch("lib.vibe.config.load_config", return_value=self.CONFIG_WITH_DEFAULTS.copy()),
-            patch("lib.vibe.trackers.linear.LinearTracker", return_value=mock_tracker),
-            patch("lib.vibe.label_sync.load_config", return_value=self.CONFIG_WITH_DEFAULTS.copy()),
-            patch("lib.vibe.label_sync.save_config"),
+            patch("vibe.config.load_config", return_value=self.CONFIG_WITH_DEFAULTS.copy()),
+            patch("vibe.trackers.linear.LinearTracker", return_value=mock_tracker),
+            patch("vibe.label_sync.load_config", return_value=self.CONFIG_WITH_DEFAULTS.copy()),
+            patch("vibe.label_sync.save_config"),
             patch.dict("os.environ", {"LINEAR_API_KEY": "test-key"}),
         ):
             result = runner.invoke(main, ["sync-labels"])
@@ -280,12 +280,12 @@ class TestSyncLabelsCommand:
         assert "Fetched 2 labels" in result.output
 
     def test_sync_labels_linear_no_api_key(self) -> None:
-        from lib.vibe.cli.main import main
+        from vibe.cli.main import main
 
         runner = CliRunner()
         with (
             patch(
-                "lib.vibe.config.load_config",
+                "vibe.config.load_config",
                 return_value={
                     "tracker": {"type": "linear", "config": {"team_id": "t1"}},
                 },
@@ -300,11 +300,11 @@ class TestSyncLabelsCommand:
         assert "LINEAR_API_KEY" in result.output
 
     def test_sync_labels_no_tracker(self) -> None:
-        from lib.vibe.cli.main import main
+        from vibe.cli.main import main
 
         runner = CliRunner()
         with patch(
-            "lib.vibe.config.load_config", return_value={"tracker": {"type": None, "config": {}}}
+            "vibe.config.load_config", return_value={"tracker": {"type": None, "config": {}}}
         ):
             result = runner.invoke(main, ["sync-labels"])
 
@@ -312,7 +312,7 @@ class TestSyncLabelsCommand:
         assert "No tracker configured" in result.output
 
     def test_sync_labels_dry_run(self) -> None:
-        from lib.vibe.cli.main import main
+        from vibe.cli.main import main
 
         mock_tracker = MagicMock()
         mock_tracker.list_labels.return_value = [
@@ -322,10 +322,10 @@ class TestSyncLabelsCommand:
 
         runner = CliRunner()
         with (
-            patch("lib.vibe.config.load_config", return_value=self.CONFIG_WITH_DEFAULTS.copy()),
-            patch("lib.vibe.trackers.linear.LinearTracker", return_value=mock_tracker),
-            patch("lib.vibe.label_sync.load_config", return_value=self.CONFIG_WITH_DEFAULTS.copy()),
-            patch("lib.vibe.label_sync.save_config") as mock_save,
+            patch("vibe.config.load_config", return_value=self.CONFIG_WITH_DEFAULTS.copy()),
+            patch("vibe.trackers.linear.LinearTracker", return_value=mock_tracker),
+            patch("vibe.label_sync.load_config", return_value=self.CONFIG_WITH_DEFAULTS.copy()),
+            patch("vibe.label_sync.save_config") as mock_save,
             patch.dict("os.environ", {"LINEAR_API_KEY": "test-key"}),
         ):
             result = runner.invoke(main, ["sync-labels", "--dry-run"])
@@ -335,7 +335,7 @@ class TestSyncLabelsCommand:
         mock_save.assert_not_called()
 
     def test_sync_labels_json_output(self) -> None:
-        from lib.vibe.cli.main import main
+        from vibe.cli.main import main
 
         mock_tracker = MagicMock()
         mock_tracker.list_labels.return_value = [{"name": "Bug", "id": "1"}]
@@ -343,18 +343,18 @@ class TestSyncLabelsCommand:
         runner = CliRunner()
         with (
             patch(
-                "lib.vibe.config.load_config",
+                "vibe.config.load_config",
                 return_value={
                     "tracker": {"type": "linear", "config": {"team_id": "t1"}},
                     "labels": {},
                 },
             ),
-            patch("lib.vibe.trackers.linear.LinearTracker", return_value=mock_tracker),
+            patch("vibe.trackers.linear.LinearTracker", return_value=mock_tracker),
             patch(
-                "lib.vibe.label_sync.load_config",
+                "vibe.label_sync.load_config",
                 return_value={"tracker": {"type": "linear", "config": {}}, "labels": {}},
             ),
-            patch("lib.vibe.label_sync.save_config"),
+            patch("vibe.label_sync.save_config"),
             patch.dict(
                 "os.environ",
                 {"LINEAR_API_KEY": "test-key", "VIBE_NO_UPDATE_CHECK": "1"},
@@ -377,7 +377,7 @@ class TestDoctorLabelCheck:
     """Tests for the doctor label sync check."""
 
     def test_check_warns_on_default_labels(self) -> None:
-        from lib.vibe.doctor import Status, check_label_sync
+        from vibe.doctor import Status, check_label_sync
 
         config = {
             "tracker": {"type": "linear"},
@@ -393,7 +393,7 @@ class TestDoctorLabelCheck:
         assert "sync-labels" in result.fix_hint
 
     def test_check_passes_when_area_differs_from_defaults(self) -> None:
-        from lib.vibe.doctor import Status, check_label_sync
+        from vibe.doctor import Status, check_label_sync
 
         config = {
             "tracker": {"type": "linear"},
@@ -409,7 +409,7 @@ class TestDoctorLabelCheck:
         assert "differ from defaults" in result.message
 
     def test_check_skips_without_tracker(self) -> None:
-        from lib.vibe.doctor import Status, check_label_sync
+        from vibe.doctor import Status, check_label_sync
 
         config = {"tracker": {"type": None}, "labels": {}}
         result = check_label_sync(config)

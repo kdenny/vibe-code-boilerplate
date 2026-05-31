@@ -3,7 +3,7 @@
 import os
 from unittest.mock import MagicMock, patch
 
-from lib.vibe.ui.validation import SetupValidator, ValidationResult, print_validation_results
+from vibe.ui.validation import SetupValidator, ValidationResult, print_validation_results
 
 
 class TestValidationResult:

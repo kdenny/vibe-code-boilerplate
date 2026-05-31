@@ -69,7 +69,7 @@ wall, gate, and shared-foundation tickets appear once per milestone.
 | F1 | `Build repo-backed external provider docs index` | milestone (or once for P) | The `.vibe/provider-docs-index.json` registry, its schema, and the freshness/doctor check that reads it. | `agent-ready` | **blocks** every Index ticket |
 | F2 | `Auto-create HUMAN ‼️ issues for provider doc drift` | milestone (or once for P) | The automation that turns a detected doc-drift into a `HUMAN ‼️`-labelled Linear issue. | `agent-ready` | **blocked-by** F1 |
 | Index Pᵢ | `Index provider docs for <Pᵢ> install` | provider | Populate the docs index for Pᵢ: every feature → docs-url + local ref + content signature. | `agent-ready` | **blocked-by** F1; **blocks** Installer Pᵢ |
-| Installer Pᵢ | `Add CLI installer flow for <Pᵢ>` | provider | The menu-driven / multi-select install step for Pᵢ (a `lib/vibe/wizards/*` consumer). | `agent-ready` | **blocked-by** Index Pᵢ; **blocks** Human-setup Pᵢ |
+| Installer Pᵢ | `Add CLI installer flow for <Pᵢ>` | provider | The menu-driven / multi-select install step for Pᵢ (a `vibe/wizards/*` consumer). | `agent-ready` | **blocked-by** Index Pᵢ; **blocks** Human-setup Pᵢ |
 | Human-setup Pᵢ | `Add guided human setup flow for <Pᵢ>` | provider | The guided human step (OAuth, secrets, billing) that **sits immediately before the gate**. | `agent-ready` + `blocked-by-external-setup` | **blocked-by** Installer Pᵢ; **blocks** the gate |
 | Gate | `[Gate] P — M complete` | milestone | Validate the milestone end-to-end via an explicit matrix. | `gate` | **blocked-by** every work ticket in M |
 
@@ -129,7 +129,7 @@ Per ticket type:
   thin consumer: fill known features into a known schema.
 - **Installer Pᵢ → `agent-ready`** when it builds to the install-flow contract
   (§6) — the standard index-driven, menu-driven flow over the existing
-  `lib/vibe/wizards/*` framework — and the Index ticket is wired as its blocker.
+  `vibe/wizards/*` framework — and the Index ticket is wired as its blocker.
   If the provider's adoption mode or which features install is *undecided*, it is
   **`needs-scoping`**.
 - **Human-setup Pᵢ → `agent-ready` + `blocked-by-external-setup`** when it produces
@@ -215,7 +215,7 @@ The contract an installer ticket builds to:
 - **Module registry.** Each milestone module registers a single entry the CLI
   iterates: `{ id, label, providers[], wizard_entrypoint, required_index_keys }`.
   `setup.py` discovers modules from the registry — it does **not** hard-code them.
-- **Selection UX.** Use the existing primitives in `lib/vibe/ui/components.py`:
+- **Selection UX.** Use the existing primitives in `vibe/ui/components.py`:
   `NumberedMenu`/`SelectOption` for single-select (pick the module), `MultiSelect`
   for the **multi-select / checkbox** provider-and-feature choices. This is the
   "Claude Code–style menu" the milestone source discussion calls for.
@@ -223,7 +223,7 @@ The contract an installer ticket builds to:
   are rendered **from `.vibe/provider-docs-index.json`** (§5), never hard-coded —
   this is *why* the Index ticket blocks the installer (§3 rule 3).
 - **Branch to the provider wizard.** Each selected provider branches into its
-  `lib/vibe/wizards/<provider>.py` path.
+  `vibe/wizards/<provider>.py` path.
 - **Defer human-only steps.** Anything requiring a provider console (OAuth,
   secrets, billing) is **kept out of the install path** and handed to the guided
   human-setup flow (§7) — the installer's job ends at the machine-side install.
