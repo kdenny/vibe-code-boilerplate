@@ -264,12 +264,21 @@ class SetupValidator:
                 "Content-Type": "application/json",
             },
         )
-        with urllib.request.urlopen(req, timeout=10) as response:
-            status = response.status
-            try:
-                body = json.loads(response.read())
-            except (TypeError, ValueError):
-                body = {}
+        try:
+            with urllib.request.urlopen(req, timeout=10) as response:
+                status = response.status
+                raw = response.read()
+        except urllib.error.HTTPError as e:
+            # A revoked/invalid key (or an unreachable team) surfaces as an HTTP
+            # 4xx. Return the code instead of letting it propagate so callers can
+            # branch on ``status`` and give an actionable message rather than a
+            # raw "HTTP Error 401" string.
+            status = e.code
+            raw = e.read() or b""
+        try:
+            body = json.loads(raw)
+        except (TypeError, ValueError):
+            body = {}
         return status, (body if isinstance(body, dict) else {})
 
     def validate_linear(self) -> ValidationResult:
@@ -692,7 +701,7 @@ class SetupValidator:
         try:
             req = urllib.request.Request(
                 _AXIOM_APL_URL,
-                data=json.dumps({"apl": f"['{dataset}'] | limit 1"}).encode("utf-8"),
+                data=json.dumps({"apl": f"['{dataset}'] | take 1"}).encode("utf-8"),
                 headers={
                     "Authorization": f"Bearer {token}",
                     "X-Axiom-Org-Id": org,
