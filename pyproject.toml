@@ -27,7 +27,7 @@ dependencies = [
 # Integration extras: bare `vibe` stays core-only; provider/runtime deps live here.
 pr-autopilot = []
 fly = [
-    "tomli>=2.0.0",
+    "tomli>=2.4.1",
 ]
 batch = [
     "pyyaml>=6.0.3",
