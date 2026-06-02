@@ -44,7 +44,7 @@ dev = [
     "pytest>=9.0.3",
     "pytest-cov>=7.1.0",
     "mypy>=1.20.1",
-    "ruff>=0.1.0",
+    "ruff>=0.15.15",
     # Used by tests/test_coderabbit_config.py to validate .coderabbit.yaml against
     # the schema's maxLength limits (an over-limit field silently disables the config).
     "pyyaml>=6.0.3",
