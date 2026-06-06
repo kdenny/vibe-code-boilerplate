@@ -4,6 +4,10 @@
 .vibe/*.lock
 .vibe/.venv/
 .vibe/cache/
+# Per-repo PR Autopilot state is dogfood output of `pr-autopilot setup`, not source
+.vibe/config.toml
+.vibe/pr-autopilot.toml
+.vibe/pr-autopilot.toml.disabled
 
 # Claude Code local settings (may contain permissions)
 .claude/settings.local.json

@@ -125,6 +125,12 @@ INTEGRATION_SEAMS: dict[str, tuple[str, ...]] = {
         "vibe/events/",
         "vibe/trackers/linear.py",
     ),
+    # The PR-autopilot setup preflight composes the centralized ui.validation
+    # SetupValidator (the Linear check) to gate enablement.
+    "tests/integration/test_pr_autopilot_setup.py": (
+        "vibe/integrations/pr_autopilot/",
+        "vibe/ui/validation.py",
+    ),
 }
 
 

@@ -31,6 +31,7 @@ def test_pr_autopilot_declares_reference_shape() -> None:
         "enable",
         "inspect",
         "run",
+        "setup",
         "status",
     }
     assert integration.entrypoints.keys() == {
@@ -39,6 +40,7 @@ def test_pr_autopilot_declares_reference_shape() -> None:
         "enable",
         "inspect",
         "run",
+        "setup",
         "status",
     }
 
