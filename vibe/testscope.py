@@ -125,6 +125,19 @@ INTEGRATION_SEAMS: dict[str, tuple[str, ...]] = {
         "vibe/events/",
         "vibe/trackers/linear.py",
     ),
+    # The PR-autopilot setup preflight composes the centralized ui.validation
+    # SetupValidator (the Linear check) to gate enablement.
+    "tests/integration/test_pr_autopilot_setup.py": (
+        "vibe/integrations/pr_autopilot/",
+        "vibe/ui/validation.py",
+    ),
+    # The remediation closes the preflight loop: the assets setup.run_preflight
+    # flags as missing are exactly the ones remediation writes from its bundled
+    # templates, so a second preflight passes.
+    "tests/integration/test_pr_autopilot_remediation.py": (
+        "vibe/integrations/pr_autopilot/remediation.py",
+        "vibe/integrations/pr_autopilot/setup.py",
+    ),
 }
 
 

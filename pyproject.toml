@@ -57,6 +57,12 @@ version = {file = "VERSION"}
 where = ["."]
 include = ["vibe*"]
 
+[tool.setuptools.package-data]
+# Bundled config/workflow templates the PR Autopilot remediation writes into a
+# consumer repo (vibe pr-autopilot remediate). Shipped as package data so the
+# extracted package carries them.
+"vibe.integrations.pr_autopilot" = ["remediation_assets/*"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"

@@ -1,0 +1,46 @@
+# yaml-language-server: $schema=https://coderabbit.ai/schemas/coderabbit-config.json
+#
+# CodeRabbit configuration installed by `vibe pr-autopilot remediate`.
+# ---------------------------------------------------------------------------
+# Starter "review firewall" for PR Autopilot: high-signal, decisive review.
+# Tune the path_instructions / pre_merge_checks for your repo over time.
+#
+# GUARDRAIL, NOT A ROADBLOCK: default to APPROVE. Request changes ONLY for a
+# finding future PRs build on, where the cost compounds if it merges as-is
+# (contracts, schemas, public surface, tests for extended behavior, coupling,
+# a broken local-run path). Everything else is a non-blocking nitpick.
+#
+# NOTE: CodeRabbit caps tone_instructions at 250 chars; over that the WHOLE
+# config silently falls back to defaults. Keep it terse and under the limit.
+# ---------------------------------------------------------------------------
+
+language: "en-US"
+
+tone_instructions: >-
+  Approve once nothing blocking remains. Request changes ONLY for what future
+  PRs build on: contracts, schemas, public surface, tests for extended
+  behavior, coupling, broken local run. Else it's a non-blocking nitpick —
+  approve it anyway.
+
+early_access: false
+
+reviews:
+  # 'chill' keeps low-value style nitpicking down; reintroduce strictness
+  # surgically via path_instructions as the repo's needs become clear.
+  profile: "chill"
+
+  # Decisive outcomes: block the PR when CodeRabbit requests changes.
+  request_changes_workflow: true
+  abort_on_close: true
+
+  high_level_summary: true
+  changed_files_summary: true
+  review_status: true
+  collapse_walkthrough: true
+
+  auto_review:
+    enabled: true
+    drafts: false
+
+chat:
+  auto_reply: true
