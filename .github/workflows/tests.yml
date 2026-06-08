@@ -99,7 +99,7 @@ jobs:
       # and the trailing comment together when upgrading.
       - name: Set up uv
         if: steps.detect.outputs.has_pytest == 'true' && hashFiles('uv.lock') != ''
-        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
         id: setup_uv
         continue-on-error: true
         with:
