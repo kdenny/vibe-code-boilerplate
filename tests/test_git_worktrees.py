@@ -1,10 +1,13 @@
 """Tests for git worktree management."""
 
+import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from vibe.git.worktrees import (
     Worktree,
+    _find_node_workspaces,
+    _install_node_workspace_dependencies,
     cleanup_stale_worktrees,
     cleanup_worktree,
     create_worktree,
@@ -80,7 +83,7 @@ class TestGetWorktreeBasePath:
             mock_root.return_value = Path("/home/user/project")
             base_path = get_worktree_base_path()
 
-        assert str(base_path) == "/custom/worktrees"
+        assert base_path == Path("/custom/worktrees").resolve()
 
     def test_empty_config_uses_default(self) -> None:
         mock_config = {}
@@ -95,6 +98,70 @@ class TestGetWorktreeBasePath:
         assert "repo-worktrees" in str(base_path)
 
 
+class TestNodeWorkspaceDependencies:
+    """Tests for JS workspace dependency bootstrap."""
+
+    def test_find_node_workspaces_root_and_children(self, tmp_path: Path) -> None:
+        (tmp_path / "package.json").write_text("{}", encoding="utf-8")
+        app = tmp_path / "app"
+        app.mkdir()
+        (app / "package.json").write_text("{}", encoding="utf-8")
+        dotdir = tmp_path / ".cache"
+        dotdir.mkdir()
+        (dotdir / "package.json").write_text("{}", encoding="utf-8")
+        node_modules = tmp_path / "node_modules"
+        node_modules.mkdir()
+        (node_modules / "package.json").write_text("{}", encoding="utf-8")
+
+        assert _find_node_workspaces(tmp_path) == [tmp_path, app]
+
+    def test_find_node_workspaces_missing_path(self, tmp_path: Path) -> None:
+        assert _find_node_workspaces(tmp_path / "missing") == []
+
+    def test_install_node_workspace_dependencies_selects_ci_or_install(
+        self, tmp_path: Path
+    ) -> None:
+        (tmp_path / "package.json").write_text("{}", encoding="utf-8")
+        (tmp_path / "package-lock.json").write_text("{}", encoding="utf-8")
+        web = tmp_path / "web"
+        web.mkdir()
+        (web / "package.json").write_text("{}", encoding="utf-8")
+
+        with patch("vibe.git.worktrees.subprocess.run") as mock_run:
+            _install_node_workspace_dependencies(tmp_path)
+
+        commands = [call.args[0] for call in mock_run.call_args_list]
+        cwd_values = [call.kwargs["cwd"] for call in mock_run.call_args_list]
+        assert commands == [["npm", "ci"], ["npm", "install"]]
+        assert cwd_values == [tmp_path, web]
+        assert all(call.kwargs["check"] is True for call in mock_run.call_args_list)
+
+    def test_install_node_workspace_dependencies_missing_npm_is_nonfatal(
+        self, tmp_path: Path, capsys
+    ) -> None:
+        (tmp_path / "package.json").write_text("{}", encoding="utf-8")
+
+        with patch("vibe.git.worktrees.subprocess.run", side_effect=FileNotFoundError):
+            _install_node_workspace_dependencies(tmp_path)
+
+        assert "npm not found" in capsys.readouterr().err
+
+    def test_install_node_workspace_dependencies_failure_is_nonfatal(
+        self, tmp_path: Path, capsys
+    ) -> None:
+        (tmp_path / "package.json").write_text("{}", encoding="utf-8")
+        error = subprocess.CalledProcessError(
+            1, ["npm", "install"], stderr="install failed"
+        )
+
+        with patch("vibe.git.worktrees.subprocess.run", side_effect=error):
+            _install_node_workspace_dependencies(tmp_path)
+
+        stderr = capsys.readouterr().err
+        assert "npm dependency install failed" in stderr
+        assert "install failed" in stderr
+
+
 class TestCreateWorktree:
     """Tests for create_worktree function."""
 
@@ -102,6 +169,8 @@ class TestCreateWorktree:
         """Test creating a worktree with a new branch."""
         worktree_base = tmp_path / "worktrees"
         repo_root = tmp_path / "repo"
+        worktree_path = worktree_base / "feature-123"
+        npm_calls = []
 
         # Mock subprocess calls
         def mock_run(cmd, *args, **kwargs):
@@ -112,6 +181,12 @@ class TestCreateWorktree:
             elif "rev-parse" in cmd and "HEAD" in cmd:
                 result.stdout = "abc123def"
             elif "worktree" in cmd and "add" in cmd:
+                worktree_path.mkdir(parents=True)
+                (worktree_path / "package.json").write_text("{}", encoding="utf-8")
+                (worktree_path / "package-lock.json").write_text("{}", encoding="utf-8")
+                result.returncode = 0
+            elif cmd == ["npm", "ci"]:
+                npm_calls.append((cmd, kwargs["cwd"]))
                 result.returncode = 0
             result.returncode = getattr(result, "returncode", 0)
             return result
@@ -127,6 +202,7 @@ class TestCreateWorktree:
         assert wt.branch == "feature-123"
         assert wt.commit == "abc123def"
         assert wt.is_main is False
+        assert npm_calls == [(["npm", "ci"], worktree_path)]
         mock_add.assert_called_once()
 
     def test_create_worktree_existing_branch(self, tmp_path: Path) -> None:

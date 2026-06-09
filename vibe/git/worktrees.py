@@ -1,6 +1,7 @@
 """Git worktree management."""
 
 import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -54,6 +55,50 @@ def get_worktree_base_path() -> Path:
     return (repo_root / base_path_str).resolve()
 
 
+def _find_node_workspaces(worktree_path: Path) -> list[Path]:
+    """Find root and one-level child npm workspaces in a worktree."""
+    if not worktree_path.exists():
+        return []
+
+    candidates = [worktree_path]
+    candidates.extend(
+        child
+        for child in sorted(worktree_path.iterdir(), key=lambda path: path.name)
+        if child.is_dir() and child.name != "node_modules" and not child.name.startswith(".")
+    )
+    return [path for path in candidates if (path / "package.json").is_file()]
+
+
+def _install_node_workspace_dependencies(worktree_path: Path) -> None:
+    """Best-effort npm dependency install for JS workspaces in a new worktree."""
+    for workspace in _find_node_workspaces(worktree_path):
+        command = ["npm", "ci"] if (workspace / "package-lock.json").is_file() else ["npm", "install"]
+
+        try:
+            subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                check=True,
+                cwd=workspace,
+            )
+        except FileNotFoundError:
+            print(
+                f"vibe: npm not found; run {' '.join(command)} manually in {workspace}",
+                file=sys.stderr,
+            )
+            return
+        except subprocess.CalledProcessError as exc:
+            print(
+                f"vibe: npm dependency install failed in {workspace}; "
+                f"run {' '.join(command)} manually.",
+                file=sys.stderr,
+            )
+            detail = (exc.stderr or exc.stdout or "").strip()
+            if detail:
+                print(detail, file=sys.stderr)
+
+
 def create_worktree(branch_name: str, base_branch: str = "main") -> Worktree:
     """
     Create a new git worktree for the given branch.
@@ -101,6 +146,8 @@ def create_worktree(branch_name: str, base_branch: str = "main") -> Worktree:
         check=True,
     )
     commit = result.stdout.strip()
+
+    _install_node_workspace_dependencies(worktree_path)
 
     # Track in primary repo's state so main checkout sees it
     add_worktree(str(worktree_path), base_path=repo_root)
